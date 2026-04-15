@@ -118,10 +118,10 @@ export default async (client, m) => {
   if (!isOwners && settings.self) return;  
   if (m.chat && !m.chat.endsWith('g.us')) {
     const allowedInPrivateForUsers = [
-      'play', 'mp3', 'play2', 'mp4', 'facebook', 'fb', 'tiktok', 'tt', 'instagram', 'ig', 'pinterest', 'pin', 'imagen', 'img',
-      'chatgpt', 'ia', 'humanizar', 'hd', 'remini', 'read', 'readviewonce', 'ocr', 'texto', 'ssweb', 'ss', 'inspect', 'get', 'fetch', 'apa', 'citar',
+      'play', 'mp3', 'mp4', 'facebook', 'fb', 'tiktok', 'tt', 'instagram', 'ig', 'pinterest', 'pin', 'imagen', 'img',
+      'chatgpt', 'ia', 'humanizar', 'remini', 'read', 'readviewonce', 'ocr', 'texto', 'ssweb', 'ss', 'get', 'fetch', 'apa', 'citar',
       'tts', 'audio', 'decir', 'clima', 'weather', 'tiny', 'shorturl', 'acortar', 'recordar', 'remind', 'trad', 'traducir', 'tr', 'qr', 'qrcode', 'yts', 'ytsr',
-      'wiki', 'wikipedia', 'math', 'calcular', 'resumir', 'resumen', 'pomodoro', 'estudio', 'trivia', 'preguntados', 'frase', 'motivacion', 'quote',
+      'wiki', 'wikipedia', 'solve', 'solucionar', 'resumir', 'resumen', 'pomodoro', 'estudio', 'trivia', 'preguntados', 'frase', 'motivacion', 'quote',
       'corregir', 'ortografia', 'parafrasear', 'reescribir', 'def', 'significado', 'diccionario', 'ruleta', 'sorteo', 'asignar',
       'menu', 'help', 'allmenu', 'ping', 'p', 'status'
     ];
