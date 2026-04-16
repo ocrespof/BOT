@@ -118,12 +118,12 @@ export default async (client, m) => {
   if (!isOwners && settings.self) return;  
   if (m.chat && !m.chat.endsWith('g.us')) {
     const allowedInPrivateForUsers = [
-      'play', 'mp3', 'mp4', 'facebook', 'fb', 'tiktok', 'tt', 'instagram', 'ig', 'pinterest', 'pin', 'imagen', 'img',
-      'chatgpt', 'ia', 'humanizar', 'remini', 'read', 'readviewonce', 'ocr', 'texto', 'ssweb', 'ss', 'get', 'fetch', 'apa', 'citar',
-      'tts', 'audio', 'decir', 'clima', 'weather', 'tiny', 'shorturl', 'acortar', 'recordar', 'remind', 'trad', 'traducir', 'tr', 'qr', 'qrcode', 'yts', 'ytsr',
-      'wiki', 'wikipedia', 'solve', 'solucionar', 'resumir', 'resumen', 'pomodoro', 'estudio', 'trivia', 'preguntados', 'frase', 'motivacion', 'quote',
-      'corregir', 'ortografia', 'parafrasear', 'reescribir', 'def', 'significado', 'diccionario', 'ruleta', 'sorteo', 'asignar',
-      'menu', 'help', 'allmenu', 'ping', 'p', 'status'
+      'play', 'p', 'mp3', 'mp4', 'facebook', 'fb', 'tiktok', 'tt', 'instagram', 'ig', 'pinterest', 'pin', 'imagen', 'img',
+      'chatgpt', 'ia', 'humanizar', 'hum', 'remini', 'read', 'readviewonce', 'ocr', 'texto', 'ssweb', 'ss', 'get', 'fetch', 'apa', 'citar',
+      'clima', 'weather', 'tiny', 'shorturl', 'acortar', 'recordar', 'rec', 'remind', 'trad', 'traducir', 'tr', 'qr', 'qrcode', 'yts', 'ytsr', 'shazam', 'music',
+      'wiki', 'wikipedia', 'vision', 'vis', 'chatpdf', 'pdf', 'solve', 'math', 'solucionar', 'resumir', 'res', 'resumen', 'pomodoro', 'pomo', 'estudio', 'frase', 'motivacion', 'quote',
+      'corregir', 'corr', 'ortografia', 'parafrasear', 'parf', 'reescribir', 'def', 'significado', 'diccionario', 'ruleta', 'sorteo', 'asignar',
+      'menu', 'help', 'allmenu', 'ping', 'status'
     ];
     if (!isOwners && !allowedInPrivateForUsers.includes(command)) return;
   }
@@ -157,7 +157,6 @@ export default async (client, m) => {
     settings.commandsejecut = (settings.commandsejecut || 0) + 1;
     users.usedTime = new Date();
     users.lastCmd = Date.now();
-    user.exp = (user.exp || 0) + Math.floor(Math.random() * 100);
     user.name = m.pushName;
     users.stats[today].cmds++;
     await cmdData.run(client, m, args, usedPrefix, command, text);
