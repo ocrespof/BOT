@@ -38,9 +38,11 @@ export default {
       const time = client.uptime ? formatearMs(Date.now() - client.uptime) : "Desconocido";
       const alias = {
         downloads: ['downloads', 'descargas'],
-        grupo: ['grupo', 'group'],
+        grupo: ['grupo', 'group', 'grupos'],
         stickers: ['stickers', 'sticker'],
-        utils: ['utils', 'utilidades', 'herramientas']
+        utils: ['utils', 'utilidades', 'herramientas'],
+        academia: ['academia', 'estudio'],
+        main: ['main', 'principal']
       };
       const input = normalize(args[0] || '');
       const cat = Object.keys(alias).find(k => alias[k].map(normalize).includes(input));

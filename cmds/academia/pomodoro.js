@@ -1,5 +1,5 @@
 export default {
-  command: ['pomodoro', 'estudio'],
+  command: ['pomodoro', 'pomo', 'estudio'],
   category: 'academia',
   run: async (client, m, args, usedPrefix, command) => {
     const tiempoEstudio = 25 * 60 * 1000; // 25 Minutos

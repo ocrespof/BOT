@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 export default {
-  command: ['corregir', 'ortografia'],
+  command: ['corregir', 'corr', 'ortografia'],
   category: 'academia',
   run: async (client, m, args, usedPrefix, command) => {
     let text = args.join(' ').trim()

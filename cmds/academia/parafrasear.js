@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 export default {
-  command: ['parafrasear', 'reescribir'],
+  command: ['parafrasear', 'parf', 'reescribir'],
   category: 'academia',
   run: async (client, m, args, usedPrefix, command) => {
     let text = args.join(' ').trim()

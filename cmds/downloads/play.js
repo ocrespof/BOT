@@ -11,7 +11,7 @@ async function getVideoInfo(query, videoMatch) {
 }
 
 export default {
-  command: ['play', 'mp3', 'ytmp3', 'ytaudio', 'playaudio'],
+  command: ['play', 'p', 'mp3', 'ytmp3', 'ytaudio', 'playaudio'],
   category: 'downloader',
   run: async (client, m, args, usedPrefix, command) => {
     try {

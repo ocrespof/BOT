@@ -3,17 +3,13 @@ export default {
     'welcome', 'bienvenida',
     'goodbye', 'despedida',
     'alerts', 'alertas',
-    'nsfw',
     'antilink', 'antienlaces', 'antilinks',
-    'rpg', 'economy', 'economia',
-    'gacha',
     'adminonly', 'onlyadmin'
   ],
   category: 'grupo',
   isAdmin: true,
   run: async (client, m, args, usedPrefix, command) => {
     const chatData = global.db.data.chats[m.chat]
-    const botname = global.db.data.settings[client.user.id.split(':')[0] + "@s.whatsapp.net"].botname 
     const stateArg = args[0]?.toLowerCase()
     const validStates = ['on', 'off', 'enable', 'disable']
     const mapTerms = {
@@ -26,33 +22,22 @@ export default {
       despedida: 'goodbye',
       alerts: 'alerts',
       alertas: 'alerts',
-      economy: 'economy',      
-      economia: 'economy',
       adminonly: 'adminonly',
-      onlyadmin: 'adminonly',
-      nsfw: 'nsfw',
-      rpg: 'gacha',
-      gacha: 'gacha'
+      onlyadmin: 'adminonly'
     }
     const featureNames = {
       antilinks: 'el *AntiEnlace*',
       welcome: 'el mensaje de *Bienvenida*',
       goodbye: 'el mensaje de *Despedida*',
       alerts: 'las *Alertas*',
-      economy: 'los comandos de *Economía*',
-      gacha: 'los comandos de *Gacha*',
-      adminonly: 'el modo *Solo Admin*',
-      nsfw: 'los comandos *NSFW*'
+      adminonly: 'el modo *Solo Admin*'
     }
     const featureTitles = {
       antilinks: 'AntiEnlace',
       welcome: 'Bienvenida',
       goodbye: 'Despedida',
       alerts: 'Alertas',
-      economy: 'Economía',
-      gacha: 'Gacha',
-      adminonly: 'AdminOnly',
-      nsfw: 'NSFW'
+      adminonly: 'AdminOnly'
     }
     const normalizedKey = mapTerms[command] || command
     const current = chatData[normalizedKey] === true

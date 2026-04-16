@@ -39,8 +39,7 @@ export default {
   'mia khalifa +18', 'mia khalifa xxx', 'mia khalifa desnuda', 'mia khalifa porno'
   ]
     const lowerText = text.toLowerCase()
-    const nsfwEnabled = global.db.data.chats[m.chat]?.nsfw === true
-    if (!nsfwEnabled && bannedWords.some(word => lowerText.includes(word))) {
+    if (bannedWords.some(word => lowerText.includes(word))) {
       return m.reply('《✧》 Este comando no *permite* búsquedas de contenido *+18* o *NSFW*')
     }
     try {

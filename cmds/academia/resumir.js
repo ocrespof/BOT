@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 export default {
-  command: ['resumir', 'resumen'],
+  command: ['resumir', 'res', 'resumen'],
   category: 'academia',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ').trim()

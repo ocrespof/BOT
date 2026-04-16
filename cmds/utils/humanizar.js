@@ -2,7 +2,7 @@ import axios from 'axios'
 import fetch from 'node-fetch'
 
 export default {
-  command: ['humanizar', 'humanize'],
+  command: ['humanizar', 'hum', 'humanize'],
   category: 'utils',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ').trim()

@@ -1,5 +1,5 @@
 export default {
-  command: ['recordar', 'remind'],
+  command: ['recordar', 'rec', 'remind'],
   category: 'utils',
   run: async (client, m, args, usedPrefix, command) => {
     const input = args.join(' ').trim();
