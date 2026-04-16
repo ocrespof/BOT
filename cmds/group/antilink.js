@@ -1,4 +1,4 @@
-const URL_REGEX = /(https?:\\/\\/[^\\s]+)/gi;
+const URL_REGEX = /(https?:\/\/[^\s]+)/gi;
 const SUSPICIOUS_KEYWORDS = [
   'free-robux', 'free-nitro', 'robux-gratis', 'whatsapp-gold', 
   'generator', 'hack', 'regalo', 'premio', 'money-free', 
