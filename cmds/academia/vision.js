@@ -32,8 +32,8 @@ export default {
       await client.reply(m.chat, res.data.data.trim(), m)
       await m.react('✔️')
     } catch (e) {
-      m.react('❌')
-      await m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: ${e.message}]`)
+      await m.react('❌')
+      await m.reply(`> No se pudo analizar visualmente la imagen proporcionada. Es posible que los servidores estén ocupados.\n> [Error: ${e.message}]`)
     }
   }
 }

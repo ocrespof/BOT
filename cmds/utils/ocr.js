@@ -29,7 +29,7 @@ export default {
             
             if (data.IsErroredOnProcessing || !data.ParsedResults || !data.ParsedResults[0]) {
                 await m.react('✖️');
-                return m.reply('> No se detectó ninguna topografía legible sobre esta imagen.');
+                return m.reply('> No se detectó topografía legible o el escaner gratuito colapsó temporalmente por saturación de tráfico.');
             }
             
             const text = data.ParsedResults[0].ParsedText || '';

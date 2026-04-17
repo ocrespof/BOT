@@ -10,6 +10,7 @@ import fs from "fs";
 import path from "path";
 import readlineSync from "readline-sync";
 import os from "os";
+import NodeCache from "node-cache";
 import { smsg } from "./core/message.js";
 import db from "./core/system/database.js";
 import { exec } from "child_process";
@@ -54,6 +55,7 @@ console.log(chalk.magentaBright('\n❀ Iniciando...'))
 if (!fs.existsSync('./tmp')) fs.mkdirSync('./tmp', { recursive: true });
 global.conns = global.conns || [];
 const reconnecting = new Set();
+const msgRetryCounterCache = new NodeCache();
 
 async function cleanCache() {
   try {
@@ -134,14 +136,16 @@ async function startBot() {
     version,
     logger,
     printQRInTerminal: false,
-    browser: Browsers.macOS('Chrome'),
+    browser: ['Ubuntu', 'Chrome', '20.0.04'],
     auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, logger) },
+    msgRetryCounterCache,
     markOnlineOnConnect: false,
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
     getMessage: async () => "",
-    keepAliveIntervalMs: 45000,
-    maxIdleTimeMs: 60000,
+    defaultQueryTimeoutMs: undefined,
+    emitOwnEvents: true,
+    keepAliveIntervalMs: 25000,
   });
   global.client = sock;
   sock.isInit = false;

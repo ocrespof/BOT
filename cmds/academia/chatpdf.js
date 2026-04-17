@@ -22,10 +22,11 @@ export default {
       for await(const chunk of stream) buffer = Buffer.concat([buffer, chunk])
       
       const data = await pdfParse(buffer, { max: 15 })
-      let pdfText = data.text.substr(0, 5000)
+      // Reducido a 2500 para evitar errores HTTP 414 (URI Too Long) en las APIs GET
+      let pdfText = data.text.substr(0, 2500)
       if (pdfText.length === 0) return m.reply('《✧》 El archivo parece estar vacío o su texto está protegido y es invisible (imagen incrustada en pdf).')
       
-      const prompt = `Soy YukiBot, un usuario de mi plataforma me envió un PDF para que lo analice. He extraído 5000 letras del PDF (hasta la página 15 como máximo). El documento original dice literalmente esto: """${pdfText}""".\n\nTu objetivo principal aquí es responder a la siguiente pregunta del usuario usando MÁXIMA PRECISIÓN basada EXCLUSIVAMENTE en el texto proporcionado: "${text}". Sé claro, ordenado e informativo.`
+      const prompt = `Soy YukiBot, un usuario de mi plataforma me envió un PDF para que lo analice. He extraído las primeras secciones del documento que dicen: """${pdfText}""".\n\nTu objetivo principal aquí es responder a la siguiente pregunta usando MÁXIMA PRECISIÓN basada EXCLUSIVAMENTE en el texto proporcionado: "${text}". Sé claro, ordenado e informativo.`
       
       const url = `${global.APIs.stellar.url}/ai/gptprompt?text=Responde&prompt=${encodeURIComponent(prompt)}&key=${global.APIs.stellar.key}`
       let responseText = null

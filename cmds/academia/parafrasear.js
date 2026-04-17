@@ -15,15 +15,18 @@ export default {
       
       const logic = "Actúa como una herramienta anti-plagio avanzada y reescritor de ensayos. Analiza minuciosamente el texto dado y parafraséalo por completo. Cambia sustancialmente la estructura gramatical, usa sinónimos sofisticados y reordena las oraciones manteniendo el significado central e intactos los hechos o datos clave. Tu objetivo es que este texto alcance una lectura humana experta e irreconocible por sistemas genéricos pasando sistemas anti-plagio. Devuelve ÚNICAMENTE el texto parafraseado, sin notas adicionales en primera o tercera persona y sin rodeos.";
       const res = await axios.post("https://ai.siputzx.my.id", { content: text, user: m.sender, prompt: logic, webSearchMode: false }, { timeout: 20000 });
-      let responseText = res.data.result;
+      let responseText = res.data?.result || null;
       
-      if (!responseText) throw new Error("Vacio");
+      if (!responseText) {
+          await m.react('❌');
+          return client.sendMessage(m.chat, { text: `> El motor anti-plagio se quedó sin palabras o el texto es indescifrable y no se pudo reconstruir.`, edit: key });
+      }
       
       await client.sendMessage(m.chat, { text: `*🔄 TEXTO PARAFRASEADO*\n\n${responseText.trim()}`, edit: key });
       await m.react('✔️');
     } catch (e) {
       await m.react('❌');
-      m.reply(`《✧》 Error al procesar el parafraseo. El texto podría ser demasiado complejo, intenta acortarlo.`);
+      m.reply(`> Error al procesar el parafraseo. El modelo podría estar temporalmente fuera de línea.\n> [Error: ${e.message}]`);
     }
   }
 }

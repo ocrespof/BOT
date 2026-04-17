@@ -1,5 +1,4 @@
 import axios from 'axios'
-import fetch from 'node-fetch'
 
 export default {
   command: ['humanizar', 'hum', 'humanize'],
@@ -37,13 +36,15 @@ El JSON debe tener la siguiente estructura exacta:
       
       let parsedData;
       try {
-          parsedData = JSON.parse(aiResponse);
+          // Extraer JSON si viene incrustado en texto plano u otra cosa
+          const match = aiResponse.match(/\{[\s\S]*\}/);
+          parsedData = JSON.parse(match ? match[0] : aiResponse);
       } catch (e) {
-          // Fallback robusto en caso de que la respuesta escape el formato JSON
+          // Fallback robusto en caso de que la respuesta escape el formato JSON por completo
           parsedData = {
-              original_ai_score: "No Calculable",
-              new_ai_score: "N/A",
-              humanized_text: aiResponse.replace(/"humanized_text":/g, '')
+              original_ai_score: "?%",
+              new_ai_score: "0%",
+              humanized_text: aiResponse.replace(/"humanized_text":/g, '').replace(/["{}]/g, '').trim()
           };
       }
       

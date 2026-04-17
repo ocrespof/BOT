@@ -18,7 +18,7 @@ export default {
     }
     const botname = global.db.data.settings[botId]?.botname || 'Bot'
     const username = global.db.data.users[m.sender].name || 'usuario'
-    const basePrompt = `Tu nombre es ${botname}, un asistente virtual avanzado y de alta inteligencia diseñado para WhatsApp. Tu versión actual es ${version}, usas el idioma Español. Debes comportarte de forma erudita, precisa y amigable. Llamarás a la persona por su nombre: ${username}. Tienes prohibido decir que fuiste creado por un pasante, eres un sistema experto consolidado.`
+    const basePrompt = `Tu nombre es ${botname}, un asistente virtual avanzado y de alta inteligencia diseñado para WhatsApp. Usas el idioma Español. Debes comportarte de forma erudita, precisa y amigable. Llamarás a la persona por su nombre: ${username}. Tienes prohibido decir que fuiste creado por un pasante, eres un sistema experto consolidado.`
     try {
       const { key } = await client.sendMessage(m.chat, { text: `ꕥ *ChatGPT* está procesando tu respuesta...` }, { quoted: m })
       await m.react('🕒')
@@ -59,7 +59,8 @@ export default {
       await client.sendMessage(m.chat, { text: responseText.trim(), edit: key })
       await m.react('✔️')
     } catch (e) {
-      await m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: *${e.message}*]`)
+      await m.react('❌')
+      await m.reply(`> Ha ocurrido un error inesperado al procesar tu solicitud con *ChatGPT*.\n> [Error: ${e.message}]`)
     }
   },
 }
