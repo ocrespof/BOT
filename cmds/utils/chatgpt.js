@@ -30,32 +30,36 @@ export default {
         // 2. GPT (Vía Stellar)
         `${global.APIs.stellar.url}/ai/gptprompt?text=${encodeURIComponent(text)}&prompt=${encodeURIComponent(basePrompt)}&key=${global.APIs.stellar.key}`
       ]
-      
+
       let responseText = null
-      
+
       // Intentar primero con las APIs avanzadas rápidas
       for (const url of apis) {
         try {
           const controller = new AbortController()
-          const timeout = setTimeout(() => controller.abort(), 15000)
+          const timeout = setTimeout(() => controller.abort(), 20000)
           const res = await fetch(url, { signal: controller.signal })
           const json = await res.json()
           clearTimeout(timeout)
-          
+
           if (json?.response) { responseText = json.response; break }
           if (json?.result?.text) { responseText = json.result.text; break }
           if (json?.result) { responseText = json.result; break }
         } catch (err) { }
       }
 
-      // 3. Fallback: Blackbox AI (Siputzx) si lo anterior falla
+      // 3. Fallback: Blackbox AI (Siputzx) si lo anterior falla (Con búsqueda Web extendida)
       if (!responseText) {
         try {
           responseText = await luminsesi(text, username, basePrompt)
         } catch (err) { }
       }
-      
-      if (!responseText) return client.reply(m.chat, '《✧》 No se pudo obtener una *respuesta* válida')
+
+      if (!responseText) {
+        await m.react('✖️')
+        return client.sendMessage(m.chat, { text: '《✧》 En este momento los servidores de IA están saturados y no pudimos procesar tu solicitud. Intenta de nuevo en un minuto.', edit: key })
+      }
+
       await client.sendMessage(m.chat, { text: responseText.trim(), edit: key })
       await m.react('✔️')
     } catch (e) {
@@ -66,6 +70,12 @@ export default {
 }
 
 async function luminsesi(q, username, logic) {
-  const res = await axios.post("https://ai.siputzx.my.id", { content: q, user: username, prompt: logic, webSearchMode: true }, { timeout: 15000 })
+  // Timeout extendido a 30s asumiendo que webSearchMode necesita tiempo para buscar resultados recientes
+  const res = await axios.post("https://ai.siputzx.my.id", {
+    content: q,
+    user: username,
+    prompt: logic,
+    webSearchMode: true
+  }, { timeout: 30000 })
   return res.data.result
 }
