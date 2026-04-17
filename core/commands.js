@@ -67,7 +67,6 @@ export const menuObject = {
 ✔️ *$prefix tagall* ➭ _Menciona a todos_
 ✔️ *$prefix tag* ➭ _Aviso masivo invisible_
 ✔️ *$prefix link* ➭ _Enlace de invitación_
-✔️ *$prefix setgoodbye* ➭ _Mensaje de despedida_
 ✔️ *$prefix setgpbanner* ➭ _Foto de perfil grupo_
 ✔️ *$prefix options* ➭ _Configuraciones extras_`,
 

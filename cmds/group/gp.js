@@ -35,8 +35,6 @@ export default {
     const settings = {
       bot: chat.isBanned ? '✘ Desactivado' : '✓ Activado',
       antilinks: chat.antilinks ? '✓ Activado' : '✘ Desactivado',
-      welcome: chat.welcome ? '✓ Activado' : '✘ Desactivado',
-      goodbye: chat.goodbye ? '✓ Activado' : '✘ Desactivado',
       alerts: chat.alerts ? '✓ Activado' : '✘ Desactivado',
       adminmode: chat.adminonly ? '✓ Activado' : '✘ Desactivado',
       botprimary: botprimary
@@ -54,8 +52,6 @@ export default {
       message += `➪ *Configuraciones:*\n`;
       message += `✐ ${botname} › *${settings.bot}*\n`;
       message += `✐ AntiLinks › *${settings.antilinks}*\n`;
-      message += `✐ Bienvenida › *${settings.welcome}*\n`;
-      message += `✐ Despedida › *${settings.goodbye}*\n`;
       message += `✐ Alertas › *${settings.alerts}*\n`;
       message += `✐ ModoAdmin › *${settings.adminmode}*`;
       

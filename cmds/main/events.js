@@ -16,56 +16,6 @@ export default async (client, m) => {
       for (const p of anu.participants) {
         const jid = p.id || p.jid || p.phoneNumber || "";
         const phone = jid.split('@')[0];
-        const pp = await client.profilePictureUrl(jid, 'image').catch(_ => 'https://cdn.yuki-wabot.my.id/files/2PVh.jpeg')       
-        const mensajes = { add: '', remove: chat.sGoodbye ? `\n┊➤ ${chat.sGoodbye.replace(/{usuario}/g, `@${phone}`).replace(/{grupo}/g, `*${metadata.subject}*`).replace(/{desc}/g, metadata?.desc || '✿ Sin Desc ✿')}` : '', leave: chat.sGoodbye ? `\n┊➤ ${chat.sGoodbye.replace(/{usuario}/g, `@${phone}`).replace(/{grupo}/g, `*${metadata.subject}*`).replace(/{desc}/g, metadata?.desc || '✿ Sin Desc ✿')}` : '' }
-        const fakeContext = {
-          contextInfo: {
-            isForwarded: true,
-            forwardedNewsletterMessageInfo: {
-              newsletterJid: global.db.data.settings[botId].id,
-              serverMessageId: '0',
-              newsletterName: global.db.data.settings[botId].nameid
-            },
-            externalAdReply: {
-              title: global.db.data.settings[botId].namebot,
-              body: global.dev,
-              mediaUrl: null,
-              description: null,
-              previewType: 'PHOTO',
-              thumbnailUrl: global.db.data.settings[botId].icon,
-              sourceUrl: global.db.data.settings[client.user.id.split(':')[0] + "@s.whatsapp.net"].link,
-              mediaType: 1,
-              renderLargerThumbnail: false
-            },
-            mentionedJid: [jid]
-          }
-        }
-        if (anu.action === 'add' && chat?.welcome && (!primaryBotId || primaryBotId === botId)) {
-          const caption = `╭┈──̇─̇─̇────̇─̇─̇──◯◝
-┊「 *Bienvenido (⁠ ⁠ꈍ⁠ᴗ⁠ꈍ⁠)* 」
-┊︶︶︶︶︶︶︶︶︶︶︶
-┊  *Nombre ›* @${phone}
-┊  *Grupo ›* ${metadata.subject}
-┊┈─────̇─̇─̇─────◯◝
-┊➤ *Usa /menu para ver los comandos.*
-┊➤ *Ahora somos ${memberCount} miembros.* ${mensajes[anu.action]}
-┊ ︿︿︿︿︿︿︿︿︿︿︿
-╰─────────────────╯`
-         await client.sendMessage(anu.id, { image: { url: pp }, caption, ...fakeContext })     
-        }
-        if ((anu.action === 'remove' || anu.action === 'leave') && chat?.goodbye && (!primaryBotId || primaryBotId === botId)) {
-          const caption = `╭┈──̇─̇─̇────̇─̇─̇──◯◝
-┊「 *Hasta pronto (⁠╥⁠﹏⁠╥⁠)* 」
-┊︶︶︶︶︶︶︶︶︶︶︶
-┊  *Nombre ›* @${phone}
-┊  *Grupo ›* ${metadata.subject}
-┊┈─────̇─̇─̇─────◯◝
-┊➤ *Ojalá que vuelva pronto.*
-┊➤ *Ahora somos ${memberCount} miembros.* ${mensajes[anu.action]}
-┊ ︿︿︿︿︿︿︿︿︿︿︿
-╰─────────────────╯`
-          await client.sendMessage(anu.id, { image: { url: pp }, caption, ...fakeContext })
-        }
         if (anu.action === 'promote' && chat?.alerts && (!primaryBotId || primaryBotId === botId)) {
           const usuario = anu.author
           await client.sendMessage(anu.id, { text: `「✎」 *@${phone}* ha sido promovido a Administrador por *@${usuario.split('@')[0]}.*`, mentions: [jid, usuario, ...groupAdmins.map(v => v.id)] })

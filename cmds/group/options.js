@@ -1,7 +1,5 @@
 export default {
   command: [
-    'welcome', 'bienvenida',
-    'goodbye', 'despedida',
     'alerts', 'alertas',
     'antilink', 'antienlaces', 'antilinks',
     'adminonly', 'onlyadmin'
@@ -16,10 +14,6 @@ export default {
       antilinks: 'antilinks',
       antienlaces: 'antilinks',
       antilink: 'antilinks',
-      welcome: 'welcome',
-      bienvenida: 'welcome',
-      goodbye: 'goodbye',
-      despedida: 'goodbye',
       alerts: 'alerts',
       alertas: 'alerts',
       adminonly: 'adminonly',
@@ -27,15 +21,11 @@ export default {
     }
     const featureNames = {
       antilinks: 'el *AntiEnlace*',
-      welcome: 'el mensaje de *Bienvenida*',
-      goodbye: 'el mensaje de *Despedida*',
       alerts: 'las *Alertas*',
       adminonly: 'el modo *Solo Admin*'
     }
     const featureTitles = {
       antilinks: 'AntiEnlace',
-      welcome: 'Bienvenida',
-      goodbye: 'Despedida',
       alerts: 'Alertas',
       adminonly: 'AdminOnly'
     }

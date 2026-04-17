@@ -24,9 +24,6 @@ function initDB(m, client) {
   const chat = global.db.data.chats[m.chat] ||= {}
   chat.users ||= {}
   chat.isBanned ??= false
-  chat.welcome ??= false
-  chat.goodbye ??= false
-  chat.sGoodbye ??= ''
   chat.alerts ??= true
   chat.adminonly ??= false
   chat.primaryBot ??= null
