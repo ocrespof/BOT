@@ -33,7 +33,6 @@ export const menuObject = {
 > _Utilidades prácticas del día a día_
 
 ⊳ *$prefix ia* ➭ Interactúa con la IA central
-⊳ *$prefix hum* ➭ Dar tono humano a textos IA
 ⊳ *$prefix read* ➭ Ver un archivo _"View Once"_
 ⊳ *$prefix ocr* ➭ Extraer texto de imágenes
 ⊳ *$prefix ss* ➭ Captura de pantalla a una URL
@@ -43,7 +42,6 @@ export const menuObject = {
 ⊳ *$prefix qr* ➭ Generador de códigos QR
 ⊳ *$prefix rec* ➭ Sistema de recordatorios
 ⊳ *$prefix music* ➭ Identificador de canciones
-⊳ *$prefix apa* ➭ Generador de formato APA
 ⊳ *$prefix yts* ➭ Buscar en base de datos YT`,
 
     academia: `> 🎓 *A C A D E M I A*
@@ -56,7 +54,8 @@ export const menuObject = {
 ⊳ *$prefix res* ➭ Sintetizador de textos extensos
 ⊳ *$prefix pomo* ➭ Temporizador de estudio
 ⊳ *$prefix corr* ➭ Corrector ortográfico avanzado
-⊳ *$prefix parf* ➭ Reescribidor de párrafos
+⊳ *$prefix hum* / *parf* ➭ Humanizar / Parafrasear
+⊳ *$prefix apa* ➭ Generador de formato APA
 ⊳ *$prefix def* ➭ Diccionario de definiciones
 ⊳ *$prefix frase* ➭ Frase o reflexión diaria
 ⊳ *$prefix ruleta* ➭ Sistema generador de azar

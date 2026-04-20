@@ -21,6 +21,7 @@ Se eliminaron módulos pesados (Anime, Gacha, NSFW, bases de datos colosales) pa
 ## 🥦 Características Destacadas
 
 - **Rapidez Extrema:** Guarda asíncrono y recolector temporal de memoria mejorado de NodeJS.
+- **Inteligencia Artificial y Academia:** Detector de IA y plagio, humanización y parafraseo, OCR, procesador de PDFs y solver matemático integrado.
 - **Utilidades y Espiritualidad:** Obtención interactiva de versículos bíblicos y devocionales diarios.
 - **Multimedia y Reacciones:** Descargas de redes y comandos exclusivos de emociones usando de Pinkie Pie.
 - **Moderación:** Sistema de warns, anti-links, hidetags y control absoluto.

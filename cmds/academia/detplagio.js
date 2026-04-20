@@ -32,19 +32,29 @@ Asegúrate de que plagiarism_percentage + unique_percentage sumen 100%. Debes se
           webSearchMode: true 
       }, { timeout: 50000 });
       
-      let aiResponse = res.data.result;
+      let aiResponse = res?.data?.result;
+
+      if (!aiResponse) {
+          await m.react('❌');
+          return client.sendMessage(m.chat, { text: `> ⚠️ La API no devolvió un análisis. Es posible que el texto sea muy largo o haya problemas de conexión.`, edit: key });
+      }
+
       aiResponse = aiResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
       
       let parsedData;
       try {
           const match = aiResponse.match(/\{[\s\S]*\}/);
-          parsedData = JSON.parse(match ? match[0] : aiResponse);
+          if (match) {
+              parsedData = JSON.parse(match[0]);
+          } else {
+              throw new Error("JSON no encontrado");
+          }
       } catch (e) {
           parsedData = {
               plagiarism_percentage: "?%",
               unique_percentage: "?%",
               sources_found: "?",
-              verdict: "Texto fue procesado pero hubo un error de parseo en el reporte."
+              verdict: "El análisis fue procesado pero hubo un error extrayendo los resultados."
           };
       }
       
@@ -59,7 +69,8 @@ Asegúrate de que plagiarism_percentage + unique_percentage sumen 100%. Debes se
       
     } catch (e) {
       await m.react('❌')
-      m.reply(`> El escáner tardó demasiado y excedió el tiempo límite. Intenta con un texto más corto.\n> [Error: ${e.message}]`)
+      const errorMsg = e.response ? `Servidor saturado (Status: ${e.response.status})` : e.message;
+      m.reply(`> ⚠️ Error en la detección de plagio: ${errorMsg}\n> Intenta con un texto más corto o inténtalo más tarde.`)
     }
   }
 }
