@@ -18,14 +18,16 @@ export const menuObject = {
 ⊳ *$prefix tt* ➭ Videos de TikTok
 ⊳ *$prefix ig* ➭ Reels y Post de IG
 ⊳ *$prefix pin* ➭ Descargar imágenes
-⊳ *$prefix img* ➭ Búsqueda en Google`,
+⊳ *$prefix img* ➭ Búsqueda en Google
+⊳ *$prefix studocu* ➭ Docs de Studocu`,
 
     stickers: `> 🎨 *S T I C K E R S*
 > _Creación de multimedia interactiva_
 
 ⊳ *$prefix s* ➭ Crear sticker desde imagen/video
 ⊳ *$prefix brat* ➭ Crear sticker estilo brat
-⊳ *$prefix bratv* ➭ Sticker brat animado`,
+⊳ *$prefix bratv* ➭ Sticker brat animado
+⊳ *$prefix getpack* ➭ Bajar pack de stickers`,
 
     utils: `> 🛠️ *H E R R A M I E N T A S*
 > _Utilidades prácticas del día a día_
@@ -57,7 +59,9 @@ export const menuObject = {
 ⊳ *$prefix parf* ➭ Reescribidor de párrafos
 ⊳ *$prefix def* ➭ Diccionario de definiciones
 ⊳ *$prefix frase* ➭ Frase o reflexión diaria
-⊳ *$prefix ruleta* ➭ Sistema generador de azar`,
+⊳ *$prefix ruleta* ➭ Sistema generador de azar
+⊳ *$prefix detia* ➭ Detector de texto IA
+⊳ *$prefix plagio* ➭ Escáner de plagio`,
 
     grupo: `> 👥 *A D M I N I S T R A C I Ó N*
 > _Control absoluto para grupos_
