@@ -15,12 +15,10 @@ import { smsg } from "./core/message.js";
 import db from "./core/system/database.js";
 import { exec } from "child_process";
 
+import Logger from './utils/logger.js';
 const log = {
-  info: (msg) => console.log(chalk.bgBlue.white.bold(`INFO`), chalk.white(msg)),
-  success: (msg) => console.log(chalk.bgGreen.white.bold(`SUCCESS`), chalk.greenBright(msg)),
-  warn: (msg) => console.log(chalk.bgYellowBright.blueBright.bold(`WARNING`), chalk.yellow(msg)),
-  warning: (msg) => console.log(chalk.bgYellowBright.red.bold(`WARNING`), chalk.yellow(msg)),
-  error: (msg) => console.log(chalk.bgRed.white.bold(`ERROR`), chalk.redBright(msg))
+  ...Logger,
+  warning: Logger.warn
 };
 
 const maxCache = 100;
@@ -160,7 +158,7 @@ async function startBot() {
           console.log(chalk.bold.white(chalk.bgMagenta(`Código de emparejamiento:`)), chalk.bold.white(chalk.white(codeBot)));
         }
       } catch (err) {
-        console.log(chalk.red("Error al generar código:"), err);
+        Logger.error("Error al generar código:", err);
       }
     }, 3000);
   }
@@ -231,13 +229,13 @@ async function startBot() {
       const m = await smsg(sock, kay);
       main(sock, m, chatUpdate);
     } catch (err) {
-      console.log(log.error('Error:'), err);
+      Logger.error('Error procesando mensaje', err);
     }
   });
   try {
     await events(sock, null);
   } catch (err) {
-    console.log(chalk.gray(`[ BOT  ]  → ${err}`));
+    Logger.error('Error al iniciar eventos', err);
   }
 
   sock.decodeJid = (jid) => {
@@ -264,11 +262,11 @@ await startBot();
 process.on('uncaughtException', (err) => {
   const msg = err?.message || '';
   if (msg.includes('rate-overlimit') || msg.includes('timed out') || msg.includes('Connection Closed')) return;
-  console.error(chalk.red('[uncaughtException]'), msg.slice(0, 120));
+  Logger.error('[uncaughtException] ' + msg.slice(0, 120), err);
 });
 
 process.on('unhandledRejection', (reason) => {
   const msg = String(reason?.message || reason || '');
   if (msg.includes('rate-overlimit') || msg.includes('timed out') || msg.includes('Connection Closed')) return;
-  console.error(chalk.red('[unhandledRejection]'), msg.slice(0, 120));
+  Logger.error('[unhandledRejection] ' + msg.slice(0, 120), reason);
 });
