@@ -33,8 +33,9 @@ async function seeCommands(dir = commandsFolder) {
       }
       const comando = imported.default;
       const pluginName = fileOrFolder.replace(".js", "");
-      imported.priority = imported.priority || comando?.priority || 0;
-      global.plugins[pluginName] = imported;
+      const pluginObj = { ...imported };
+      pluginObj.priority = pluginObj.priority || comando?.priority || 0;
+      global.plugins[pluginName] = pluginObj;
       
       if (!comando?.command || typeof comando.run !== "function") continue;
       
@@ -93,8 +94,9 @@ global.reload = async (_ev, fullPath) => {
         if (data.pluginName === pluginName) global.comandos.delete(cmd);
       }
       const comando = imported.default;
-      imported.priority = imported.priority || comando?.priority || 0;
-      global.plugins[pluginName] = imported;
+      const pluginObj = { ...imported };
+      pluginObj.priority = pluginObj.priority || comando?.priority || 0;
+      global.plugins[pluginName] = pluginObj;
       
       if (comando?.command && typeof comando.run === "function") {
         const cmds = Array.isArray(comando.command) ? comando.command : [comando.command];
