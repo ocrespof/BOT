@@ -33,7 +33,7 @@ async function seeCommands(dir = commandsFolder) {
       }
       const comando = imported.default;
       const pluginName = fileOrFolder.replace(".js", "");
-      const pluginObj = { ...imported };
+      const pluginObj = Object.assign({}, imported);
       pluginObj.priority = pluginObj.priority || comando?.priority || 0;
       global.plugins[pluginName] = pluginObj;
       
@@ -59,6 +59,9 @@ async function seeCommands(dir = commandsFolder) {
     } catch (e) {
       Logger.error(`Error en el plugin ${fileOrFolder}`, e);
     }
+  }
+  if (dir === commandsFolder) {
+    console.log(chalk.cyanBright(`[ ℹ ] Total de comandos registrados: ${global.comandos.size}`));
   }
 }
 

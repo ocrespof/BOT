@@ -1,7 +1,6 @@
 import { httpGet, httpPost, httpAxios as axios } from '../../utils/http.js';
 import { getDevice } from '@whiskeysockets/baileys';
 import fs from 'fs';
-import axios from 'axios';
 import moment from 'moment-timezone';
 
 const bodyMenu = `
