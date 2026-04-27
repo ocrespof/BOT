@@ -19,7 +19,7 @@ export default {
       const db = global.db.data
       const senderToUse = m.quoted ? m.quoted.sender : m.sender;
       const user = db.users[senderToUse] || {}
-      const name = user.name || (m.quoted ? (m.quoted.pushName || `@${senderToUse.split('@')[0]}`) : m.pushName);
+      const name = user.name || (m.quoted ? (m.quoted.pushName || 'Usuario') : m.pushName);
       const meta1 = user.metadatos ? String(user.metadatos).trim() : '';
       const meta2 = user.metadatos2 ? String(user.metadatos2).trim() : '';
       let texto1 = meta1 ? meta1 : `ʏᴜᴋɪ 🧠 Wᴀʙᴏᴛ`;

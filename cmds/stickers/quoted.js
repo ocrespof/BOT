@@ -23,7 +23,7 @@ export default {
             pfp = await client.profilePictureUrl(who, 'image');
         } catch (e) {}
 
-        const userName = (m.quoted ? (m.quoted.pushName || `@${who.split('@')[0]}`) : m.pushName) || 'Usuario';
+        const userName = (m.quoted ? (m.quoted.pushName || global.db.data.users[who]?.name || 'Usuario') : m.pushName) || 'Usuario';
 
         try {
             await m.react('🕒');
