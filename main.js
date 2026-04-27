@@ -118,17 +118,7 @@ export default async (client, m) => {
   }
   
   if (!isOwners && settings.self) return;  
-  if (m.chat && !m.chat.endsWith('g.us')) {
-    const allowedInPrivateForUsers = [
-      'play', 'p', 'mp3', 'mp4', 'facebook', 'fb', 'tiktok', 'tt', 'instagram', 'ig', 'pinterest', 'pin', 'imagen', 'img',
-      'chatgpt', 'ia', 'humanizar', 'hum', 'remini', 'read', 'readviewonce', 'ocr', 'texto', 'ssweb', 'ss', 'get', 'fetch', 'apa', 'citar',
-      'clima', 'weather', 'tiny', 'shorturl', 'acortar', 'recordar', 'rec', 'remind', 'trad', 'traducir', 'tr', 'qr', 'qrcode', 'yts', 'ytsr', 'shazam', 'music',
-      'wiki', 'wikipedia', 'vision', 'vis', 'chatpdf', 'pdf', 'solve', 'math', 'solucionar', 'resumir', 'res', 'resumen', 'pomodoro', 'pomo', 'estudio', 'frase', 'motivacion', 'quote',
-      'corregir', 'corr', 'ortografia', 'parafrasear', 'parf', 'reescribir', 'def', 'significado', 'diccionario', 'ruleta', 'sorteo', 'asignar',
-      'menu', 'help', 'allmenu', 'ping', 'status'
-    ];
-    if (!isOwners && !allowedInPrivateForUsers.includes(command)) return;
-  }
+
   if (chat?.isBanned && !(command === 'bot' && text === 'on') && !isOwners) {
     await m.reply(`ꕥ El bot *${settings.botname}* está desactivado en este grupo.\n\n> ✎ Un *administrador* puede activarlo con el comando:\n> » *${usedPrefix}bot on*`);
     return;
@@ -147,6 +137,7 @@ export default async (client, m) => {
     await client.readMessages([m.key]);
     return m.reply(`ꕤ El comando *${command}* no existe.\n✎ Usa *${usedPrefix}help* para ver la lista de comandos disponibles.`);
   }
+  if (m.chat && !m.chat.endsWith('g.us') && !isOwners && !cmdData.isPrivate) return;
   if (cmdData.isOwner && !isOwners) {
     if (settings.prefix === true) return;
     return m.reply(`ꕤ El comando *${command}* no existe.\n✎ Usa *${usedPrefix}help* para ver la lista de comandos disponibles.`);
