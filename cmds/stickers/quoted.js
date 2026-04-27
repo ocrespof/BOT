@@ -23,7 +23,7 @@ export default {
             pfp = await client.profilePictureUrl(who, 'image');
         } catch (e) {}
 
-        const userName = m.pushName || (who.includes('@s.whatsapp.net') ? '+' + who.replace('@s.whatsapp.net', '') : 'Usuario');
+        const userName = (m.quoted ? (m.quoted.pushName || `@${who.split('@')[0]}`) : m.pushName) || 'Usuario';
 
         try {
             await m.react('🕒');

@@ -17,12 +17,13 @@ export default {
       const quoted = m.quoted ? m.quoted : m;
       const mime = (quoted.msg || quoted).mimetype || '';
       const db = global.db.data
-      const user = db.users[m.sender] || {}
-      const name = user.name;
+      const senderToUse = m.quoted ? m.quoted.sender : m.sender;
+      const user = db.users[senderToUse] || {}
+      const name = user.name || (m.quoted ? (m.quoted.pushName || `@${senderToUse.split('@')[0]}`) : m.pushName);
       const meta1 = user.metadatos ? String(user.metadatos).trim() : '';
       const meta2 = user.metadatos2 ? String(user.metadatos2).trim() : '';
       let texto1 = meta1 ? meta1 : `ʏᴜᴋɪ 🧠 Wᴀʙᴏᴛ`;
-      let texto2 = meta1 ? (meta2 ? meta2 : '') : `@${name}`;
+      let texto2 = meta1 ? (meta2 ? meta2 : '') : (name.startsWith('@') ? name : `@${name}`);
       let urlArg = null;
       let argsWithoutUrl = [];
       for (let arg of args) {
