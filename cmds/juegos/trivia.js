@@ -92,21 +92,22 @@ export default {
     }
   },
 
-  before: async function (client, m) {
-    if (!m.text || !global.juegos.has(m.chat)) return;
-    
-    const juego = global.juegos.get(m.chat);
-    if (juego.type === 'trivia') {
-      const respuestaUsuario = normalize(m.text);
-      const respuestaCorrecta = normalize(juego.answer);
-      
-      if (respuestaUsuario === respuestaCorrecta || (respuestaUsuario.length >= 4 && respuestaUsuario.includes(respuestaCorrecta))) {
-        clearTimeout(juego.timeoutId);
-        global.juegos.delete(m.chat);
-        
-        await client.sendMessage(m.chat, { text: `┌───「 🎉 *¡CORRECTO!* 🎉 」───┐\n│ ❖ ¡Felicidades @${m.sender.split('@')[0]}!\n│ ❖ La respuesta era: *${juego.answer}*\n└───────────────────────┘`, mentions: [m.sender] }, { quoted: m });
-        return true; 
-      }
+
+};
+
+export const before = async (client, m) => {
+  if (!m.text || !global.juegos.has(m.chat)) return;
+  const juego = global.juegos.get(m.chat);
+  if (juego.type === 'trivia') {
+    const respuestaUsuario = normalize(m.text);
+    const respuestaCorrecta = normalize(juego.answer);
+    if (respuestaUsuario === respuestaCorrecta || (respuestaUsuario.length >= 4 && respuestaUsuario.includes(respuestaCorrecta))) {
+      clearTimeout(juego.timeoutId);
+      global.juegos.delete(m.chat);
+      // reward 100 XP
+      global.db.data.users[m.sender].exp = (global.db.data.users[m.sender].exp || 0) + 100;
+      await client.sendMessage(m.chat, { text: `┌───「 🎉 *¡CORRECTO!* 🎉 」───┐\n│ ❖ ¡Felicidades @${m.sender.split('@')[0]}!\n│ ❖ La respuesta era: *${juego.answer}*\n└───────────────────────┘`, mentions: [m.sender] }, { quoted: m });
+      return true;
     }
   }
 };

@@ -1,4 +1,11 @@
 import { getAIResponse } from '../../src/ai/client.js'
+import axios from 'axios'
+
+const AI_APIS = [
+    (q) => `https://mistral.stacktoy.workers.dev/?apikey=Suhail&text=${encodeURIComponent(q)}`,
+    (q) => `https://llama.gtech-apiz.workers.dev/?apikey=Suhail&text=${encodeURIComponent(q)}`,
+    (q) => `https://mistral.gtech-apiz.workers.dev/?apikey=Suhail&text=${encodeURIComponent(q)}`
+];
 
 export default {
   command: ['ia', 'chatgpt'],
@@ -18,18 +25,40 @@ export default {
     const botname = global.db.data.settings[botId]?.botname || 'Bot'
     const username = global.db.data.users[m.sender].name || 'usuario'
     const basePrompt = `Tu nombre es ${botname}, un asistente virtual avanzado y de alta inteligencia diseñado para WhatsApp. Usas el idioma Español. Debes comportarte de forma erudita, precisa y amigable. Llamarás a la persona por su nombre: ${username}. Tienes prohibido decir que fuiste creado por un pasante, eres un sistema experto consolidado.`
+    
+    let key;
     try {
-      const { key } = await client.sendMessage(m.chat, { text: `ꕥ *ChatGPT* está procesando tu respuesta...` }, { quoted: m })
+      const msg = await client.sendMessage(m.chat, { text: `ꕥ *ChatGPT* está procesando tu respuesta...` }, { quoted: m })
+      key = msg.key
       await m.react('🕒')
       const prompt = `${basePrompt}. Responde: ${text}`
       
-      const responseText = await getAIResponse({ content: text, prompt: basePrompt, user: m.sender })
+      let responseText = null;
+      try {
+          responseText = await getAIResponse({ content: text, prompt: basePrompt, user: m.sender })
+      } catch (errPrimary) {
+          console.log("Primary AI failed, trying fallbacks...");
+          for (const apiFn of AI_APIS) {
+              try {
+                  const res = await axios.get(apiFn(text));
+                  if (res.data && res.data.result) {
+                      responseText = res.data.result;
+                      break;
+                  }
+              } catch (e) {}
+          }
+          if (!responseText) throw new Error("All AI providers failed.");
+      }
 
       await client.sendMessage(m.chat, { text: responseText.trim(), edit: key })
       await m.react('✔️')
     } catch (e) {
       await m.react('❌')
-      await m.reply(`> Ha ocurrido un error inesperado al procesar tu solicitud con *ChatGPT*.\n> [Error: ${e.message}]`)
+      if (key) {
+        await client.sendMessage(m.chat, { text: `> Ha ocurrido un error inesperado al procesar tu solicitud con *ChatGPT*.\n> [Error: ${e.message}]`, edit: key })
+      } else {
+        await m.reply(`> Ha ocurrido un error inesperado al procesar tu solicitud con *ChatGPT*.\n> [Error: ${e.message}]`)
+      }
     }
   },
 }

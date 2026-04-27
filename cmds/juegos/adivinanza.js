@@ -80,3 +80,30 @@ export default {
     }
   }
 };
+
+export const before = async (client, m) => {
+  if (!m.text || !global.juegos.has(m.chat)) return;
+  const juego = global.juegos.get(m.chat);
+  if (juego.type === 'adivinanza') {
+    const respuestaUsuario = normalize(m.text);
+    const respuestaCorrecta = normalize(juego.answer);
+    const palabrasCorrectas = respuestaCorrecta.split(' ').filter(p => p.length > 3);
+    let acierto = false;
+    if (respuestaUsuario === respuestaCorrecta) {
+      acierto = true;
+    } else if (palabrasCorrectas.length > 0) {
+      for (const palabra of palabrasCorrectas) {
+        if (respuestaUsuario.includes(palabra)) acierto = true;
+      }
+    } else if (respuestaCorrecta.length > 3 && respuestaUsuario.includes(respuestaCorrecta)) {
+      acierto = true;
+    }
+    if (acierto) {
+      clearTimeout(juego.timeoutId);
+      global.juegos.delete(m.chat);
+      global.db.data.users[m.sender].exp = (global.db.data.users[m.sender].exp || 0) + 100;
+      await client.sendMessage(m.chat, { text: `🎉 ¡Espléndido @${m.sender.split('@')[0]}!\n> ❖ La respuesta exacta era: *${juego.answer}*\n> 💰 Has ganado 100 XP.`, mentions: [m.sender] }, { quoted: m });
+      return true;
+    }
+  }
+};

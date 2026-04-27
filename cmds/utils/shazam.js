@@ -1,52 +1,89 @@
+import { createRequire } from 'module'
 import { downloadContentFromMessage } from '@whiskeysockets/baileys'
-import axios from 'axios'
-import FormData from 'form-data'
+import fs from 'fs'
+import path from 'path'
 
+const require = createRequire(import.meta.url)
+const acrcloud = require('acrcloud')
+
+const acr = new acrcloud({
+    host: 'identify-eu-west-1.acrcloud.com',
+    access_key: 'c33c767d683f78bd17d4bd4991955d81',
+    access_secret: 'bvgaIAEtADBTbLwiPGYlxupWqkNGIjT7J9Ag2vIu',
+})
+
+/* ================= MEDIA HELPERS ================= */
+function getAudioOrVideo(message) {
+    const m = message.message || {}
+    if (m.audioMessage) return { msg: m.audioMessage, type: 'audio', ext: '.mp3' }
+    if (m.videoMessage) return { msg: m.videoMessage, type: 'video', ext: '.mp4' }
+
+    const quoted = m.extendedTextMessage?.contextInfo?.quotedMessage
+    if (!quoted) return null
+
+    if (quoted.audioMessage) return { msg: quoted.audioMessage, type: 'audio', ext: '.mp3' }
+    if (quoted.videoMessage) return { msg: quoted.videoMessage, type: 'video', ext: '.mp4' }
+
+    return null
+}
+
+async function downloadMedia(msg, type) {
+    const stream = await downloadContentFromMessage(msg, type)
+    const chunks = []
+    for await (const chunk of stream) chunks.push(chunk)
+    return Buffer.concat(chunks)
+}
+
+/* ================= COMMAND MODULE ================= */
 export default {
-  command: ['shazam', 'music'],
-  category: 'utils',
-  run: async (client, m, args, usedPrefix, command) => {
-    const quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage
-    const mediaMessage = quoted?.audioMessage || quoted?.videoMessage
-    if (!mediaMessage) return m.reply('《✧》 Por favor, responde a un *audio* o un *video corto* del que quieras reconocer la música.')
-    
-    try {
-      await m.react('🕒')
-      const type = quoted?.audioMessage ? 'audio' : 'video'
-      const stream = await downloadContentFromMessage(mediaMessage, type)
-      let buffer = Buffer.from([])
-      for await(const chunk of stream) buffer = Buffer.concat([buffer, chunk])
-      
-      const form = new FormData()
-      form.append('file', buffer, 'shazam.mp3')
-      
-      const apis = [
-        `https://api.vreden.my.id/api/shazam`,
-        `https://api.kirbotz.my.id/api/tools/shazam`
-      ]
-      
-      let resData = null;
-      for (const url of apis) {
-         try {
-             const send = await axios.post(url, form, { headers: form.getHeaders(), timeout: 15000 })
-             if (send.data?.result || send.data?.metadata) { resData = send.data; break; }
-         } catch(e) {}
-      }
+    command: ['shazam', 'whatmusic', 'songid'],
+    category: 'info',
+    description: 'Identify a song from audio or video',
+    usage: 'Responder a audio o video',
+    run: async (client, m, args, usedPrefix, command) => {
+        try {
+            const media = getAudioOrVideo(m)
+            if (!media) {
+                return await client.sendMessage(
+                    m.chat,
+                    { text: '⚠️ *RESPONDE A UN AUDIO O VIDEO*' },
+                    { quoted: m }
+                )
+            }
 
-      if (!resData || !resData.result) return m.reply('《✧》 Traté de escuchar pero mi motor de reconocimiento no detectó ninguna canción en ese audio. 😔')
-      
-      const data = resData.result
-      const texto = `ㅤ۟∩　ׅ　★　ׅ　🅢hazam 🅡ecognition　ׄᰙ　\n\n` +
-      `𖣣ֶㅤ֯⌗ ☆  ׄ ⬭ *Canción* › ${data.title}\n` +
-      `𖣣ֶㅤ֯⌗ ☆  ׄ ⬭ *Artista* › ${data.artists || 'Desconocido'}\n` +
-      `𖣣ֶㅤ֯⌗ ☆  ׄ ⬭ *Álbum* › ${data.album || 'Desconocido'}\n` +
-      `𖣣ֶㅤ֯⌗ ☆  ׄ ⬭ *Lanzamiento* › ${data.release_date || 'Desconocido'}`
-      
-      await client.reply(m.chat, texto, m)
-      await m.react('✔️')
-    } catch (e) {
-      m.react('❌')
-      await m.reply(`> An error occurred: *${e.message}*`)
+            await m.react('🕒')
+            const buffer = await downloadMedia(media.msg, media.type)
+
+            const tmpDir = path.join(process.cwd(), 'tmp')
+            if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true })
+
+            const tmpPath = path.join(tmpDir, `${Date.now()}${media.ext}`)
+            fs.writeFileSync(tmpPath, buffer)
+
+            const res = await acr.identify(fs.readFileSync(tmpPath))
+            fs.unlinkSync(tmpPath)
+
+            const { code, msg } = res.status
+            if (code !== 0) throw msg
+            const music = res.metadata?.music?.[0]
+            if (!music) throw new Error('No match found')
+            
+            const text = `ㅤ۟∩　ׅ　★　ׅ　🅢hazam 🅡ecognition　ׄᰙ　\n\n` +
+            `𖣣ֶㅤ֯⌗ ☆  ׄ ⬭ *Canción* › ${music.title || 'NOT FOUND'}\n` +
+            `𖣣ֶㅤ֯⌗ ☆  ׄ ⬭ *Artista* › ${music.artists?.map(a => a.name).join(', ') || 'NOT FOUND'}\n` +
+            `𖣣ֶㅤ֯⌗ ☆  ׄ ⬭ *Álbum* › ${music.album?.name || 'NOT FOUND'}\n` +
+            `𖣣ֶㅤ֯⌗ ☆  ׄ ⬭ *Lanzamiento* › ${music.release_date || 'NOT FOUND'}`
+            
+            await client.sendMessage(m.chat, { text }, { quoted: m })
+            await m.react('✔️')
+        } catch(err) {
+            console.error('[SHZ]', err)
+            await m.react('❌')
+            await client.sendMessage(
+                m.chat,
+                { text: `❌ Error al reconocer: ${err.message || err}` },
+                { quoted: m }
+            )
+        }
     }
-  }
 }

@@ -1,38 +1,61 @@
-import { downloadContentFromMessage, extractMessageContent } from '@whiskeysockets/baileys'
+import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 
 export default {
-  command: ['readviewonce', 'read', 'readvo'],
+  command: ['readviewonce', 'read', 'readvo', 'viewonce', 'vv'],
   category: 'tools',
-  run: async (client, m, args, usedPrefix, command, text) => {
-    const quoted = m.quoted
-    if (!quoted) return m.reply( '《✧》 Por favor, responde a un mensaje "ViewOnce" para ver su contenido.')
+  description: 'Re-send a view-once image or video.',
+  usage: '.viewonce (responder a un mensaje de vista única)',
+  run: async (client, m, args, usedPrefix, command) => {
     try {
-      await m.react('🕒')
-      const content = extractMessageContent(quoted.message || quoted)
-      if (!content) return m.reply('《✧》 No se pudo extraer el contenido.')
-      const messageType = Object.keys(content)[0]
-      const mediaMessage = content[messageType]
-      const stream = await downloadContentFromMessage(
-        mediaMessage,
-        messageType.replace('Message', '').toLowerCase()
-      )
-      if (!stream) return m.reply('《✧》 No se pudo descargar el contenido.')
-      const chunks = []
-      for await (const chunk of stream) {
-        chunks.push(chunk)
+      const quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+      
+      // Sometimes it is nested inside viewOnceMessage
+      const viewOnceMsg = quoted?.viewOnceMessage?.message || quoted?.viewOnceMessageV2?.message || quoted?.viewOnceMessageV2Extension?.message || quoted;
+
+      const quotedImage = viewOnceMsg?.imageMessage;
+      const quotedVideo = viewOnceMsg?.videoMessage;
+      const quotedAudio = viewOnceMsg?.audioMessage;
+
+      if (quotedImage && quotedImage.viewOnce) {
+        const stream = await downloadContentFromMessage(quotedImage, 'image');
+        let buffer = Buffer.from([]);
+        for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+        await client.sendMessage(m.chat, {
+          image: buffer,
+          caption: quotedImage.caption || ''
+        }, { quoted: m });
       }
-      const buffer = Buffer.concat(chunks)
-      if (/video/i.test(messageType)) {
-        await client.sendMessage(m.chat, { video: buffer, caption: mediaMessage.caption || '', mimetype: 'video/mp4' }, { quoted: m })
-      } else if (/image/i.test(messageType)) {
-        await client.sendMessage(m.chat, { image: buffer, caption: mediaMessage.caption || '' }, { quoted: m })
-      } else if (/audio/i.test(messageType)) {
-        await client.sendMessage(m.chat, { audio: buffer, mimetype: 'audio/ogg; codecs=opus', ptt: mediaMessage.ptt || false }, { quoted: m })
+      else if (quotedVideo && quotedVideo.viewOnce) {
+        const stream = await downloadContentFromMessage(quotedVideo, 'video');
+        let buffer = Buffer.from([]);
+        for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+        await client.sendMessage(m.chat, {
+          video: buffer,
+          caption: quotedVideo.caption || '',
+          mimetype: 'video/mp4'
+        }, { quoted: m });
       }
-      await m.react('✔️')
-    } catch (e) {
-      await m.react('✖️')
-      await m.reply(`> Ocurrió un error al procesar el archivo o la descarga falló por el peso.\n> [Error: *${e.message}*]`)
+      else if (quotedAudio && quotedAudio.viewOnce) {
+        const stream = await downloadContentFromMessage(quotedAudio, 'audio');
+        let buffer = Buffer.from([]);
+        for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+        await client.sendMessage(m.chat, {
+          audio: buffer,
+          mimetype: 'audio/ogg; codecs=opus',
+          ptt: quotedAudio.ptt || false
+        }, { quoted: m });
+      }
+      else {
+        await client.sendMessage(m.chat, {
+          text: '《✧》 Por favor, responde a un mensaje de "Ver una vez" (ViewOnce).'
+        }, { quoted: m });
+      }
+
+    } catch(error) {
+      console.error('Error in viewonceCommand:', error);
+      await client.sendMessage(m.chat, {
+        text: '❌ Falló al recuperar el archivo multimedia. Inténtalo de nuevo más tarde.'
+      }, { quoted: m });
     }
   }
 }
