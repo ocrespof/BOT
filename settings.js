@@ -35,14 +35,9 @@ stellar: { url: "https://api.yuki-wabot.my.id", key: "YukiBot-MD" },
 apifaa: { url: "https://api-faa.my.id", key: null },
 xyro: { url: "https://api.xyro.site", key: null },
 yupra: { url: "https://api.yupra.my.id", key: null },
-gemini: { 
-  keys: [
-    "AIzaSyCspUN7ksjAvgL8Br_xNnB8FZDTTRJOrhg",
-    "AIzaSyDCsvEs7dkf26-o9s5ryOfI9hN_j16ym6A",
-    "AIzaSyAEHLWvzHgT-UEhoN2HJZhoyEQtmAqkOe4"
-  ]
-},
-nvidia: { key: null } // Genera tu key en: https://build.nvidia.com/models
+gemini: { keys: null },
+nvidia: { key: null }, // Genera tu key en: https://build.nvidia.com/models
+sylphy: { url: "https://api.sylphy.co.id", key: "Admin" }
 }
 
 let file = fileURLToPath(import.meta.url)

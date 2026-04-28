@@ -21,38 +21,22 @@ function getGeminiKey() {
 
 const providers = [
   {
-    name: 'Official Gemini 1.5 Flash',
-    url: () => 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
-    method: 'POST',
-    isOfficial: true,
-    getHeaders: () => {
-      const key = getGeminiKey();
-      if (!key) return null;
-      return { 'Content-Type': 'application/json', 'X-goog-api-key': key };
+    name: 'Stellar (GPTPrompt)',
+    url: () => global?.APIs?.stellar?.url ? `${global.APIs.stellar.url}/ai/gptprompt` : 'https://api.yuki-wabot.my.id/ai/gptprompt',
+    method: 'GET',
+    buildPayload: ({ content, prompt }) => {
+        return `?text=${encodeURIComponent(content)}&prompt=${encodeURIComponent(prompt)}&key=${global?.APIs?.stellar?.key || 'YukiBot-MD'}`;
     },
-    buildPayload: ({ content, prompt, history }) => {
-        const contents = [];
-        // Optional: you can use system_instruction in Gemini API natively, but injecting it into the first message is safer for compatibility.
-        if (history.length === 0) {
-            contents.push({ role: 'user', parts: [{ text: `${prompt}\n\n${content}` }] });
-        } else {
-            let hasPrompt = false;
-            for (const h of history) {
-                let textContent = h.content;
-                if (!hasPrompt && h.role === 'user') {
-                    textContent = `${prompt}\n\n${textContent}`;
-                    hasPrompt = true;
-                }
-                contents.push({
-                    role: h.role === 'user' ? 'user' : 'model',
-                    parts: [{ text: textContent }]
-                });
-            }
-            contents.push({ role: 'user', parts: [{ text: content }] });
-        }
-        return { contents };
+    parseResponse: (data) => data?.result || data?.response || data?.message
+  },
+  {
+    name: 'Sylphy (Gemini)',
+    url: () => global?.APIs?.sylphy?.url ? `${global.APIs.sylphy.url}/ai/gemini` : 'https://api.sylphy.co.id/ai/gemini',
+    method: 'GET',
+    buildPayload: ({ content, prompt }) => {
+        return `?q=${encodeURIComponent(content)}&prompt=${encodeURIComponent(prompt)}&api_key=${global?.APIs?.sylphy?.key || 'Admin'}`;
     },
-    parseResponse: (data) => data?.candidates?.[0]?.content?.parts?.[0]?.text
+    parseResponse: (data) => data?.result || data?.data || data?.message || data?.answer
   },
   {
     name: 'NVIDIA NIM (LLaMA/Mistral)',
@@ -70,7 +54,7 @@ const providers = [
       }
       messages.push({ role: 'user', content: content });
       return {
-        model: "meta/llama3-70b-instruct", // Default NVIDIA API model
+        model: "meta/llama3-70b-instruct",
         messages: messages,
         temperature: 0.7,
         max_tokens: 1024
@@ -79,78 +63,18 @@ const providers = [
     parseResponse: (data) => data?.choices?.[0]?.message?.content
   },
   {
-    name: 'Stellar (Gemini)',
-    url: () => global?.APIs?.stellar?.url ? `${global.APIs.stellar.url}/ai/gemini` : 'https://api.yuki-wabot.my.id/ai/gemini',
-    method: 'GET',
-    buildPayload: ({ content, prompt, historyStr }) => {
-        const fullContent = `${prompt}\n\nHistorial de la conversación:\n${historyStr}Usuario: ${content}`;
-        return `?text=${encodeURIComponent(fullContent)}&key=${global?.APIs?.stellar?.key || 'YukiBot-MD'}`;
-    },
-    parseResponse: (data) => data?.result || data?.response || data?.message
-  },
-  {
     name: 'Delirius (ChatGPT)',
     url: () => global?.APIs?.delirius?.url ? `${global.APIs.delirius.url}/ia/chatgpt` : 'https://api.delirius.store/ia/chatgpt',
     method: 'GET',
     buildPayload: ({ content, prompt, historyStr }) => {
-        const fullContent = `${prompt}\n\nHistorial de la conversación:\n${historyStr}Usuario: ${content}`;
+        const fullContent = `${prompt}\n\nHistorial:\n${historyStr}Usuario: ${content}`;
         return `?q=${encodeURIComponent(fullContent)}`;
     },
     parseResponse: (data) => data?.data || data?.result || data?.message
-  },
-  {
-    name: 'Ryzen (ChatGPT)',
-    url: () => 'https://api.ryzendesu.vip/api/ai/chatgpt',
-    method: 'GET',
-    buildPayload: ({ content, prompt, historyStr }) => {
-        const fullContent = `Historial:\n${historyStr}Usuario: ${content}`;
-        return `?text=${encodeURIComponent(fullContent)}&prompt=${encodeURIComponent(prompt)}`;
-    },
-    parseResponse: (data) => data?.response || data?.result || data?.message
-  },
-  {
-    name: 'Lurick (ChatGPT)',
-    url: () => 'https://api.lurick.my.id/api/ai/chatgpt',
-    method: 'GET',
-    buildPayload: ({ content, prompt, historyStr }) => {
-        const fullContent = `${prompt}\n\nHistorial de la conversación:\n${historyStr}Usuario: ${content}`;
-        return `?q=${encodeURIComponent(fullContent)}`;
-    },
-    parseResponse: (data) => data?.result || data?.data || data?.message
   }
 ];
 
 const visionProviders = [
-  {
-    name: 'Official Gemini Vision',
-    url: () => 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
-    method: 'POST',
-    isOfficial: true,
-    getHeaders: () => {
-      const key = getGeminiKey();
-      if (!key) return null;
-      return { 'Content-Type': 'application/json', 'X-goog-api-key': key };
-    },
-    buildPayload: async ({ prompt, imageUrl }) => {
-        try {
-            const imgRes = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 15000 });
-            const base64 = Buffer.from(imgRes.data, 'binary').toString('base64');
-            const mimeType = imageUrl.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-            return {
-                contents: [{
-                    role: "user",
-                    parts: [
-                        { text: prompt },
-                        { inline_data: { mime_type: mimeType, data: base64 } }
-                    ]
-                }]
-            };
-        } catch (e) {
-            throw new Error('Failed to fetch image for Official Gemini Vision');
-        }
-    },
-    parseResponse: (data) => data?.candidates?.[0]?.content?.parts?.[0]?.text
-  },
   {
     name: 'Delirius (Gemini Vision)',
     url: () => global?.APIs?.delirius?.url ? `${global.APIs.delirius.url}/ia/geminivision` : 'https://api.delirius.store/ia/geminivision',

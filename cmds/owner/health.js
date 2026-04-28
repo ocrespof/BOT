@@ -10,12 +10,10 @@ export default {
     const key = (await client.sendMessage(m.chat, { text: `> ${UI.symbols.loading} Comprobando el estado de las APIs, por favor espera...` }, { quoted: m })).key;
 
     const endpoints = [
-      { name: 'Google Gemini Flash', url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent', method: 'POST', isOfficial: true },
+      { name: 'Stellar (GPTPrompt)', url: global?.APIs?.stellar?.url ? `${global.APIs.stellar.url}/ai/gptprompt` : 'https://api.yuki-wabot.my.id/ai/gptprompt' },
+      { name: 'Sylphy (Gemini)', url: global?.APIs?.sylphy?.url ? `${global.APIs.sylphy.url}/ai/gemini` : 'https://api.sylphy.co.id/ai/gemini' },
       { name: 'NVIDIA NIM (LLaMA)', url: global?.APIs?.nvidia?.key ? 'https://integrate.api.nvidia.com/v1/chat/completions' : null },
-      { name: 'Stellar API', url: global?.APIs?.stellar?.url || 'https://api.yuki-wabot.my.id' },
-      { name: 'Delirius API', url: global?.APIs?.delirius?.url || 'https://api.delirius.store' },
-      { name: 'Ryzen API', url: 'https://api.ryzendesu.vip' },
-      { name: 'Lurick API', url: 'https://api.lurick.my.id' }
+      { name: 'Delirius API', url: global?.APIs?.delirius?.url || 'https://api.delirius.store' }
     ];
 
     let resultsText = '';
