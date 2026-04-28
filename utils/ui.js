@@ -14,7 +14,7 @@ export const UI = {
     star: '⭐',
     sparkle: '✨',
     flower: 'ꕤ',
-    bullet: '»',
+    bullet: '',
     separator: '────────────────'
   },
 
@@ -26,9 +26,9 @@ export const UI = {
    * @returns {string} The formatted message.
    */
   box: (title, content, footer = '') => {
-    let msg = `《✧》 *${title}*\n${UI.symbols.separator}\n\n${content}`;
+    let msg = ` *${title}*\n${UI.symbols.separator}\n\n${content}`;
     if (footer) {
-      msg += `\n\n> ${footer}`;
+      msg += `\n\n${footer}`;
     }
     return msg;
   },
@@ -39,7 +39,7 @@ export const UI = {
    * @returns {string} The formatted error message.
    */
   error: (error) => {
-    return `> ${UI.symbols.error} *Ha ocurrido un error*\n> ${error}`;
+    return `> ${UI.symbols.error} *Ha ocurrido un error*\n${error}`;
   },
 
   /**
@@ -48,6 +48,6 @@ export const UI = {
    * @returns {string} The formatted success message.
    */
   success: (message) => {
-    return `> ${UI.symbols.success} *Éxito*\n> ${message}`;
+    return `> ${UI.symbols.success} *Éxito*\n${message}`;
   }
 };

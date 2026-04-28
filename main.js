@@ -7,6 +7,7 @@ import gradient from 'gradient-string';
 import seeCommands from './core/system/commandLoader.js';
 import initDB from './core/system/initDB.js';
 import antilink from './cmds/group/antilink.js';
+import level from './cmds/level.js';
 import { getGroupAdmins } from './core/message.js';
 import Logger from './utils/logger.js';
 
@@ -136,11 +137,11 @@ export default async (client, m) => {
     if (!isOwners && !allowedInPrivateForUsers.includes(command)) return;
   }
   if (chat?.isBanned && !(command === 'bot' && text === 'on') && !isOwners) {
-    await m.reply(`ꕥ El bot *${settings.botname}* está desactivado en este grupo.\n\n> ✎ Un *administrador* puede activarlo con el comando:\n> » *${usedPrefix}bot on*`);
+    await m.reply(`El bot *${settings.botname}* está desactivado en este grupo.\n\nUn *administrador* puede activarlo con el comando:\n*${usedPrefix}bot on*`);
     return;
   }
   if (m.text && user.banned && !isOwners) {
-    await m.reply(`ꕥ Estas ${user.genre === 'Mujer' ? 'baneada' : user.genre === 'Hombre' ? 'baneado' : 'baneado/a'}, no puedes usar comandos en este bot!\n\n> ● *Razón ›* ${user.bannedReason || 'Sin especificar'}\n\n> ● Si este Bot es cuenta oficial y tienes evidencia que respalde que este mensaje es un error, puedes exponer tu caso con un moderador.`);
+    await m.reply(`Estas ${user.genre === 'Mujer' ? 'baneada' : user.genre === 'Hombre' ? 'baneado' : 'baneado/a'}, no puedes usar comandos en este bot!\n\n● *Razón ›* ${user.bannedReason || 'Sin especificar'}\n\n● Si este Bot es cuenta oficial y tienes evidencia que respalde que este mensaje es un error, puedes exponer tu caso con un moderador.`);
     return;
   }
 
@@ -151,11 +152,11 @@ export default async (client, m) => {
   if (!cmdData) {
     if (settings.prefix === true) return;
     await client.readMessages([m.key]);
-    return m.reply(`ꕤ El comando *${command}* no existe.\n✎ Usa *${usedPrefix}help* para ver la lista de comandos disponibles.`);
+    return m.reply(`ꕤ El comando *${command}* no existe.\nUsa *${usedPrefix}help* para ver la lista de comandos disponibles.`);
   }
   if (cmdData.isOwner && !isOwners) {
     if (settings.prefix === true) return;
-    return m.reply(`ꕤ El comando *${command}* no existe.\n✎ Usa *${usedPrefix}help* para ver la lista de comandos disponibles.`);
+    return m.reply(`ꕤ El comando *${command}* no existe.\nUsa *${usedPrefix}help* para ver la lista de comandos disponibles.`);
   }
   if (cmdData.isAdmin && !isAdmins) return client.reply(m.chat, mess.admin, m);
   if (cmdData.botAdmin && !isBotAdmins) return client.reply(m.chat, mess.botAdmin, m);
@@ -171,8 +172,9 @@ export default async (client, m) => {
     await cmdData.run(client, m, args, usedPrefix, command, text);
   } catch (error) {
     Logger.error(`Error al ejecutar el comando ${command}:`, error);
-    await client.sendMessage(m.chat, { text: `《✧》 Error al ejecutar el comando\n${error}` }, { quoted: m });
+    await client.sendMessage(m.chat, { text: ` Error al ejecutar el comando\n${error}` }, { quoted: m });
   } finally {
     if (global.queueSaveDatabase) global.queueSaveDatabase();
   }
+  level(m);
 };
