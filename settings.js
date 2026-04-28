@@ -41,7 +41,8 @@ gemini: {
     "AIzaSyDCsvEs7dkf26-o9s5ryOfI9hN_j16ym6A",
     "AIzaSyAEHLWvzHgT-UEhoN2HJZhoyEQtmAqkOe4"
   ]
-}
+},
+nvidia: { key: null } // Genera tu key en: https://build.nvidia.com/models
 }
 
 let file = fileURLToPath(import.meta.url)

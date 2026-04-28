@@ -16,27 +16,26 @@ function formatHistory(history) {
 function getGeminiKey() {
   const keys = global?.APIs?.gemini?.keys;
   if (!keys || keys.length === 0) return null;
-  // Simple random rotation
   return keys[Math.floor(Math.random() * keys.length)];
 }
 
 const providers = [
   {
     name: 'Official Gemini 1.5 Flash',
-    url: () => {
-      const key = getGeminiKey();
-      return key ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}` : null;
-    },
+    url: () => 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
     method: 'POST',
     isOfficial: true,
+    getHeaders: () => {
+      const key = getGeminiKey();
+      if (!key) return null;
+      return { 'Content-Type': 'application/json', 'X-goog-api-key': key };
+    },
     buildPayload: ({ content, prompt, history }) => {
-        // Build the official Google payload
         const contents = [];
-        // Add system instruction as the first user message or handle via prompt
+        // Optional: you can use system_instruction in Gemini API natively, but injecting it into the first message is safer for compatibility.
         if (history.length === 0) {
             contents.push({ role: 'user', parts: [{ text: `${prompt}\n\n${content}` }] });
         } else {
-            // Reconstruct history
             let hasPrompt = false;
             for (const h of history) {
                 let textContent = h.content;
@@ -54,6 +53,30 @@ const providers = [
         return { contents };
     },
     parseResponse: (data) => data?.candidates?.[0]?.content?.parts?.[0]?.text
+  },
+  {
+    name: 'NVIDIA NIM (LLaMA/Mistral)',
+    url: () => global?.APIs?.nvidia?.key ? 'https://integrate.api.nvidia.com/v1/chat/completions' : null,
+    method: 'POST',
+    isOfficial: true,
+    getHeaders: () => ({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${global.APIs.nvidia.key}`
+    }),
+    buildPayload: ({ content, prompt, history }) => {
+      const messages = [{ role: 'system', content: prompt }];
+      for (const h of history) {
+        messages.push({ role: h.role, content: h.content });
+      }
+      messages.push({ role: 'user', content: content });
+      return {
+        model: "meta/llama3-70b-instruct", // Default NVIDIA API model
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 1024
+      };
+    },
+    parseResponse: (data) => data?.choices?.[0]?.message?.content
   },
   {
     name: 'Stellar (Gemini)',
@@ -100,12 +123,14 @@ const providers = [
 const visionProviders = [
   {
     name: 'Official Gemini Vision',
-    url: () => {
-      const key = getGeminiKey();
-      return key ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}` : null;
-    },
+    url: () => 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
     method: 'POST',
     isOfficial: true,
+    getHeaders: () => {
+      const key = getGeminiKey();
+      if (!key) return null;
+      return { 'Content-Type': 'application/json', 'X-goog-api-key': key };
+    },
     buildPayload: async ({ prompt, imageUrl }) => {
         try {
             const imgRes = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 15000 });
@@ -140,13 +165,36 @@ const DEFAULT_HEADERS = {
     'Accept': 'application/json, text/plain, */*'
 };
 
+function isInvalidResponse(result) {
+    if (!result || typeof result !== 'string') return true;
+    const lower = result.toLowerCase().trim();
+    if (lower.length === 0) return true;
+    
+    // Falsos positivos devueltos por APIs caídas (Ryzen, Delirius, etc)
+    const badKeywords = [
+        'parametros incompletos',
+        'parámetros incompletos',
+        'endpoint invalid',
+        'api key error',
+        'server error',
+        'internal server error'
+    ];
+    
+    for (const keyword of badKeywords) {
+        if (lower.includes(keyword)) return true;
+    }
+    return false;
+}
+
 async function callProvider(provider, payload) {
   const targetUrl = typeof provider.url === 'function' ? provider.url() : provider.url;
   if (!targetUrl) throw new Error('Proveedor no configurado');
   
-  const headers = { ...DEFAULT_HEADERS };
-  if (provider.isOfficial) {
-      headers['Content-Type'] = 'application/json';
+  let headers = { ...DEFAULT_HEADERS };
+  if (provider.getHeaders) {
+      const customHeaders = provider.getHeaders();
+      if (!customHeaders) throw new Error('Credenciales no configuradas para este proveedor');
+      headers = { ...headers, ...customHeaders };
   }
 
   if (provider.method === 'POST') {
@@ -173,12 +221,14 @@ export async function getAIResponse({ content, prompt, user }) {
       const payload = await provider.buildPayload({ content, prompt, historyStr, history });
       const result = await callProvider(provider, payload);
       
-      if (typeof result === 'string' && result.trim().length > 0) {
+      if (!isInvalidResponse(result)) {
         history.push({ role: 'user', content: content });
         history.push({ role: 'assistant', content: result });
         if (history.length > 10) history = history.slice(history.length - 10);
         cache.set(cacheKey, history, 30 * 60 * 1000); 
-        return result;
+        return result.trim();
+      } else {
+        console.warn(`[AI Text] Proveedor ${provider.name} retornó falso positivo: ${result}`);
       }
     } catch (err) {
       console.warn(`[AI Text] Proveedor ${provider.name} falló:`, err.response?.data || err.message || err);
@@ -196,8 +246,10 @@ export async function getVisionResponse({ prompt, imageUrl }) {
       const payload = await provider.buildPayload({ prompt, imageUrl });
       const result = await callProvider(provider, payload);
       
-      if (typeof result === 'string' && result.trim().length > 0) {
-        return result;
+      if (!isInvalidResponse(result)) {
+        return result.trim();
+      } else {
+        console.warn(`[AI Vision] Proveedor ${provider.name} retornó falso positivo: ${result}`);
       }
     } catch (err) {
       console.warn(`[AI Vision] Proveedor ${provider.name} falló:`, err.response?.data || err.message || err);
