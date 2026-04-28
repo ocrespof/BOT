@@ -74,6 +74,9 @@ function isInvalidResponse(result) {
     const lower = result.toLowerCase().trim();
     if (lower.length === 0) return true;
     
+    // Prevent HTML challenges (like Cloudflare or FingerprintJS) from being sent as responses
+    if (lower.includes('<!doctype html>') || lower.includes('<html') || lower.includes('fingerprintjs')) return true;
+    
     const badKeywords = [
         'parametros incompletos',
         'parámetros incompletos',
