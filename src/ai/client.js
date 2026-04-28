@@ -14,15 +14,35 @@ function formatHistory(history) {
 
 const providers = [
   {
-    name: 'Ryzen (Gemini)',
-    url: () => 'https://api.ryzendesu.vip/api/ai/gemini',
+    name: 'Siputzx (Blackbox)',
+    url: () => 'https://ai.siputzx.my.id',
+    method: 'POST',
+    getHeaders: () => ({ 'Content-Type': 'application/json' }),
+    buildPayload: ({ content, prompt, historyStr }) => {
+      const fullPrompt = `${prompt}\n\nHistorial:\n${historyStr}`;
+      return { content: content, user: 'usuario', prompt: fullPrompt, webSearchMode: true };
+    },
+    parseResponse: (data) => data?.result
+  },
+  {
+    name: 'Ryzen (Gemini Pro)',
+    url: () => 'https://api.ryzendesu.vip/api/ai/gemini-pro',
     method: 'GET',
     buildPayload: ({ content, prompt, historyStr }) => {
-        // Embed the prompt natively into the text to avoid 400 errors from unrecognized query params
         const fullContent = `${prompt}\n\nHistorial:\n${historyStr}Usuario: ${content}`;
         return `?text=${encodeURIComponent(fullContent)}`;
     },
     parseResponse: (data) => data?.response || data?.result || data?.message || data?.data
+  },
+  {
+    name: 'Siputzx (Gemini)',
+    url: () => 'https://api.siputzx.my.id/api/ai/gemini',
+    method: 'GET',
+    buildPayload: ({ content, prompt, historyStr }) => {
+        const fullContent = `${prompt}\n\nHistorial:\n${historyStr}Usuario: ${content}`;
+        return `?content=${encodeURIComponent(fullContent)}`;
+    },
+    parseResponse: (data) => data?.data || data?.result
   },
   {
     name: 'Stellar (GPTPrompt)',
@@ -34,14 +54,14 @@ const providers = [
     parseResponse: (data) => data?.result || data?.response || data?.message
   },
   {
-    name: 'Delirius (ChatGPT)',
-    url: () => global?.APIs?.delirius?.url ? `${global.APIs.delirius.url}/ia/chatgpt` : 'https://api.delirius.store/ia/chatgpt',
+    name: 'Delirius (ChatGPT/GPT4)',
+    url: () => global?.APIs?.delirius?.url ? `${global.APIs.delirius.url}/api/ia/gpt4` : 'https://api.delirius.store/api/ia/gpt4',
     method: 'GET',
     buildPayload: ({ content, prompt, historyStr }) => {
         const fullContent = `${prompt}\n\nHistorial:\n${historyStr}Usuario: ${content}`;
-        return `?q=${encodeURIComponent(fullContent)}`;
+        return `?query=${encodeURIComponent(fullContent)}`;
     },
-    parseResponse: (data) => data?.data || data?.result || data?.message
+    parseResponse: (data) => data?.data || data?.result || data?.message || data?.text
   }
 ];
 

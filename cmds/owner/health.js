@@ -10,17 +10,11 @@ export default {
     const key = (await client.sendMessage(m.chat, { text: `> ${UI.symbols.loading} Comprobando el estado de las APIs, por favor espera...` }, { quoted: m })).key;
 
     const endpoints = [
+      { name: 'Siputzx (Blackbox)', url: 'https://ai.siputzx.my.id', method: 'POST', isOfficial: true },
+      { name: 'Ryzen (Gemini Pro)', url: 'https://api.ryzendesu.vip/api/ai/gemini-pro' },
+      { name: 'Siputzx (Gemini)', url: 'https://api.siputzx.my.id/api/ai/gemini' },
       { name: 'Stellar (GPTPrompt)', url: global?.APIs?.stellar?.url ? `${global.APIs.stellar.url}/ai/gptprompt` : 'https://api.yuki-wabot.my.id/ai/gptprompt' },
-      { name: 'Sylphy (Gemini)', url: global?.APIs?.sylphy?.url ? `${global.APIs.sylphy.url}/ai/gemini` : 'https://api.sylphy.co.id/ai/gemini' },
-      { name: 'GiftedTech API', url: 'https://api.giftedtech.my.id/api/ai/geminiaipro' },
-      { name: 'Vapis API', url: 'https://vapis.my.id/api/gemini' },
-      { name: 'Siputzx API', url: 'https://api.siputzx.my.id/api/ai/gemini-pro' },
-      { name: 'Ryzen API', url: 'https://api.ryzendesu.vip/api/ai/gemini' },
-      { name: 'Paxsenix API', url: 'https://api.paxsenix.biz.id/ai/gpt4o' },
-      { name: 'ZellAPI', url: 'https://zellapi.autos/ai/chatbot' },
-      { name: 'Lance Frank API', url: 'https://lance-frank-asta.onrender.com/api/gpt' },
-      { name: 'LetMeGPT API', url: 'https://letmegpt.com/api' },
-      { name: 'Delirius API', url: global?.APIs?.delirius?.url || 'https://api.delirius.store' }
+      { name: 'Delirius (GPT-4)', url: global?.APIs?.delirius?.url ? `${global.APIs.delirius.url}/api/ia/gpt4` : 'https://api.delirius.store/api/ia/gpt4' }
     ];
 
     let resultsText = '';

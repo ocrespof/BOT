@@ -8,7 +8,6 @@ import seeCommands from './core/system/commandLoader.js';
 import initDB from './core/system/initDB.js';
 import antilink from './cmds/group/antilink.js';
 import { getGroupAdmins } from './core/message.js';
-import Logger from './utils/logger.js';
 
 seeCommands();
 
@@ -39,15 +38,13 @@ export default async (client, m) => {
   const isAdmins = m.isGroup ? groupAdmins.some(p => p.phoneNumber === sender || p.jid === sender || p.id === sender || p.lid === sender ) : false
   const isOwners = [botJid, ...(settings.owner ? [settings.owner] : []), ...global.owner.map(num => num + '@s.whatsapp.net')].includes(sender);
 
-  const sortedPlugins = Object.entries(global.plugins)
-    .sort((a, b) => (b[1].priority || 0) - (a[1].priority || 0));
-
-  for (const [name, plugin] of sortedPlugins) {
+  for (const name in global.plugins) {
+    const plugin = global.plugins[name];
     if (plugin && typeof plugin.all === "function") {
       try {
         await plugin.all.call(client, m, { client });
       } catch (err) {
-        Logger.error(`Error en plugin.before -> ${name}`, err);
+        console.error(`Error en plugin.all -> ${name}`, err);
       }
     }
   }
@@ -81,7 +78,8 @@ export default async (client, m) => {
   }) : typeof pluginPrefix === 'string' ? [[new RegExp(strRegex(pluginPrefix)).exec(m.text), new RegExp(strRegex(pluginPrefix))]] : [[null, null]];
   let match = matchs.find(p => p[0]);
 
-  for (const [name, plugin] of sortedPlugins) {
+  for (const name in global.plugins) {
+    const plugin = global.plugins[name];
     if (!plugin) continue;
     if (plugin.disabled) continue;
     if (typeof plugin.before === "function") {
@@ -90,7 +88,7 @@ export default async (client, m) => {
           continue;
         }
       } catch (err) {
-        Logger.error(`Error en plugin.before -> ${name}`, err);
+        console.error(`Error en plugin.all -> ${name}`, err);
       }
     }
   }
@@ -118,7 +116,17 @@ export default async (client, m) => {
   }
   
   if (!isOwners && settings.self) return;  
-
+  if (m.chat && !m.chat.endsWith('g.us')) {
+    const allowedInPrivateForUsers = [
+      'play', 'mp3', 'play2', 'mp4', 'facebook', 'fb', 'tiktok', 'tt', 'instagram', 'ig', 'pinterest', 'pin', 'imagen', 'img',
+      'chatgpt', 'ia', 'humanizar', 'hd', 'remini', 'read', 'readviewonce', 'ocr', 'texto', 'ssweb', 'ss', 'inspect', 'get', 'fetch', 'apa', 'citar',
+      'tts', 'audio', 'decir', 'clima', 'weather', 'tiny', 'shorturl', 'acortar', 'recordar', 'remind', 'trad', 'traducir', 'tr', 'qr', 'qrcode', 'yts', 'ytsr',
+      'wiki', 'wikipedia', 'math', 'calcular', 'resumir', 'resumen', 'pomodoro', 'estudio', 'trivia', 'preguntados', 'frase', 'motivacion', 'quote',
+      'corregir', 'ortografia', 'parafrasear', 'reescribir', 'def', 'significado', 'diccionario', 'ruleta', 'sorteo', 'asignar',
+      'menu', 'help', 'allmenu', 'ping', 'p', 'status'
+    ];
+    if (!isOwners && !allowedInPrivateForUsers.includes(command)) return;
+  }
   if (chat?.isBanned && !(command === 'bot' && text === 'on') && !isOwners) {
     await m.reply(`ꕥ El bot *${settings.botname}* está desactivado en este grupo.\n\n> ✎ Un *administrador* puede activarlo con el comando:\n> » *${usedPrefix}bot on*`);
     return;
@@ -137,7 +145,6 @@ export default async (client, m) => {
     await client.readMessages([m.key]);
     return m.reply(`ꕤ El comando *${command}* no existe.\n✎ Usa *${usedPrefix}help* para ver la lista de comandos disponibles.`);
   }
-  if (m.chat && !m.chat.endsWith('g.us') && !isOwners && !cmdData.isPrivate) return;
   if (cmdData.isOwner && !isOwners) {
     if (settings.prefix === true) return;
     return m.reply(`ꕤ El comando *${command}* no existe.\n✎ Usa *${usedPrefix}help* para ver la lista de comandos disponibles.`);
@@ -150,24 +157,11 @@ export default async (client, m) => {
     settings.commandsejecut = (settings.commandsejecut || 0) + 1;
     users.usedTime = new Date();
     users.lastCmd = Date.now();
+    user.exp = (user.exp || 0) + Math.floor(Math.random() * 100);
     user.name = m.pushName;
     users.stats[today].cmds++;
-    
-    if (cmdData.cooldown > 0 && !isOwners) {
-      if (!user.cooldowns) user.cooldowns = {};
-      const now = Date.now();
-      const lastCmdTime = user.cooldowns[command] || 0;
-      const timeToWait = (cmdData.cooldown * 1000) - (now - lastCmdTime);
-      if (timeToWait > 0) {
-        const waitSecs = (timeToWait / 1000).toFixed(1);
-        return m.reply(`ꕤ Debes esperar *${waitSecs}s* para volver a usar *${command}*.`);
-      }
-      user.cooldowns[command] = now;
-    }
-    
     await cmdData.run(client, m, args, usedPrefix, command, text);
   } catch (error) {
-    Logger.error(`Error al ejecutar el comando ${command}`, error);
     await client.sendMessage(m.chat, { text: `《✧》 Error al ejecutar el comando\n${error}` }, { quoted: m });
   }
 };
