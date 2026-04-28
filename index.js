@@ -99,9 +99,10 @@ async function cleanCache() {
         if (fs.existsSync(botFolder)) await safeDelete(botFolder);
       }
     }
+  } catch (e) {
+    console.error(chalk.red('Error en cleanCache: '), e);
   }
 }
-
 let opcion;
 if (methodCodeQR) {
   opcion = "1";
