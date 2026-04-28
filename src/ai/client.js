@@ -28,6 +28,7 @@ const providers = [
       return key ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}` : null;
     },
     method: 'POST',
+    isOfficial: true,
     buildPayload: ({ content, prompt, history }) => {
         // Build the official Google payload
         const contents = [];
@@ -63,27 +64,6 @@ const providers = [
         return `?text=${encodeURIComponent(fullContent)}&key=${global?.APIs?.stellar?.key || 'YukiBot-MD'}`;
     },
     parseResponse: (data) => data?.result || data?.response || data?.message
-  },
-  {
-    name: 'Siputzx (Blackbox)',
-    url: () => global?.APIs?.siputzx?.url ? `${global.APIs.siputzx.url}/api/ai/blackboxai` : 'https://api.siputzx.my.id/api/ai/blackboxai',
-    method: 'POST',
-    buildPayload: ({ content, prompt, historyStr }) => {
-        const fullContent = `${prompt}\n\nHistorial de la conversación:\n${historyStr}Usuario: ${content}`;
-        // Enviar como JSON para mayor compatibilidad
-        return { content: fullContent, webSearchMode: true };
-    },
-    parseResponse: (data) => data?.data || data?.result || data?.message
-  },
-  {
-    name: 'Vreden (Gemini)',
-    url: () => global?.APIs?.vreden?.url ? `${global.APIs.vreden.url}/api/ai/gemini` : 'https://api.vreden.web.id/api/ai/gemini',
-    method: 'GET',
-    buildPayload: ({ content, prompt, historyStr }) => {
-        const fullContent = `${prompt}\n\nHistorial de la conversación:\n${historyStr}Usuario: ${content}`;
-        return `?q=${encodeURIComponent(fullContent)}`;
-    },
-    parseResponse: (data) => data?.result || data?.data?.message || data?.data || data?.message
   },
   {
     name: 'Delirius (ChatGPT)',
@@ -125,12 +105,11 @@ const visionProviders = [
       return key ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}` : null;
     },
     method: 'POST',
-    // We expect `buildPayload` to return a promise if it needs to download the image
+    isOfficial: true,
     buildPayload: async ({ prompt, imageUrl }) => {
         try {
             const imgRes = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 15000 });
             const base64 = Buffer.from(imgRes.data, 'binary').toString('base64');
-            // Check mime type simply
             const mimeType = imageUrl.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
             return {
                 contents: [{
@@ -146,20 +125,6 @@ const visionProviders = [
         }
     },
     parseResponse: (data) => data?.candidates?.[0]?.content?.parts?.[0]?.text
-  },
-  {
-    name: 'Siputzx (Gemini Vision)',
-    url: () => global?.APIs?.siputzx?.url ? `${global.APIs.siputzx.url}/api/ai/gemini-image` : 'https://api.siputzx.my.id/api/ai/gemini-image',
-    method: 'GET',
-    buildPayload: ({ prompt, imageUrl }) => `?prompt=${encodeURIComponent(prompt)}&url=${encodeURIComponent(imageUrl)}`,
-    parseResponse: (data) => data?.data || data?.result || data?.message
-  },
-  {
-    name: 'Vreden (Gemini Image)',
-    url: () => global?.APIs?.vreden?.url ? `${global.APIs.vreden.url}/api/v1/ai/gemini-image` : 'https://api.vreden.web.id/api/v1/ai/gemini-image',
-    method: 'GET',
-    buildPayload: ({ prompt, imageUrl }) => `?prompt=${encodeURIComponent(prompt)}&url=${encodeURIComponent(imageUrl)}`,
-    parseResponse: (data) => data?.data || data?.result || data?.message
   },
   {
     name: 'Delirius (Gemini Vision)',
@@ -179,20 +144,23 @@ async function callProvider(provider, payload) {
   const targetUrl = typeof provider.url === 'function' ? provider.url() : provider.url;
   if (!targetUrl) throw new Error('Proveedor no configurado');
   
+  const headers = { ...DEFAULT_HEADERS };
+  if (provider.isOfficial) {
+      headers['Content-Type'] = 'application/json';
+  }
+
   if (provider.method === 'POST') {
-    const response = await axios.post(targetUrl, payload, { timeout: 20000, headers: DEFAULT_HEADERS });
+    const response = await axios.post(targetUrl, payload, { timeout: 20000, headers });
     return provider.parseResponse(response.data);
   } else {
     const finalUrl = `${targetUrl}${payload}`;
-    const response = await axios.get(finalUrl, { timeout: 20000, headers: DEFAULT_HEADERS });
+    const response = await axios.get(finalUrl, { timeout: 20000, headers });
     return provider.parseResponse(response.data);
   }
 }
 
 /**
  * Get AI text response using the first provider that succeeds.
- * @param {Object} params - { content: string, prompt: string, user: string }
- * @returns {Promise<string>} The generated text.
  */
 export async function getAIResponse({ content, prompt, user }) {
   const cacheKey = `ai_history_${user}`;
@@ -208,13 +176,12 @@ export async function getAIResponse({ content, prompt, user }) {
       if (typeof result === 'string' && result.trim().length > 0) {
         history.push({ role: 'user', content: content });
         history.push({ role: 'assistant', content: result });
-        // Keep only last 10 messages to avoid token bloat
         if (history.length > 10) history = history.slice(history.length - 10);
-        cache.set(cacheKey, history, 30 * 60 * 1000); // 30 minutes ttl
+        cache.set(cacheKey, history, 30 * 60 * 1000); 
         return result;
       }
     } catch (err) {
-      console.warn(`[AI Text] Proveedor ${provider.name} falló:`, err.message || err);
+      console.warn(`[AI Text] Proveedor ${provider.name} falló:`, err.response?.data || err.message || err);
     }
   }
   throw new Error('Todos los proveedores de Inteligencia Artificial están saturados o no disponibles. Inténtalo más tarde.');
@@ -222,8 +189,6 @@ export async function getAIResponse({ content, prompt, user }) {
 
 /**
  * Get AI vision response using the first provider that succeeds.
- * @param {Object} params - { prompt: string, imageUrl: string }
- * @returns {Promise<string>} The analysis text.
  */
 export async function getVisionResponse({ prompt, imageUrl }) {
   for (const provider of visionProviders) {
@@ -235,7 +200,7 @@ export async function getVisionResponse({ prompt, imageUrl }) {
         return result;
       }
     } catch (err) {
-      console.warn(`[AI Vision] Proveedor ${provider.name} falló:`, err.message || err);
+      console.warn(`[AI Vision] Proveedor ${provider.name} falló:`, err.response?.data || err.message || err);
     }
   }
   throw new Error('Todos los proveedores de Visión IA están saturados o no disponibles. Inténtalo más tarde.');
