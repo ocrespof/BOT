@@ -68,38 +68,36 @@ export default {
         if (!categoriesObj[c]) categoriesObj[c] = [];
         
         const primaryCmd = Array.isArray(plugin.command) ? plugin.command[0] : plugin.command;
-        const aliases = Array.isArray(plugin.command) && plugin.command.length > 1 
-          ? ` (${plugin.command.slice(1).join(', ')})` 
-          : '';
-        const desc = plugin.desc || plugin.description || 'Sin descripción';
-        const usage = plugin.usage ? `\n┃ _Uso: $prefix${primaryCmd} ${plugin.usage}_` : '';
-        const cooldown = plugin.cooldown ? ` ⏱️${plugin.cooldown}s` : '';
+        // Solo mostramos alias si no es muy largo
+        // const aliases = Array.isArray(plugin.command) && plugin.command.length > 1 ? ` (${plugin.command.slice(1).join(', ')})` : '';
+        const desc = plugin.desc || plugin.description || 'Comando del sistema';
         
-        let entry = `┃ ⊳ *$prefix${primaryCmd}*${aliases}${cooldown}\n┃ _${desc}_${usage}`;
+        let entry = `⊳ *${usedPrefix}${primaryCmd}* ➭ ${desc}`;
         
         categoriesObj[c].push(entry);
       }
 
-      const sectionEmojis = {
-        info: '✨',
-        main: '🚀',
-        utils: '🛠️',
-        downloads: '📥',
-        academia: '📚',
-        stickers: '🎨',
-        group: '👥',
-        juegos: '🎮',
-        owner: '👑',
-        otros: '🧩'
+      const sectionInfo = {
+        info: { emj: '✨', desc: '_Comandos de información general_' },
+        main: { emj: '🚀', desc: '_Menú principal y sistema_' },
+        utils: { emj: '🛠️', desc: '_Herramientas y utilidades varias_' },
+        downloads: { emj: '📥', desc: '_Descargadores multimedia_' },
+        academia: { emj: '🎓', desc: '_Asistencia académica y universitaria_' },
+        stickers: { emj: '🎨', desc: '_Creador de stickers y multimedia_' },
+        group: { emj: '👥', desc: '_Gestión y control de grupos_' },
+        juegos: { emj: '🎮', desc: '_Juegos y entretenimiento_' },
+        owner: { emj: '👑', desc: '_Comandos de administrador_' },
+        otros: { emj: '🧩', desc: '_Funciones misceláneas_' }
       };
 
       const sections = {};
       for (const [c, cmds] of Object.entries(categoriesObj)) {
-        const emj = sectionEmojis[c.toLowerCase()] || '⚙️';
-        sections[c] = `┏━━━━━ ${emj} *${c.toUpperCase()}* ${emj} ━━━━━┓\n` + cmds.join('\n┃\n') + `\n┗━━━━━━━━━━━━━━━━━━━━━━┛`;
+        const info = sectionInfo[c.toLowerCase()] || { emj: '⚙️', desc: '_Categoría del sistema_' };
+        const header = `> ${info.emj} *${c.toUpperCase().split('').join(' ')}*\n> ${info.desc}\n\n`;
+        sections[c] = header + cmds.join('\n');
       }
       
-      const content = cat ? String(sections[cat] || '') : Object.values(sections).join('\n\n');
+      const content = cat ? String(sections[cat] || '') : Object.values(sections).join('\n\n────────────────\n\n');
       let menu = bodyMenu ? String(bodyMenu || '') + '\n\n' + content : content;
       const replacements = {
         $owner: owner ? (!isNaN(owner.replace(/@s\.whatsapp\.net$/, '')) ? global.db.data.users[owner]?.name || owner.split('@')[0] : owner) : 'Oculto por privacidad',

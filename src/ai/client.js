@@ -6,32 +6,53 @@
 import axios from 'axios';
 import { cache } from '../../utils/cache.js';
 
-// Helper to format messages for context
+// Helper to format messages for context (for non-official APIs)
 function formatHistory(history) {
   if (!history || history.length === 0) return '';
   return history.map(msg => `${msg.role === 'user' ? 'Usuario' : 'Asistente'}: ${msg.content}`).join('\n') + '\n\n';
 }
 
+// Key rotation for official Gemini
+function getGeminiKey() {
+  const keys = global?.APIs?.gemini?.keys;
+  if (!keys || keys.length === 0) return null;
+  // Simple random rotation
+  return keys[Math.floor(Math.random() * keys.length)];
+}
+
 const providers = [
   {
-    name: 'Siputzx (Blackbox)',
-    url: () => global?.APIs?.siputzx?.url ? `${global.APIs.siputzx.url}/api/ai/blackboxai` : 'https://api.siputzx.my.id/api/ai/blackboxai',
-    method: 'GET',
-    buildPayload: ({ content, prompt, historyStr }) => {
-        const fullContent = `${prompt}\n\nHistorial de la conversación:\n${historyStr}Usuario: ${content}`;
-        return `?content=${encodeURIComponent(fullContent)}`;
+    name: 'Official Gemini 1.5 Flash',
+    url: () => {
+      const key = getGeminiKey();
+      return key ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}` : null;
     },
-    parseResponse: (data) => data?.data || data?.result || data?.message
-  },
-  {
-    name: 'Vreden (ChatGPT)',
-    url: () => global?.APIs?.vreden?.url ? `${global.APIs.vreden.url}/api/ai/chatgpt` : 'https://api.vreden.web.id/api/ai/chatgpt',
-    method: 'GET',
-    buildPayload: ({ content, prompt, historyStr }) => {
-        const fullContent = `${prompt}\n\nHistorial de la conversación:\n${historyStr}Usuario: ${content}`;
-        return `?q=${encodeURIComponent(fullContent)}`;
+    method: 'POST',
+    buildPayload: ({ content, prompt, history }) => {
+        // Build the official Google payload
+        const contents = [];
+        // Add system instruction as the first user message or handle via prompt
+        if (history.length === 0) {
+            contents.push({ role: 'user', parts: [{ text: `${prompt}\n\n${content}` }] });
+        } else {
+            // Reconstruct history
+            let hasPrompt = false;
+            for (const h of history) {
+                let textContent = h.content;
+                if (!hasPrompt && h.role === 'user') {
+                    textContent = `${prompt}\n\n${textContent}`;
+                    hasPrompt = true;
+                }
+                contents.push({
+                    role: h.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: textContent }]
+                });
+            }
+            contents.push({ role: 'user', parts: [{ text: content }] });
+        }
+        return { contents };
     },
-    parseResponse: (data) => data?.result || data?.data?.message || data?.data || data?.message
+    parseResponse: (data) => data?.candidates?.[0]?.content?.parts?.[0]?.text
   },
   {
     name: 'Stellar (Gemini)',
@@ -42,6 +63,27 @@ const providers = [
         return `?text=${encodeURIComponent(fullContent)}&key=${global?.APIs?.stellar?.key || 'YukiBot-MD'}`;
     },
     parseResponse: (data) => data?.result || data?.response || data?.message
+  },
+  {
+    name: 'Siputzx (Blackbox)',
+    url: () => global?.APIs?.siputzx?.url ? `${global.APIs.siputzx.url}/api/ai/blackboxai` : 'https://api.siputzx.my.id/api/ai/blackboxai',
+    method: 'POST',
+    buildPayload: ({ content, prompt, historyStr }) => {
+        const fullContent = `${prompt}\n\nHistorial de la conversación:\n${historyStr}Usuario: ${content}`;
+        // Enviar como JSON para mayor compatibilidad
+        return { content: fullContent, webSearchMode: true };
+    },
+    parseResponse: (data) => data?.data || data?.result || data?.message
+  },
+  {
+    name: 'Vreden (Gemini)',
+    url: () => global?.APIs?.vreden?.url ? `${global.APIs.vreden.url}/api/ai/gemini` : 'https://api.vreden.web.id/api/ai/gemini',
+    method: 'GET',
+    buildPayload: ({ content, prompt, historyStr }) => {
+        const fullContent = `${prompt}\n\nHistorial de la conversación:\n${historyStr}Usuario: ${content}`;
+        return `?q=${encodeURIComponent(fullContent)}`;
+    },
+    parseResponse: (data) => data?.result || data?.data?.message || data?.data || data?.message
   },
   {
     name: 'Delirius (ChatGPT)',
@@ -62,10 +104,49 @@ const providers = [
         return `?text=${encodeURIComponent(fullContent)}&prompt=${encodeURIComponent(prompt)}`;
     },
     parseResponse: (data) => data?.response || data?.result || data?.message
+  },
+  {
+    name: 'Lurick (ChatGPT)',
+    url: () => 'https://api.lurick.my.id/api/ai/chatgpt',
+    method: 'GET',
+    buildPayload: ({ content, prompt, historyStr }) => {
+        const fullContent = `${prompt}\n\nHistorial de la conversación:\n${historyStr}Usuario: ${content}`;
+        return `?q=${encodeURIComponent(fullContent)}`;
+    },
+    parseResponse: (data) => data?.result || data?.data || data?.message
   }
 ];
 
 const visionProviders = [
+  {
+    name: 'Official Gemini Vision',
+    url: () => {
+      const key = getGeminiKey();
+      return key ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}` : null;
+    },
+    method: 'POST',
+    // We expect `buildPayload` to return a promise if it needs to download the image
+    buildPayload: async ({ prompt, imageUrl }) => {
+        try {
+            const imgRes = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 15000 });
+            const base64 = Buffer.from(imgRes.data, 'binary').toString('base64');
+            // Check mime type simply
+            const mimeType = imageUrl.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+            return {
+                contents: [{
+                    role: "user",
+                    parts: [
+                        { text: prompt },
+                        { inline_data: { mime_type: mimeType, data: base64 } }
+                    ]
+                }]
+            };
+        } catch (e) {
+            throw new Error('Failed to fetch image for Official Gemini Vision');
+        }
+    },
+    parseResponse: (data) => data?.candidates?.[0]?.content?.parts?.[0]?.text
+  },
   {
     name: 'Siputzx (Gemini Vision)',
     url: () => global?.APIs?.siputzx?.url ? `${global.APIs.siputzx.url}/api/ai/gemini-image` : 'https://api.siputzx.my.id/api/ai/gemini-image',
@@ -89,16 +170,21 @@ const visionProviders = [
   }
 ];
 
+const DEFAULT_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*'
+};
+
 async function callProvider(provider, payload) {
   const targetUrl = typeof provider.url === 'function' ? provider.url() : provider.url;
   if (!targetUrl) throw new Error('Proveedor no configurado');
   
   if (provider.method === 'POST') {
-    const response = await axios.post(targetUrl, payload, { timeout: 20000 });
+    const response = await axios.post(targetUrl, payload, { timeout: 20000, headers: DEFAULT_HEADERS });
     return provider.parseResponse(response.data);
   } else {
     const finalUrl = `${targetUrl}${payload}`;
-    const response = await axios.get(finalUrl, { timeout: 20000 });
+    const response = await axios.get(finalUrl, { timeout: 20000, headers: DEFAULT_HEADERS });
     return provider.parseResponse(response.data);
   }
 }
@@ -116,7 +202,7 @@ export async function getAIResponse({ content, prompt, user }) {
 
   for (const provider of providers) {
     try {
-      const payload = provider.buildPayload({ content, prompt, historyStr });
+      const payload = await provider.buildPayload({ content, prompt, historyStr, history });
       const result = await callProvider(provider, payload);
       
       if (typeof result === 'string' && result.trim().length > 0) {
@@ -142,7 +228,7 @@ export async function getAIResponse({ content, prompt, user }) {
 export async function getVisionResponse({ prompt, imageUrl }) {
   for (const provider of visionProviders) {
     try {
-      const payload = provider.buildPayload({ prompt, imageUrl });
+      const payload = await provider.buildPayload({ prompt, imageUrl });
       const result = await callProvider(provider, payload);
       
       if (typeof result === 'string' && result.trim().length > 0) {

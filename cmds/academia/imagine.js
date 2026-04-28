@@ -1,9 +1,10 @@
 import axios from 'axios'
 
 const IMAGE_APIS = [
-    (p) => `https://stable.stacktoy.workers.dev/?apikey=Suhail&prompt=${encodeURIComponent(p)}`,
-    (p) => `https://dalle.stacktoy.workers.dev/?apikey=Suhail&prompt=${encodeURIComponent(p)}`,
-    (p) => `https://flux.gtech-apiz.workers.dev/?apikey=Suhail&text=${encodeURIComponent(p)}`
+    // Pollinations es la opción más estable y de mayor calidad gratuita
+    (p) => `https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=1024&height=1024&nologo=true&enhance=true`,
+    (p) => `https://api.siputzx.my.id/api/ai/text2img?prompt=${encodeURIComponent(p)}`,
+    (p) => `https://dalle.stacktoy.workers.dev/?apikey=Suhail&prompt=${encodeURIComponent(p)}`
 ];
 
 export default {
@@ -30,12 +31,12 @@ export default {
                         break;
                     }
                 } catch (e) {
-                    console.log('Fallo un proveedor de imagen, intentando el siguiente...');
+                    console.log(`Fallo un proveedor de imagen (${apiFn.name || 'desconocido'}), intentando el siguiente...`);
                 }
             }
 
             if (!imageBuffer) {
-                throw new Error('Todos los proveedores fallaron.');
+                throw new Error('Todos los proveedores de generación de imágenes fallaron.');
             }
 
             await client.sendMessage(
