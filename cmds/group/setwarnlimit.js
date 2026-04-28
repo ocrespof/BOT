@@ -7,7 +7,7 @@ export default {
     const raw = args[0]
     const limit = parseInt(raw)
     if (isNaN(limit) || limit < 0 || limit > 10) {
-      return m.reply(`✐ El límite de advertencias debe ser un número entre \`1\` y \`10\`, o \`0\` para desactivar.\n> Ejemplo 1 › *${prefa}setwarnlimit 5*\n> Ejemplo 2 › *${prefa}setwarnlimit 0*\n\n> Si usas \`0\`, se desactivará la función de eliminar usuarios al alcanzar el límite de advertencias.\n❖ Estado actual: ${chat.expulsar ? `\`${chat.warnLimit}\` advertencias` : '`Desactivado`'}`)
+      return m.reply(`✐ El límite de advertencias debe ser un número entre \`1\` y \`10\`, o \`0\` para desactivar.\nEjemplo 1 › *${prefa}setwarnlimit 5*\nEjemplo 2 › *${prefa}setwarnlimit 0*\n\nSi usas \`0\`, se desactivará la función de eliminar usuarios al alcanzar el límite de advertencias.\nEstado actual: ${chat.expulsar ? `\`${chat.warnLimit}\` advertencias` : '`Desactivado`'}`)
     }
     if (limit === 0) {
       chat.warnLimit = 0
@@ -16,6 +16,6 @@ export default {
     }
     chat.warnLimit = limit
     chat.expulsar = true
-    await m.reply(`✐ Límite de advertencias establecido en \`${limit}\` para este grupo.\n> ❖ Los usuarios serán eliminados automáticamente al alcanzar este límite.`)
+    await m.reply(`✐ Límite de advertencias establecido en \`${limit}\` para este grupo.\nLos usuarios serán eliminados automáticamente al alcanzar este límite.`)
   },
 };

@@ -17,13 +17,13 @@ export default {
       
       const translatedText = await translate(enQuote, 'es', 'en');
       
-      const finalMsg = `*🎓 FRASE DEL DÍA*\n\n> "${translatedText}"\n\n— _${author}_`;
+      const finalMsg = `*🎓 FRASE DEL DÍA*\n\n"${translatedText}"\n\n— _${author}_`;
       
       await client.sendMessage(m.chat, { text: finalMsg }, { quoted: m });
       m.react('✅');
     } catch (e) {
       m.react('❌');
-      m.reply(`《✧》 Ups, no pude traer una frase en este momento.`);
+      m.reply(` Ups, no pude traer una frase en este momento.`);
     }
   }
 }

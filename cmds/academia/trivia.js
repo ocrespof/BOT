@@ -29,7 +29,7 @@ export default {
     global.db.data.trivia = global.db.data.trivia || {};
 
     if (global.db.data.trivia[m.chat]) {
-      return m.reply(`《✧》 Ya hay un juego de trivia activo en este chat.\nLa pregunta es:\n*${global.db.data.trivia[m.chat].p}*`);
+      return m.reply(` Ya hay un juego de trivia activo en este chat.\nLa pregunta es:\n*${global.db.data.trivia[m.chat].p}*`);
     }
 
     const aleatorio = preguntas[Math.floor(Math.random() * preguntas.length)];
@@ -40,7 +40,7 @@ export default {
       timer: setTimeout(async () => {
         if (global.db.data.trivia[m.chat]) {
           try {
-            await client.sendMessage(m.chat, { text: `《✧》 ¡Tiempo acabado! ⏳\nNadie contestó correctamente.\nLa respuesta era la *${aleatorio.re}*.` });
+            await client.sendMessage(m.chat, { text: ` ¡Tiempo acabado! ⏳\nNadie contestó correctamente.\nLa respuesta era la *${aleatorio.re}*.` });
           } catch(e){}
           delete global.db.data.trivia[m.chat];
         }

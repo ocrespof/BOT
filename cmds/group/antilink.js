@@ -48,7 +48,7 @@ export default async (client, m) => {
 
   if (command !== 'invite') {
     const userName = global.db.data.users[m.sender]?.name || 'Usuario';
-    await client.reply(m.chat, `> ⚠️ ꕥ Se ha eliminado a *${userName}* del grupo por \`Anti-Link/Phishing\`.\n> Se detectó un enlace *sospechoso/peligroso*.`, null);
+    await client.reply(m.chat, `> ⚠️ Se ha eliminado a *${userName}* del grupo por \`Anti-Link/Phishing\`.\nSe detectó un enlace *sospechoso/peligroso*.`, null);
     await client.groupParticipantsUpdate(m.chat, [m.sender], 'remove');
   }
 };

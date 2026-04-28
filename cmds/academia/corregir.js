@@ -1,4 +1,4 @@
-import { getAIResponse } from '../../src/ai/client.js'
+import { getAIResponse } from '../../utils/ai.js'
 
 export default {
   command: ['corregir', 'corr', 'ortografia'],
@@ -7,10 +7,10 @@ export default {
     let text = args.join(' ').trim()
     if (m.quoted && m.quoted.text) text = m.quoted.text;
     
-    if (!text) return m.reply(`《✧》 Escribe o responde a un mensaje para corregirlo.\n*Ejemplo:* ${usedPrefix + command} Ola como ezta el profe`);
+    if (!text) return m.reply(` Escribe o responde a un mensaje para corregirlo.\n*Ejemplo:* ${usedPrefix + command} Ola como ezta el profe`);
     
     try {
-      const { key } = await client.sendMessage(m.chat, { text: `ꕥ *Autocorrector* analizando...` }, { quoted: m });
+      const { key } = await client.sendMessage(m.chat, { text: `*Autocorrector* analizando...` }, { quoted: m });
       await m.react('🕒');
       
       const logic = "Actúa como un profesor de lengua experto. Toma el texto proporcionado y corrígelo, solucionando errores de ortografía, gramática, signos de puntuación y sintaxis. Devuelve ÚNICAMENTE el texto corregido en limpio, listo para copiar y pegar, sin notas adicionales ni comillas extra.";
@@ -22,7 +22,7 @@ export default {
       await m.react('✔️');
     } catch (e) {
       await m.react('❌');
-      m.reply(`《✧》 Error al corregir el texto. Intenta de nuevo.`);
+      m.reply(` Error al corregir el texto. Intenta de nuevo.`);
     }
   }
 }

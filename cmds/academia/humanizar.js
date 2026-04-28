@@ -1,5 +1,5 @@
 // cmds/academia/humanizar.js
-import { getAIResponse } from '../../src/ai/client.js';
+import { getAIResponse } from '../../utils/ai.js';
 
 export default {
   command: ['humanizar', 'hum', 'humanize', 'parafrasear', 'parf', 'reescribir'],
@@ -16,14 +16,14 @@ export default {
 
     if (!text) {
       if (isParafrasear) {
-        return m.reply(`《✧》 Escribe o responde a un mensaje para parafrasearlo.\n*Ejemplo:* ${usedPrefix + command} La fotosíntesis es fundamental...`);
+        return m.reply(` Escribe o responde a un mensaje para parafrasearlo.\n*Ejemplo:* ${usedPrefix + command} La fotosíntesis es fundamental...`);
       }
-      return m.reply(`《✧》 Por favor, ingresa o responde al texto que deseas humanizar.\n> Ejemplo: *${usedPrefix + command}* La inteligencia artificial es un área multidisciplinaria...`);
+      return m.reply(` Por favor, ingresa o responde al texto que deseas humanizar.\nEjemplo: *${usedPrefix + command}* La inteligencia artificial es un área multidisciplinaria...`);
     }
 
     try {
       const initMsg = isParafrasear
-        ? `ꕥ *Reescritura Inteligente* procesando la semántica...`
+        ? `*Reescritura Inteligente* procesando la semántica...`
         : `⚙️ *Analizando y humanizando texto...* (Procesamiento avanzado anti-detección)`;
       const { key } = await client.sendMessage(m.chat, { text: initMsg }, { quoted: m });
       await m.react('⏳');
@@ -60,7 +60,7 @@ export default {
     } catch (e) {
       await m.react('❌');
       const errMsg = e.response ? `Servidor saturado (Status: ${e.response.status})` : e.message;
-      m.reply(`> ⚠️ Error al procesar el texto: ${errMsg}\n> Si el texto es muy largo, divídelo en partes.`);
+      m.reply(`> ⚠️ Error al procesar el texto: ${errMsg}\nSi el texto es muy largo, divídelo en partes.`);
     }
   }
 };

@@ -74,7 +74,7 @@ export default {
   cooldown: 5,
   run: async (client, m, args, usedPrefix, command) => {
     if (global.juegos.has(m.chat)) {
-      return m.reply('《✧》 Ya hay un juego activo en este chat. Termina antes de iniciar otro.');
+      return m.reply(' Ya hay un juego activo en este chat. Termina antes de iniciar otro.');
     }
 
     const palabraSecreta = palabras[Math.floor(Math.random() * palabras.length)].toUpperCase();
@@ -104,7 +104,7 @@ export default {
       jugador: m.sender // Opcional: permitir a cualquiera del grupo adivinar
     });
 
-    const board = `🎮 *EL AHORCADO* 🎮\n\n${hangmanStages[0]}\n\nPalabra: \`${progreso.join(' ')}\`\n\n> ✎ *Escribe una letra* en el chat para adivinar.`;
+    const board = `🎮 *EL AHORCADO* 🎮\n\n${hangmanStages[0]}\n\nPalabra: \`${progreso.join(' ')}\`\n\n*Escribe una letra* en el chat para adivinar.`;
     await client.sendMessage(m.chat, { text: board });
   }
 };
@@ -157,7 +157,7 @@ export const before = async (client, m) => {
     // Recompensa
     global.db.data.users[m.sender].exp = (global.db.data.users[m.sender].exp || 0) + 150;
     
-    const msg = `🎉 *¡F E L I C I D A D E S!* 🎉\n\nAdivinaste la palabra: *${game.palabra}*\n> 🎁 Ganaste *150 XP*`;
+    const msg = `🎉 *¡F E L I C I D A D E S!* 🎉\n\nAdivinaste la palabra: *${game.palabra}*\n🎁 Ganaste *150 XP*`;
     await client.sendMessage(m.chat, { text: msg }, { quoted: m });
     return true;
   }

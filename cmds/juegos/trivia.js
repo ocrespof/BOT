@@ -64,7 +64,7 @@ export default {
   
   run: async (client, m) => {
     if (global.juegos.has(m.chat)) {
-      return m.reply('《✧》 Ya hay un juego activo en este chat. ¡Responde la pregunta actual!');
+      return m.reply(' Ya hay un juego activo en este chat. ¡Responde la pregunta actual!');
     }
 
     try {
@@ -74,7 +74,7 @@ export default {
       const id = setTimeout(async () => {
         if (global.juegos.has(m.chat)) {
           global.juegos.delete(m.chat);
-          await client.sendMessage(m.chat, { text: `┌───「 ⏳ *TIEMPO AGOTADO* ⏳ 」───┐\n│ ❖ Nadie respondió a tiempo.\n│ ❖ La respuesta correcta era: *${q.r}*\n└──────────────────────────┘` });
+          await client.sendMessage(m.chat, { text: `┌───「 ⏳ *TIEMPO AGOTADO* ⏳ 」───┐\n│ Nadie respondió a tiempo.\n│ La respuesta correcta era: *${q.r}*\n└──────────────────────────┘` });
         }
       }, timeout);
 
@@ -85,11 +85,11 @@ export default {
         sender: m.sender
       });
 
-      const txt = `┌───「 🧠 *TRIVIA TICS* 🧠 」───┐\n│ ❖ *Pregunta:* ${q.p}\n│ ⏳ Tienes *45 segundos* para responder.\n└────────────────────────┘`;
+      const txt = `┌───「 🧠 *TRIVIA TICS* 🧠 」───┐\n│ *Pregunta:* ${q.p}\n│ ⏳ Tienes *45 segundos* para responder.\n└────────────────────────┘`;
       await client.sendMessage(m.chat, { text: txt });
 
     } catch (err) {
-      m.reply(`《✧》 Hubo un error al iniciar la trivia.`);
+      m.reply(` Hubo un error al iniciar la trivia.`);
     }
   },
 };
@@ -113,7 +113,7 @@ export const before = async (client, m) => {
       global.db.data.users[m.sender].exp = (global.db.data.users[m.sender].exp || 0) + exp;
       
       await client.sendMessage(m.chat, { 
-        text: `┌───「 🎉 *¡CORRECTO!* 🎉 」───┐\n│ ❖ ¡Felicidades @${m.sender.split('@')[0]}!\n│ ❖ La respuesta era: *${juego.answer}*\n│ 💰 +${exp} XP\n└───────────────────────┘`, 
+        text: `┌───「 🎉 *¡CORRECTO!* 🎉 」───┐\n│ ¡Felicidades @${m.sender.split('@')[0]}!\n│ La respuesta era: *${juego.answer}*\n│ 💰 +${exp} XP\n└───────────────────────┘`, 
         mentions: [m.sender] 
       }, { quoted: m });
       return true;

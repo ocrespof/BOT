@@ -1,4 +1,4 @@
-import { getAIResponse } from '../../src/ai/client.js'
+import { getAIResponse } from '../../utils/ai.js'
 
 export default {
   command: ['def', 'significado', 'diccionario'],
@@ -7,7 +7,7 @@ export default {
     let text = args.join(' ').trim()
     if (m.quoted && m.quoted.text) text = m.quoted.text;
     
-    if (!text) return m.reply(`《✧》 Escribe o cita la palabra que deseas buscar.\n*Ejemplo:* ${usedPrefix + command} Hipotenusa`);
+    if (!text) return m.reply(` Escribe o cita la palabra que deseas buscar.\n*Ejemplo:* ${usedPrefix + command} Hipotenusa`);
     
     try {
       await m.react('📖');
@@ -23,7 +23,7 @@ export default {
       await m.react('✅');
     } catch (e) {
       await m.react('❌');
-      m.reply(`《✧》 Error al buscar la definición. Verifica la conexión o intenta más tarde.`);
+      m.reply(` Error al buscar la definición. Verifica la conexión o intenta más tarde.`);
     }
   }
 }

@@ -46,9 +46,9 @@ export default {
       if (userText) {
       return client.sendMessage(m.chat, { text: userText, mentions }, { quoted: null })
       }
-      return m.reply(`《✧》 *Ingresa* un texto o *responde* a uno`)
+      return m.reply(` *Ingresa* un texto o *responde* a uno`)
     } catch (e) {
-      return m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: *${e.message}*]`)
+      return m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n[Error: *${e.message}*]`)
     }
   }
 }

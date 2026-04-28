@@ -27,11 +27,11 @@ export default {
       end = "Perdiste. Más suerte la próxima vez 😢";
     }
 
-    const slotText = `« 𝐓𝐑𝐀𝐆𝐀𝐌𝐎𝐍𝐄𝐃𝐀𝐒 »\n
+    const slotText = `« 𝐓𝐑𝐀𝐆𝐀𝐌𝐎𝐍𝐄𝐃𝐀𝐒 \n
  🎰 | ${x[0]} | ${y[0]} | ${z[0]} |
  🎰 | ${emojis[a]} | ${emojis[b]} | ${emojis[c]} | ⬅️
  🎰 | ${x[2]} | ${y[2]} | ${z[2]} |\n
-> ❖ ${end}`;
+${end}`;
 
     await m.reply(slotText);
   }

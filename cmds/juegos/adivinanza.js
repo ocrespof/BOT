@@ -35,7 +35,7 @@ export default {
   
   run: async (client, m) => {
     if (global.juegos.has(m.chat)) {
-      return m.reply('《✧》 Ya hay un juego activo en este chat. ¡Responde el juego actual primero!');
+      return m.reply(' Ya hay un juego activo en este chat. ¡Responde el juego actual primero!');
     }
 
     try {
@@ -45,7 +45,7 @@ export default {
       const id = setTimeout(async () => {
         if (global.juegos.has(m.chat)) {
           global.juegos.delete(m.chat);
-          await client.sendMessage(m.chat, { text: `⏳ ¡Se acabó el tiempo!\n> ❖ La respuesta correcta era: *${item.r}*` });
+          await client.sendMessage(m.chat, { text: `⏳ ¡Se acabó el tiempo!\nLa respuesta correcta era: *${item.r}*` });
         }
       }, timeout);
 
@@ -55,11 +55,11 @@ export default {
         timeoutId: id
       });
 
-      const txt = `« 𝐀𝐃𝐈𝐕𝐈𝐍𝐀𝐍𝐙𝐀 »\n\n> ❖ ${item.p}\n\n⏳ Tienen *60 segundos* para adivinar. ¡Escriban su respuesta en el chat!`;
+      const txt = `« 𝐀𝐃𝐈𝐕𝐈𝐍𝐀𝐍𝐙𝐀 \n\n${item.p}\n\n⏳ Tienen *60 segundos* para adivinar. ¡Escriban su respuesta en el chat!`;
       await client.sendMessage(m.chat, { text: txt });
 
     } catch (err) {
-      m.reply(`《✧》 Hubo un error al iniciar la adivinanza.`);
+      m.reply(` Hubo un error al iniciar la adivinanza.`);
     }
   }
 };
@@ -85,7 +85,7 @@ export const before = async (client, m) => {
       global.db.data.users[m.sender].exp = (global.db.data.users[m.sender].exp || 0) + exp;
       
       await client.sendMessage(m.chat, { 
-        text: `🎉 ¡Excelente @${m.sender.split('@')[0]}!\n> ❖ La respuesta era: *${juego.answer}*\n> 💰 Has ganado ${exp} XP.`, 
+        text: `🎉 ¡Excelente @${m.sender.split('@')[0]}!\nLa respuesta era: *${juego.answer}*\n💰 Has ganado ${exp} XP.`, 
         mentions: [m.sender] 
       }, { quoted: m });
       return true; 

@@ -12,14 +12,14 @@ export default {
       const groupMetadata = await client.groupMetadata(m.chat)
       const groupAnnouncement = groupMetadata.announce
       if (groupAnnouncement === false) {
-        return client.reply(m.chat, `《✧》 El grupo ya está abierto.`, m)
+        return client.reply(m.chat, ` El grupo ya está abierto.`, m)
       }
       const applyAction = async () => {
         await client.groupSettingUpdate(m.chat, 'not_announcement')
         return client.reply(m.chat, `✿ El grupo ha sido abierto correctamente.`, m)
       }
       if (timeout > 0) {
-        await client.reply(m.chat, `❀ El grupo se abrirá en ${clockString(timeout)}.`, m)
+        await client.reply(m.chat, `El grupo se abrirá en ${clockString(timeout)}.`, m)
         setTimeout(async () => {
           try {
             const md = await client.groupMetadata(m.chat)
@@ -31,7 +31,7 @@ export default {
         await applyAction()
       }
     } catch (e) {
-      return m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: *${e.message}*]`)
+      return m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n[Error: *${e.message}*]`)
     }
   },
 }

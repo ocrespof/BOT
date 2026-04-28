@@ -11,7 +11,7 @@ export default {
     const targetId = await resolveLidToRealJid(who2, client, m.chat);
     const reason = mentioned.length > 0 ? args.slice(1).join(' ') || 'Sin razón.' : args.slice(0).join(' ') || 'Sin razón.'
     try {
-      if (!who2) return m.reply('《✧》 Debes mencionar o responder al usuario que deseas advertir.')
+      if (!who2) return m.reply(' Debes mencionar o responder al usuario que deseas advertir.')
       if (!chat.users[targetId]) chat.users[targetId] = {}
       const user = chat.users[targetId]
       if (!user.warnings) user.warnings = []
@@ -29,7 +29,7 @@ export default {
       const name = global.db.data.users[targetId]?.name || 'Usuario'
       const warningList = user.warnings.map((w, i) => {
           const index = total - i
-          return `\`#${index}\` » ${w.reason}\n> » Fecha: ${w.timestamp}`
+          return `\`#${index}\` ${w.reason}\nFecha: ${w.timestamp}`
         }).join('\n')
       let message = `✐ Se ha añadido una advertencia a @${targetId.split('@')[0]}.\n✿ Advertencias totales \`(${total})\`:\n\n${warningList}`
       const warnLimit = chat.warnLimit || 3
@@ -39,16 +39,16 @@ export default {
           await client.groupParticipantsUpdate(m.chat, [targetId], 'remove')
           delete chat.users[targetId]
           delete global.db.data.users[targetId]
-          message += `\n\n> ❖ El usuario ha alcanzado el límite de advertencias y fue expulsado del grupo.`
+          message += `\n\nEl usuario ha alcanzado el límite de advertencias y fue expulsado del grupo.`
         } catch {
-          message += `\n\n> ❖ El usuario alcanzó el límite, pero no se pudo expulsar automáticamente.`
+          message += `\n\nEl usuario alcanzó el límite, pero no se pudo expulsar automáticamente.`
         }
       } else if (total >= warnLimit && !expulsar) {
-        message += `\n\n> ❖ El usuario ha alcanzado el límite de advertencias.`
+        message += `\n\nEl usuario ha alcanzado el límite de advertencias.`
       }
       await client.reply(m.chat, message, m, { mentions: [targetId] })
     } catch (e) {
-     return m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: *${e.message}*]`)
+     return m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n[Error: *${e.message}*]`)
     }
   },
 };

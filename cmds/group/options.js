@@ -35,16 +35,16 @@ export default {
     const nombreBonito = featureNames[normalizedKey] || `la función *${normalizedKey}*`
     const titulo = featureTitles[normalizedKey] || normalizedKey
     if (!stateArg) {
-      return client.reply(m.chat, `*✩ ${titulo} (✿❛◡❛)*\n\nꕥ Un administrador puede activar o desactivar ${nombreBonito} utilizando:\n\n● _Habilitar ›_ *${usedPrefix + normalizedKey} enable*\n● _Deshabilitar ›_ *${usedPrefix + normalizedKey} disable*\n\n❒ *Estado actual ›* ${estado}`, m)
+      return client.reply(m.chat, `*✩ ${titulo} (✿❛◡❛)*\n\nUn administrador puede activar o desactivar ${nombreBonito} utilizando:\n\n● _Habilitar ›_ *${usedPrefix + normalizedKey} enable*\n● _Deshabilitar ›_ *${usedPrefix + normalizedKey} disable*\n\n❒ *Estado actual ›* ${estado}`, m)
     }
     if (!validStates.includes(stateArg)) {
-      return m.reply(`✎ Estado no válido. Usa *on*, *off*, *enable* o *disable*\n\nEjemplo:\n${usedPrefix}${normalizedKey} enable`)
+      return m.reply(`Estado no válido. Usa *on*, *off*, *enable* o *disable*\n\nEjemplo:\n${usedPrefix}${normalizedKey} enable`)
     }
     const enabled = ['on', 'enable'].includes(stateArg)
     if (chatData[normalizedKey] === enabled) {
-      return m.reply(`✎ *${titulo}* ya estaba *${enabled ? 'activado' : 'desactivado'}*.`)
+      return m.reply(`*${titulo}* ya estaba *${enabled ? 'activado' : 'desactivado'}*.`)
     }
     chatData[normalizedKey] = enabled
-    return m.reply(`✎ Has *${enabled ? 'activado' : 'desactivado'}* ${nombreBonito}.`)
+    return m.reply(`Has *${enabled ? 'activado' : 'desactivado'}* ${nombreBonito}.`)
   }
 };

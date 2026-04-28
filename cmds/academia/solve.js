@@ -1,4 +1,4 @@
-import { getAIResponse } from '../../src/ai/client.js'
+import { getAIResponse } from '../../utils/ai.js'
 
 export default {
   command: ['solve', 'solucionar', 'math'],
@@ -6,12 +6,12 @@ export default {
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ').trim()
     if (!text) {
-      return m.reply(`《✧》 Por favor, ingresa el problema matemático que deseas resolver.\n*Ejemplo:* ${usedPrefix + command} 2x + 5 = 15`)
+      return m.reply(` Por favor, ingresa el problema matemático que deseas resolver.\n*Ejemplo:* ${usedPrefix + command} 2x + 5 = 15`)
     }
 
     try {
       await m.react('🕒')
-      const { key } = await client.sendMessage(m.chat, { text: `ꕥ *Procesando solución paso a paso...*` }, { quoted: m })
+      const { key } = await client.sendMessage(m.chat, { text: `*Procesando solución paso a paso...*` }, { quoted: m })
       
       const botname = global.db?.data?.settings?.[client.user.id]?.botname || 'YukiBot'
       const username = global.db?.data?.users?.[m.sender]?.name || 'Usuario'
@@ -26,7 +26,7 @@ export default {
     } catch (error) {
       console.error("[Solve] Error:", error.message || error)
       await m.react('✖️')
-      await m.reply(`> Ocurrió un error al intentar resolver el problema.\n> [Error: *${error.message || 'Desconocido'}*]`)
+      await m.reply(`> Ocurrió un error al intentar resolver el problema.\n[Error: *${error.message || 'Desconocido'}*]`)
     }
   }
 }

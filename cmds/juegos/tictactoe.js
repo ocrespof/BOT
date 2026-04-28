@@ -32,14 +32,14 @@ export default {
   cooldown: 5,
   run: async (client, m, args, usedPrefix, command) => {
     if (global.juegos.has(m.chat)) {
-      return m.reply('《✧》 Ya hay un juego activo en este chat. Termina antes de iniciar otro.');
+      return m.reply(' Ya hay un juego activo en este chat. Termina antes de iniciar otro.');
     }
     if (!args[0]) {
       return m.reply(`Uso: ${usedPrefix + command} @usuario`);
     }
     const opponent = (m.mentionedJid && m.mentionedJid[0]) || args[0].replace(/[^0-9]/g, '') + '@s.whatsapp.net';
     if (opponent === m.sender) {
-      return m.reply('《✧》 No puedes jugar contra ti mismo.');
+      return m.reply(' No puedes jugar contra ti mismo.');
     }
     const board = Array(9).fill(null);
     const timeout = 300000; // 5 minutos sin actividad
@@ -90,7 +90,7 @@ export const before = async (client, m) => {
     const winnerId = game.players[winner];
     global.db.data.users[winnerId].exp = (global.db.data.users[winnerId].exp || 0) + 200;
     await client.sendMessage(m.chat, {
-      text: `🏆 *¡${winner === 'X' ? '@' + game.players.X.split('@')[0] : '@' + game.players.O.split('@')[0]} gana!* 🎉\n> 🎁 Ganaste *200 XP*\n\n${renderBoard(game.board)}`,
+      text: `🏆 *¡${winner === 'X' ? '@' + game.players.X.split('@')[0] : '@' + game.players.O.split('@')[0]} gana!* 🎉\n🎁 Ganaste *200 XP*\n\n${renderBoard(game.board)}`,
       mentions: [game.players.X, game.players.O]
     });
     return true;

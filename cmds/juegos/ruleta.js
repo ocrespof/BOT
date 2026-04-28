@@ -4,7 +4,7 @@ export default {
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ').trim();
     if (!text.includes('|')) {
-      return m.reply(`《✧》 Formato incorrecto. Debes usar el símbolo "|" para separar estudiantes de los temas.\n*Ejemplo:* ${usedPrefix + command} Juan, Ana, Pedro | Fotosíntesis, Células, Ecosistemas`);
+      return m.reply(` Formato incorrecto. Debes usar el símbolo "|" para separar estudiantes de los temas.\n*Ejemplo:* ${usedPrefix + command} Juan, Ana, Pedro | Fotosíntesis, Células, Ecosistemas`);
     }
 
     try {
@@ -14,7 +14,7 @@ export default {
       let temasCrudo = parts.slice(1).join('|').trim();
 
       if (!estudiantesCrudo || !temasCrudo) {
-         return m.reply(`《✧》 Asegúrate de incluir texto en ambos lados de la barrera "|".`);
+         return m.reply(` Asegúrate de incluir texto en ambos lados de la barrera "|".`);
       }
 
       let estudiantes = estudiantesCrudo.includes(',') 
@@ -24,7 +24,7 @@ export default {
       let temas = temasCrudo.split(',').map(t => t.trim()).filter(t => t);
 
       if (estudiantes.length === 0 || temas.length === 0) {
-        return m.reply(`《✧》 No se detectaron estudiantes o temas válidos.`);
+        return m.reply(` No se detectaron estudiantes o temas válidos.`);
       }
 
       for (let i = estudiantes.length - 1; i > 0; i--) {
@@ -50,7 +50,7 @@ export default {
       m.react('✅');
     } catch (e) {
       m.react('❌');
-      m.reply(`《✧》 Ocurrió un error inesperado al sortear.`);
+      m.reply(` Ocurrió un error inesperado al sortear.`);
     }
   }
 }

@@ -1,4 +1,4 @@
-import { getAIResponse } from '../../src/ai/client.js';
+import { getAIResponse } from '../../utils/ai.js';
 
 export default {
   command: ['dia', 'detia', 'ai?'],
@@ -8,7 +8,7 @@ export default {
     if (m.quoted && m.quoted.text) text = m.quoted.text;
 
     if (!text) {
-      return m.reply(`《✧》 Ingresa o responde al texto que deseas analizar.\n*Ejemplo:* ${usedPrefix + command} La historia de Roma es extensa...`);
+      return m.reply(` Ingresa o responde al texto que deseas analizar.\n*Ejemplo:* ${usedPrefix + command} La historia de Roma es extensa...`);
     }
 
     try {
@@ -41,7 +41,7 @@ export default {
     } catch (e) {
       await m.react('❌');
       const errorMsg = e.response ? `Servidor saturado (Status: ${e.response.status})` : e.message;
-      m.reply(`> ⚠️ Error al escanear el texto: ${errorMsg}\n> Intenta nuevamente más tarde.`);
+      m.reply(`> ⚠️ Error al escanear el texto: ${errorMsg}\nIntenta nuevamente más tarde.`);
     }
   }
 };

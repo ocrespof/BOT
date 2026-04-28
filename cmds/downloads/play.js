@@ -16,7 +16,7 @@ export default {
   run: async (client, m, args, usedPrefix, command) => {
     try {
       if (!args[0]) {
-        return m.reply('《✧》Por favor, menciona el nombre o URL del video que deseas descargar')
+        return m.reply('Por favor, menciona el nombre o URL del video que deseas descargar')
       }
       const text = args.join(' ')
       const videoMatch = text.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/)
@@ -30,21 +30,21 @@ export default {
           thumbBuffer = await getBuffer(videoInfo.image)
           const vistas = (videoInfo.views || 0).toLocaleString()
           const canal = videoInfo.author?.name || 'Desconocido'
-          const infoMessage = `« 𝐘𝐓 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 »\n\n> ❖ Título: ${title}\n> ❀ Canal: ${canal}\n> ⴵ Duración: ${videoInfo.timestamp || 'N/A'}`
+          const infoMessage = `« 𝐘𝐓 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 \n\nTítulo: ${title}\nCanal: ${canal}\nDuración: ${videoInfo.timestamp || 'N/A'}`
           await client.sendMessage(m.chat, { image: thumbBuffer, caption: infoMessage }, { quoted: m })
         }
       } catch (err) {
         console.error("Error en búsqueda YT:", err);
-        return m.reply('《✧》 Ocurrió un error al buscar el video. Intenta con otro término.');
+        return m.reply(' Ocurrió un error al buscar el video. Intenta con otro término.');
       }
       const audio = await getMedia('youtube_audio', url)
       if (!audio?.url) {
-        return m.reply('《✧》 No se pudo descargar el *audio*, intenta más tarde.')
+        return m.reply(' No se pudo descargar el *audio*, intenta más tarde.')
       }
       const audioBuffer = await getBuffer(audio.url)
       await client.sendMessage(m.chat, { audio: audioBuffer, fileName: `${title || 'audio'}.mp3`, mimetype: 'audio/mpeg' }, { quoted: m })
     } catch (e) {
-      await m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: *${e.message}*]`)
+      await m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n[Error: *${e.message}*]`)
     }
   }
 }

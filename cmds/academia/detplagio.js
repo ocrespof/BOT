@@ -1,4 +1,4 @@
-import { getAIResponse } from '../../src/ai/client.js'
+import { getAIResponse } from '../../utils/ai.js'
 
 export default {
   command: ['dplg', 'dplagio', 'plagio'],
@@ -7,7 +7,7 @@ export default {
     let text = args.join(' ').trim()
     if (m.quoted && m.quoted.text) text = m.quoted.text;
     
-    if (!text) return m.reply(`《✧》 Ingresa o responde al texto que deseas escanear por plagio.\n*Ejemplo:* ${usedPrefix + command} El agua es un elemento esencial...`);
+    if (!text) return m.reply(` Ingresa o responde al texto que deseas escanear por plagio.\n*Ejemplo:* ${usedPrefix + command} El agua es un elemento esencial...`);
     
     try {
       const { key } = await client.sendMessage(m.chat, { text: `🌐 *Escaneando la web en busca de plagio...*` }, { quoted: m });
@@ -66,7 +66,7 @@ Asegúrate de que plagiarism_percentage + unique_percentage sumen 100%. Debes se
     } catch (e) {
       await m.react('❌')
       const errorMsg = e.response ? `Servidor saturado (Status: ${e.response.status})` : e.message;
-      m.reply(`> ⚠️ Error en la detección de plagio: ${errorMsg}\n> Intenta con un texto más corto o inténtalo más tarde.`)
+      m.reply(`> ⚠️ Error en la detección de plagio: ${errorMsg}\nIntenta con un texto más corto o inténtalo más tarde.`)
     }
   }
 }

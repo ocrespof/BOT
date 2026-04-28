@@ -15,7 +15,7 @@ export default {
     run: async (client, m, args, usedPrefix, command) => {
         const text = args.join(' ').trim();
         if (!text) {
-            return m.reply(`《✧》 Escribe lo que deseas que la IA dibuje.\n> Ejemplo: *${usedPrefix + command} un gato astronauta en marte*`);
+            return m.reply(` Escribe lo que deseas que la IA dibuje.\nEjemplo: *${usedPrefix + command} un gato astronauta en marte*`);
         }
 
         await m.react('🕒');
@@ -41,7 +41,7 @@ export default {
 
             await client.sendMessage(
                 m.chat, 
-                { image: imageBuffer, caption: `🎨 *IMAGINE IA*\n> ❖ Prompt: ${text}` }, 
+                { image: imageBuffer, caption: `🎨 *IMAGINE IA*\nPrompt: ${text}` }, 
                 { quoted: m }
             );
             await m.react('✔️');
@@ -49,7 +49,7 @@ export default {
         } catch (err) {
             console.error('[IMAGINE]', err);
             await m.react('❌');
-            await m.reply(`> Ha ocurrido un error al generar la imagen.\n> [Error: ${err.message}]`);
+            await m.reply(`> Ha ocurrido un error al generar la imagen.\n[Error: ${err.message}]`);
         }
     }
 }
