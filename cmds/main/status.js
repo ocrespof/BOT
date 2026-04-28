@@ -26,7 +26,7 @@ export default {
     const botSettings = global.db.data.settings[botId] || {}
     const botname = botSettings.botname
     const totalCommands = Object.values(global.db.data.users).reduce((acc, user) => acc + (user.usedcommands || 0), 0)
-    const estadoBot = `「❀」 Estado de *${botname}* (●\´ϖ\`●)
+    const estadoBot = `「」 Estado de *${botname}* (●\´ϖ\`●)
 ◇ *Usuarios registrados ›* ${userCount.toLocaleString()}
 ◇ *Grupos registrados ›* ${registeredGroups.toLocaleString()}
 ◇ *Comandos ejecutados ›* ${toNum(totalCommands)}`
@@ -37,12 +37,12 @@ export default {
     const arquitectura = os.arch()
     const estadoServidor = `➭ Estado del Servidor *₍ᐢ..ᐢ₎♡*
 
-❖ *Sistema ›* ${sistema}
-❖ *CPU ›* ${cpu} cores
-❖ *RAM ›* ${ramTotal}
-❖ *RAM Usado ›* ${ramUsada}
-❖ *Arquitectura ›* ${arquitectura}
-❖ *Host ID ›* ${hostId}
+*Sistema ›* ${sistema}
+*CPU ›* ${cpu} cores
+*RAM ›* ${ramTotal}
+*RAM Usado ›* ${ramUsada}
+*Arquitectura ›* ${arquitectura}
+*Host ID ›* ${hostId}
 
 *❑ Uso de Memoria NODEJS*
 ◆ *Ram Utilizada* › ${format(process.memoryUsage().rss)}

@@ -5,7 +5,7 @@ export default {
   category: ['tools'],
   run: async (client, m, args, usedPrefix, command) => {
     try {
-      if (!args[0]) return m.reply('《✧》 Por favor, ingresa el enlace (URL) de una página.')
+      if (!args[0]) return m.reply(' Por favor, ingresa el enlace (URL) de una página.')
       
       let url = args[0]
       if (!url.startsWith('http')) url = 'https://' + url
@@ -20,7 +20,7 @@ export default {
     } catch (error) {
       console.error(error)
       await m.react('✖️')
-      return m.reply(`> Ocurrió un error inesperado al ejecutar el comando *${usedPrefix + command}*.\n> [Error: *${error.message}*]`)
+      return m.reply(`> Ocurrió un error inesperado al ejecutar el comando *${usedPrefix + command}*.\n[Error: *${error.message}*]`)
     }
   }
 }

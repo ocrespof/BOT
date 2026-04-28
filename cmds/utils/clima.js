@@ -7,7 +7,7 @@ export default {
   usage: '[ciudad]',
   run: async (client, m, args, usedPrefix, command) => {
     const ciudad = args.join(' ').trim();
-    if (!ciudad) return m.reply(`《✧》 Por favor ingresa el nombre de una ciudad.\n*Ejemplo:* ${usedPrefix + command} Bogotá`);
+    if (!ciudad) return m.reply(` Por favor ingresa el nombre de una ciudad.\n*Ejemplo:* ${usedPrefix + command} Bogotá`);
     
     try {
       m.react('🌤️');
@@ -33,7 +33,7 @@ export default {
       m.react('✅');
     } catch (e) {
       m.react('❌');
-      m.reply(`《✧》 No se pudo obtener el clima de *${ciudad}*. Verifica el nombre de la ciudad.`);
+      m.reply(` No se pudo obtener el clima de *${ciudad}*. Verifica el nombre de la ciudad.`);
     }
   }
 }

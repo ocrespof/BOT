@@ -12,7 +12,7 @@ export default {
   isOwner: true,
   run: async (client, m, args, usedPrefix, command, text) => {
   if (!text.trim()) {
-   return client.reply(m.chat, '《✧》 Debes escribir un comando a ejecutar.', m)
+   return client.reply(m.chat, ' Debes escribir un comando a ejecutar.', m)
   }
     let _text = (command === 'e' ? 'return ' : '') + text
     let old = m.exp * 1

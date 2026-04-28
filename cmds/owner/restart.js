@@ -3,7 +3,7 @@ export default {
   category: 'mod',
   isOwner: true,
   run: async (client, m) => {
-    await client.reply(m.chat, `✎ Reiniciando el Socket...\n> *Espere un momento...*`, m)
+    await client.reply(m.chat, `Reiniciando el Socket...\n*Espere un momento...*`, m)
     setTimeout(() => {
     if (process.send) {
     process.send("restart")

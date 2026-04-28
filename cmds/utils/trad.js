@@ -6,7 +6,7 @@ export default {
   desc: 'Traduce un texto al idioma especificado.',
   usage: '[idioma] [texto]',
   run: async (client, m, args, usedPrefix, command) => {
-    if (args.length < 2) return m.reply(`《✧》 Formato incorrecto. Debes colocar el idioma y texto.\n*Ejemplo:* ${usedPrefix + command} en Hola mundo`);
+    if (args.length < 2) return m.reply(` Formato incorrecto. Debes colocar el idioma y texto.\n*Ejemplo:* ${usedPrefix + command} en Hola mundo`);
     
     const lang = args[0];
     const text = args.slice(1).join(' ').trim();
@@ -18,7 +18,7 @@ export default {
       m.react('✅');
     } catch (e) {
       m.react('❌');
-      m.reply(`《✧》 Error en la traducción. Asegúrate de usar un código de idioma válido de 2 letras (ej: en, fr, pt, de).`);
+      m.reply(` Error en la traducción. Asegúrate de usar un código de idioma válido de 2 letras (ej: en, fr, pt, de).`);
     }
   }
 }

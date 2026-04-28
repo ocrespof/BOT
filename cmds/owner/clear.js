@@ -6,7 +6,7 @@ export default {
     const start = Date.now()
     const chat = global.db.data.chats?.[m.chat]
     if (!chat?.users || typeof chat.users !== 'object')
-      return m.reply('ꕥ No se encontraron datos del grupo.')
+      return m.reply('No se encontraron datos del grupo.')
     const LIMITE = 40 * 24 * 60 * 60 * 1000
     const now = Date.now()
     let userList = [], mentions = [], eliminados = 0, waifus = 0, dinero = 0
@@ -36,8 +36,8 @@ export default {
       mentions.push(jid)
     }
     if (!eliminados)
-      return m.reply('ꕥ No se encontraron usuarios inactivos.\n> ⴵ Tiempo limite: 40 dias')
-    const report = ['❀ Se han eliminado los datos de los usuarios inactivos.', `> ♡ Claims eliminados: ${waifus}`, `> ⛁ Coins eliminados: ${dinero.toLocaleString()}`, `> ❖ Usuarios inactivos: ${eliminados}`, `> ⴵ Tiempo límite: 40 días`, `> ❏ El comando se ejecutó en ${getDuration(start)}ms`, '', ...userList,].join('\n')
+      return m.reply('No se encontraron usuarios inactivos.\nTiempo limite: 40 dias')
+    const report = ['Se han eliminado los datos de los usuarios inactivos.', `> ♡ Claims eliminados: ${waifus}`, `> Coins eliminados: ${dinero.toLocaleString()}`, `> Usuarios inactivos: ${eliminados}`, `> Tiempo límite: 40 días`, `> ❏ El comando se ejecutó en ${getDuration(start)}ms`, '', ...userList,].join('\n')
     await client.sendMessage(m.chat, { text: report, mentions }, { quoted: m })
   },
 }

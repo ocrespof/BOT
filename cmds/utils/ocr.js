@@ -7,12 +7,12 @@ export default {
     run: async (client, m) => {
         let q = m.quoted ? m.quoted : m;
         let mime = (q.msg || q).mimetype || '';
-        if (!mime.startsWith('image/')) return m.reply('《✧》 Por favor, responde a una imagen con texto visible que desees extraer.');
+        if (!mime.startsWith('image/')) return m.reply(' Por favor, responde a una imagen con texto visible que desees extraer.');
         
         try {
             await m.react('⏳');
             const buffer = await q.download();
-            if (!buffer) return m.reply('《✧》 No se pudo encontrar y descargar la imagen.');
+            if (!buffer) return m.reply(' No se pudo encontrar y descargar la imagen.');
             
             const form = new FormData();
             form.append('apikey', 'helloworld'); // Generico Libre OCR-Space
@@ -42,7 +42,7 @@ export default {
             await m.react('✔️');
         } catch (e) {
             await m.react('✖️');
-            m.reply(`> Ocurrió un fallo en el procesador óptico y la conexión.\n> [Error: ${e.message}]`);
+            m.reply(`> Ocurrió un fallo en el procesador óptico y la conexión.\n[Error: ${e.message}]`);
         }
     }
 }

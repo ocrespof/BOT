@@ -3,7 +3,7 @@ export default {
   category: 'utils',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ').trim();
-    if (!text) return m.reply(`《✧》 Escribe un texto o URL para generar el Código QR.\n*Ejemplo:* ${usedPrefix + command} https://google.com`);
+    if (!text) return m.reply(` Escribe un texto o URL para generar el Código QR.\n*Ejemplo:* ${usedPrefix + command} https://google.com`);
     
     try {
       m.react('📷');
@@ -13,7 +13,7 @@ export default {
       m.react('✅');
     } catch (e) {
       m.react('❌');
-      m.reply(`《✧》 Hubo un error al crear tu Código QR.`);
+      m.reply(` Hubo un error al crear tu Código QR.`);
     }
   }
 }

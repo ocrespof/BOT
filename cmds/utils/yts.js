@@ -7,14 +7,14 @@ export default {
   usage: '[búsqueda]',
   run: async (client, m, args, usedPrefix, command) => {
     const query = args.join(' ').trim();
-    if (!query) return m.reply(`《✧》 Escribe qué deseas buscar en YouTube.\n*Ejemplo:* ${usedPrefix + command} Música épica`);
+    if (!query) return m.reply(` Escribe qué deseas buscar en YouTube.\n*Ejemplo:* ${usedPrefix + command} Música épica`);
     
     try {
       m.react('🔍');
       const results = await yts(query);
       const videos = results.videos.slice(0, 5);
       
-      if (!videos.length) return m.reply(`《✧》 No se encontraron videos para: *${query}*`);
+      if (!videos.length) return m.reply(` No se encontraron videos para: *${query}*`);
       
       let text = `*🔴 RESULTADOS DE BÚSQUEDA YOUTUBE*\n\n`;
       videos.forEach((v, i) => {
@@ -28,7 +28,7 @@ export default {
       m.react('✅');
     } catch (e) {
       m.react('❌');
-      m.reply(`《✧》 Error al comunicarse con YouTube Search.`);
+      m.reply(` Error al comunicarse con YouTube Search.`);
     }
   }
 }

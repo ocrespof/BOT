@@ -40,7 +40,7 @@ export default {
       await reloadCommands(path.join(__dirname, '..'))
       let msg = ''
       if (stdout.includes('Already up to date.')) {
-        msg = 'ꕥ *Estado:* Todo está actualizado'
+        msg = '*Estado:* Todo está actualizado'
       } else {
         msg = `*Actualización completada*\n\n${stdout}`
       }

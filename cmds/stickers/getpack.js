@@ -6,7 +6,7 @@ export default {
   run: async (client, m, args, usedPrefix, command) => {
     try {
       if (!args.length) {
-        return m.reply('《✧》Especifica el nombre del paquete de stickers.')
+        return m.reply('Especifica el nombre del paquete de stickers.')
       }
       const inputStr = args.join(' ').trim()
       const db = global.db.data
@@ -17,7 +17,7 @@ export default {
 
       if (inputStr.match(/^https?:\/\//)) {
         try {
-          await m.reply('《✧》Descargando stickers del enlace, por favor espera...')
+          await m.reply('Descargando stickers del enlace, por favor espera...')
           const axios = (await import('axios')).default
           const { data: html } = await axios.get(inputStr, {
             headers: {
@@ -60,7 +60,7 @@ export default {
           }
 
           if (imageUrls.length === 0) {
-            return m.reply('《✧》No se encontraron stickers en el enlace proporcionado.')
+            return m.reply('No se encontraron stickers en el enlace proporcionado.')
           }
           
           const selectedUrls = imageUrls.slice(0, 50)
@@ -85,7 +85,7 @@ export default {
           }
           
           if (validStickerBufs.length === 0) {
-            return m.reply('《✧》No se pudieron descargar los stickers del enlace.')
+            return m.reply('No se pudieron descargar los stickers del enlace.')
           }
 
           pack = {
@@ -95,7 +95,7 @@ export default {
             stickers: validStickerBufs
           }
         } catch (e) {
-          return m.reply('《✧》Hubo un error al procesar el enlace. ' + e.message)
+          return m.reply('Hubo un error al procesar el enlace. ' + e.message)
         }
       } else {
         const packName = inputStr.toLowerCase()
@@ -116,10 +116,10 @@ export default {
       }
 
       if (!pack) {
-        return m.reply('《✧》No se encontró un paquete con ese nombre.')
+        return m.reply('No se encontró un paquete con ese nombre.')
       }
       if (!Array.isArray(pack.stickers) || pack.stickers.length < 4) {
-        return m.reply(`《✧》El paquete \`${pack.name}\` no tiene suficientes stickers.`)
+        return m.reply(`El paquete \`${pack.name}\` no tiene suficientes stickers.`)
       }
       const validStickers = pack.stickers.map(s => {
         if (Buffer.isBuffer(s)) return s;
@@ -131,7 +131,7 @@ export default {
       }).filter(s => s && Buffer.isBuffer(s) && s.length > 0)
 
       if (validStickers.length < 4) {
-        return m.reply('《✧》Algunos stickers están corruptos.')
+        return m.reply('Algunos stickers están corruptos.')
       }
 
       const MAX_STICKERS = 50
@@ -171,7 +171,7 @@ export default {
       await m.react('✔️')
     } catch (e) {
       await m.react('✖️')
-      m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: *${e.message}*]`)
+      m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n[Error: *${e.message}*]`)
     }
   }
 }

@@ -14,7 +14,7 @@ export default {
     try {
       text = m.quoted?.text || text;
       if (!text) {
-        return client.reply(m.chat, '《✧》 Por favor, responde a un mensaje o ingresa un texto para crear el Sticker.', m);
+        return client.reply(m.chat, ' Por favor, responde a un mensaje o ingresa un texto para crear el Sticker.', m);
       }
       await m.react('🕒');
       const db = global.db.data
@@ -32,7 +32,7 @@ export default {
       await m.react('✔️');
     } catch (e) {
       await m.react('✖️');
-      return m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: *${e.message}*]`);
+      return m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n[Error: *${e.message}*]`);
     }
   }
 };

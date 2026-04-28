@@ -6,9 +6,9 @@ export default {
   category: 'utils',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args[0];
-    if (!text) return m.reply('《✧》 Ingresa un enlace para realizar la solicitud.')
+    if (!text) return m.reply(' Ingresa un enlace para realizar la solicitud.')
     if (!/^https?:\/\//.test(text)) {
-      return m.reply('《✧》 Ingresa un enlace válido que comience con http o https');
+      return m.reply(' Ingresa un enlace válido que comience con http o https');
     }
     try {
       const _url = new URL(text);
@@ -19,7 +19,7 @@ export default {
       const contentLength = parseInt(res.headers.get('content-length') || '0');
 
       if (contentLength > 100 * 1024 * 1024) {
-        return m.reply(`《✧》 El archivo es demasiado grande.\nContent-Length: ${contentLength} bytes`);
+        return m.reply(` El archivo es demasiado grande.\nContent-Length: ${contentLength} bytes`);
       }
       if (/text|json/.test(contentType)) {
         const buffer = await res.buffer();
@@ -35,7 +35,7 @@ export default {
       }
     } catch (e) {
       console.error(e);
-      return m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: *${e.message}*]`)
+      return m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n[Error: *${e.message}*]`)
     }
   }
 };

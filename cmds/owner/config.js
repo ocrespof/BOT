@@ -13,16 +13,16 @@ export default {
       const panel = `╭━━━━ ⚙️ *PANEL DE CONTROL* ━━━━╮
 ┃ 
 ┃ 1️⃣ *Nombre del Bot:* ${settings.namebot || 'Yuki'}
-┃    ✎ Usa: *${usedPrefix + command} namebot [nuevo]*
+┃    Usa: *${usedPrefix + command} namebot [nuevo]*
 ┃
 ┃ 2️⃣ *Prefijo actual:* ${settings.prefix || '.'}
-┃    ✎ Usa: *${usedPrefix + command} prefix [nuevo]*
+┃    Usa: *${usedPrefix + command} prefix [nuevo]*
 ┃
 ┃ 3️⃣ *Autoleer Mensajes:* ${settings.autoread ? '✅ Activado' : '❌ Desactivado'}
-┃    ✎ Usa: *${usedPrefix + command} autoread [on/off]*
+┃    Usa: *${usedPrefix + command} autoread [on/off]*
 ┃
 ┃ 4️⃣ *Modo Privado (Self):* ${settings.self ? '✅ Activado' : '❌ Desactivado'}
-┃    ✎ Usa: *${usedPrefix + command} self [on/off]*
+┃    Usa: *${usedPrefix + command} self [on/off]*
 ┃
 ╰━━━━━━━━━━━━━━━━━━━━━━━━━╯`;
       return m.reply(panel);
@@ -32,7 +32,7 @@ export default {
     const valor = args.slice(1).join(' ');
 
     if (!valor && !['autoread', 'self'].includes(opcion)) {
-      return m.reply(`《✧》 Debes especificar un valor nuevo. Ejemplo: *${usedPrefix + command} ${opcion} NuevoValor*`);
+      return m.reply(` Debes especificar un valor nuevo. Ejemplo: *${usedPrefix + command} ${opcion} NuevoValor*`);
     }
 
     switch (opcion) {
@@ -61,7 +61,7 @@ export default {
         break;
 
       default:
-        return m.reply('《✧》 Opción no válida. Usa el comando sin parámetros para ver el menú.');
+        return m.reply(' Opción no válida. Usa el comando sin parámetros para ver el menú.');
     }
     
     // Guardar los cambios en la DB atómica inmediatamente

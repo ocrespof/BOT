@@ -47,7 +47,7 @@ export default {
       }
       else {
         await client.sendMessage(m.chat, {
-          text: '《✧》 Por favor, responde a un mensaje de "Ver una vez" (ViewOnce).'
+          text: ' Por favor, responde a un mensaje de "Ver una vez" (ViewOnce).'
         }, { quoted: m });
       }
 

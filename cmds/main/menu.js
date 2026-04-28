@@ -9,7 +9,7 @@ const bodyMenu = `
 │ ⏱️ *Actividad:* $uptime
 └───「 📚 ⚙️ 🚀 🧠 🔬 」───┘
 
-> 🚀 *¡Hola, *@$sender*!*$cat`;
+🚀 *¡Hola, *@$sender*!*$cat`;
 
 function normalize(text = '') {
   text = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
@@ -55,7 +55,7 @@ export default {
       const cat = Object.keys(alias).find(k => alias[k].map(normalize).includes(input));
       const category = `${cat ? ` para \`${cat}\`` : '. *(˶ᵔ ᵕ ᵔ˶)*'}`
       if (args[0] && !cat) {      
-        return m.reply(`《✧》 La categoria *${args[0]}* no existe, las categorias disponibles son: *${Object.keys(alias).join(', ')}*.\n> Para ver la lista completa escribe *${usedPrefix}menu*\n> Para ver los comandos de una categoría escribe *${usedPrefix}menu [categoría]*\n> Ejemplo: *${usedPrefix}menu anime*`);
+        return m.reply(` La categoria *${args[0]}* no existe, las categorias disponibles son: *${Object.keys(alias).join(', ')}*.\nPara ver la lista completa escribe *${usedPrefix}menu*\nPara ver los comandos de una categoría escribe *${usedPrefix}menu [categoría]*\nEjemplo: *${usedPrefix}menu anime*`);
       }
       const categoriesObj = {};
       const sortedPlugins = Object.entries(global.plugins)
@@ -93,7 +93,7 @@ export default {
       const sections = {};
       for (const [c, cmds] of Object.entries(categoriesObj)) {
         const info = sectionInfo[c.toLowerCase()] || { emj: '⚙️', desc: '_Categoría del sistema_' };
-        const header = `> ${info.emj} *${c.toUpperCase().split('').join(' ')}*\n> ${info.desc}\n\n`;
+        const header = `> ${info.emj} *${c.toUpperCase().split('').join(' ')}*\n${info.desc}\n\n`;
         sections[c] = header + cmds.join('\n');
       }
       
@@ -121,7 +121,7 @@ export default {
         contextInfo: { mentionedJid: [m.sender] }
       }, { quoted: m });
     } catch (e) {
-      await m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: *${e.message}*]`)
+      await m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n[Error: *${e.message}*]`)
     }
   }
 };

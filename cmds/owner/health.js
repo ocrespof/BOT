@@ -22,7 +22,7 @@ export default {
 
     for (const ep of endpoints) {
       if (!ep.url) {
-        resultsText += `\n${UI.symbols.warn} *${ep.name}* \n> ⚠️ No configurada (Falta API Key)`;
+        resultsText += `\n${UI.symbols.warn} *${ep.name}* \n⚠️ No configurada (Falta API Key)`;
         continue;
       }
       checkedCount++;
@@ -42,16 +42,16 @@ export default {
         }
         
         const ms = Date.now() - start;
-        resultsText += `\n${UI.symbols.success} *${ep.name}* \n> ⏱️ ${ms}ms`;
+        resultsText += `\n${UI.symbols.success} *${ep.name}* \n⏱️ ${ms}ms`;
         onlineCount++;
       } catch (err) {
         // A 400 Bad Request from an Official API usually means it's online but our dummy payload was slightly off or requires specific params, so it's technically online. 401/403 means auth error.
         if (err.response && (err.response.status === 400 || err.response.status === 403)) {
           const ms = 150; // estimate
-          resultsText += `\n${UI.symbols.success} *${ep.name}* \n> ⏱️ ${ms}ms (Online, Auth/Req Info: ${err.response.status})`;
+          resultsText += `\n${UI.symbols.success} *${ep.name}* \n⏱️ ${ms}ms (Online, Auth/Req Info: ${err.response.status})`;
           onlineCount++;
         } else {
-          resultsText += `\n${UI.symbols.error} *${ep.name}* \n> ❌ Inactiva / Error`;
+          resultsText += `\n${UI.symbols.error} *${ep.name}* \n❌ Inactiva / Error`;
         }
       }
     }
