@@ -161,9 +161,11 @@ function startWatcher() {
 startWatcher();
 
 // Auto-limpieza para carpetas eliminadas
-setInterval(() => {
+setInterval(async () => {
   for (const fullPath of pluginCache.keys()) {
-    if (!fs.existsSync(fullPath)) {
+    try {
+      await fs.promises.access(fullPath);
+    } catch {
       global.reload('rename', fullPath);
     }
   }

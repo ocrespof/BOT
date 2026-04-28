@@ -41,10 +41,13 @@ function hasPendingChanges(newDataStr) {
   return global.db._snapshot !== newDataStr
 }
 
+let isSaving = false
 global.saveDatabaseAsync = async function saveDatabaseAsync() {
+  if (isSaving) return
   const dataStr = JSON.stringify(global.db.data, null, 2)
   if (!hasPendingChanges(dataStr)) return
   
+  isSaving = true
   try {
     const tmpFile = dbFile + '.tmp'
     await fs.promises.writeFile(tmpFile, dataStr)
@@ -52,6 +55,8 @@ global.saveDatabaseAsync = async function saveDatabaseAsync() {
     global.db._snapshot = dataStr
   } catch (error) {
     Logger.error("Error al guardar database.json", error)
+  } finally {
+    isSaving = false
   }
 }
 
@@ -64,12 +69,9 @@ global.saveDatabase = function saveDatabase() {
   global.db._snapshot = dataStr
 }
 
-let isSaving = false
-setInterval(async () => {
-  if (isSaving) return;
-  isSaving = true
+// Queue save function triggered by main.js
+global.queueSaveDatabase = _.debounce(async () => {
   await global.saveDatabaseAsync()
-  isSaving = false
-}, 30000)
+}, 10000, { maxWait: 60000 })
 
 export default global.db
