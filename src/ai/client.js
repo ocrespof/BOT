@@ -14,17 +14,6 @@ function formatHistory(history) {
 
 const providers = [
   {
-    name: 'Siputzx (Blackbox)',
-    url: () => 'https://ai.siputzx.my.id',
-    method: 'POST',
-    getHeaders: () => ({ 'Content-Type': 'application/json' }),
-    buildPayload: ({ content, prompt, historyStr }) => {
-      const fullPrompt = `${prompt}\n\nHistorial:\n${historyStr}`;
-      return { content: content, user: 'usuario', prompt: fullPrompt, webSearchMode: true };
-    },
-    parseResponse: (data) => data?.result
-  },
-  {
     name: 'Ryzen (Gemini Pro)',
     url: () => 'https://api.ryzendesu.vip/api/ai/gemini-pro',
     method: 'GET',
@@ -45,6 +34,16 @@ const providers = [
     parseResponse: (data) => data?.data || data?.result
   },
   {
+    name: 'Vreden (GPT-4)',
+    url: () => 'https://api.vreden.web.id/api/ai/gpt4',
+    method: 'GET',
+    buildPayload: ({ content, prompt, historyStr }) => {
+        const fullContent = `${prompt}\n\nHistorial:\n${historyStr}Usuario: ${content}`;
+        return `?text=${encodeURIComponent(fullContent)}`;
+    },
+    parseResponse: (data) => data?.result || data?.data
+  },
+  {
     name: 'Stellar (GPTPrompt)',
     url: () => global?.APIs?.stellar?.url ? `${global.APIs.stellar.url}/ai/gptprompt` : 'https://api.yuki-wabot.my.id/ai/gptprompt',
     method: 'GET',
@@ -52,16 +51,6 @@ const providers = [
         return `?text=${encodeURIComponent(content)}&prompt=${encodeURIComponent(prompt)}&key=${global?.APIs?.stellar?.key || 'YukiBot-MD'}`;
     },
     parseResponse: (data) => data?.result || data?.response || data?.message
-  },
-  {
-    name: 'Delirius (ChatGPT/GPT4)',
-    url: () => global?.APIs?.delirius?.url ? `${global.APIs.delirius.url}/api/ia/gpt4` : 'https://api.delirius.store/api/ia/gpt4',
-    method: 'GET',
-    buildPayload: ({ content, prompt, historyStr }) => {
-        const fullContent = `${prompt}\n\nHistorial:\n${historyStr}Usuario: ${content}`;
-        return `?query=${encodeURIComponent(fullContent)}`;
-    },
-    parseResponse: (data) => data?.data || data?.result || data?.message || data?.text
   }
 ];
 
@@ -129,9 +118,9 @@ async function callProvider(provider, payload) {
 /**
  * Get AI text response using the first provider that succeeds.
  */
-export async function getAIResponse({ content, prompt, user }) {
+export async function getAIResponse({ content, prompt, user, memory = true }) {
   const cacheKey = `ai_history_${user}`;
-  let history = cache.get(cacheKey) || [];
+  let history = memory ? (cache.get(cacheKey) || []) : [];
   
   const historyStr = formatHistory(history);
 
@@ -141,10 +130,12 @@ export async function getAIResponse({ content, prompt, user }) {
       const result = await callProvider(provider, payload);
       
       if (!isInvalidResponse(result)) {
-        history.push({ role: 'user', content: content });
-        history.push({ role: 'assistant', content: result });
-        if (history.length > 10) history = history.slice(history.length - 10);
-        cache.set(cacheKey, history, 30 * 60 * 1000); 
+        if (memory) {
+          history.push({ role: 'user', content: content });
+          history.push({ role: 'assistant', content: result });
+          if (history.length > 10) history = history.slice(history.length - 10);
+          cache.set(cacheKey, history, 30 * 60 * 1000); 
+        }
         return result.trim();
       } else {
         console.warn(`[AI Text] Proveedor ${provider.name} retornó falso positivo: ${result}`);

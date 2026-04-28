@@ -1,12 +1,7 @@
 import { proto, delay, areJidsSameUser, generateWAMessage, prepareWAMessageMedia, generateWAMessageFromContent, downloadContentFromMessage, generateMessageID, generateWAMessageContent, getContentType, getDevice, extractMessageContent } from '@whiskeysockets/baileys';
 import { resolveLidToRealJid } from "./utils.js"
-import chalk from 'chalk';
 import fs from 'fs';
 import axios from 'axios';
-import moment from 'moment-timezone';
-import { sizeFormatter } from 'human-readable';
-import util from 'util';
-import * as Jimp from 'jimp';
 import * as FileType from 'file-type';
 import path from 'path';
 import exif from './exif.js';
@@ -39,7 +34,7 @@ export async function smsg(client, m, store) {
     const mime = msg.mimetype || ''
     const messageType = (message.type || mime.split('/')[0]).replace(/Message/gi, '')
     const stream = await downloadContentFromMessage(msg, messageType)
-    let buffer = Buffer.from([])
+    let buffer = Buffer.alloc(0)
     for await (const chunk of stream) {
       buffer = Buffer.concat([buffer, chunk])
     }

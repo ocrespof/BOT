@@ -10,11 +10,10 @@ export default {
     const key = (await client.sendMessage(m.chat, { text: `> ${UI.symbols.loading} Comprobando el estado de las APIs, por favor espera...` }, { quoted: m })).key;
 
     const endpoints = [
-      { name: 'Siputzx (Blackbox)', url: 'https://ai.siputzx.my.id', method: 'POST', isOfficial: true },
       { name: 'Ryzen (Gemini Pro)', url: 'https://api.ryzendesu.vip/api/ai/gemini-pro' },
       { name: 'Siputzx (Gemini)', url: 'https://api.siputzx.my.id/api/ai/gemini' },
-      { name: 'Stellar (GPTPrompt)', url: global?.APIs?.stellar?.url ? `${global.APIs.stellar.url}/ai/gptprompt` : 'https://api.yuki-wabot.my.id/ai/gptprompt' },
-      { name: 'Delirius (GPT-4)', url: global?.APIs?.delirius?.url ? `${global.APIs.delirius.url}/api/ia/gpt4` : 'https://api.delirius.store/api/ia/gpt4' }
+      { name: 'Vreden (GPT-4)', url: 'https://api.vreden.web.id/api/ai/gpt4' },
+      { name: 'Stellar (GPTPrompt)', url: global?.APIs?.stellar?.url ? `${global.APIs.stellar.url}/ai/gptprompt` : 'https://api.yuki-wabot.my.id/ai/gptprompt' }
     ];
 
     let resultsText = '';

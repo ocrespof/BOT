@@ -54,7 +54,9 @@ export default {
             try {
               const audioRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`).then(r => r.json())
               if (audioRes?.data?.play) await client.sendMessage(m.chat, { audio: { url: audioRes.data.play }, mimetype: 'audio/mp4', fileName: 'tiktok_audio.mp4' }, { quoted: m })
-            } catch {}
+            } catch (err) {
+              console.error("[TikTok Audio Fallback Error]:", err.message)
+            }
           } else {
             await client.sendMessage(m.chat, { video: { url: Array.isArray(dl) ? dl[0] : dl }, caption }, { quoted: m })
           }
