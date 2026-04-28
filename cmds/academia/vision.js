@@ -1,6 +1,7 @@
 import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 import axios from 'axios'
 import FormData from 'form-data'
+import { getVisionResponse } from '../../src/ai/client.js'
 
 export default {
   command: ['vision', 'vis'],
@@ -36,44 +37,19 @@ export default {
       const prompt = `Actúa como un experto analista de imágenes. Tu tarea primordial es evaluar la imagen provista y responder estrictamente a la petición de manera informativa y clara.\nPetición: ${text}`
       await client.sendMessage(m.chat, { text: `ꕥ *Analizando visualmente la imagen...*` }, { edit: key })
       
-      const apis = [
-        `https://api.siputzx.my.id/api/ai/gemini-image?prompt=${encodeURIComponent(prompt)}&url=${encodeURIComponent(imageUrl)}`,
-        `${global.APIs.delirius.url}/ia/geminivision?text=${encodeURIComponent(prompt)}&url=${encodeURIComponent(imageUrl)}`,
-        `${global.APIs.vreden.url}/api/v1/ai/gemini-image?prompt=${encodeURIComponent(prompt)}&url=${encodeURIComponent(imageUrl)}`
-      ];
-
       let responseText = null;
-      for (const endpoint of apis) {
-        try {
-          const res = await axios.get(endpoint, { timeout: 25000 });
-          if (res.data?.status && res.data?.data) {
-            responseText = res.data.data;
-            break;
-          } else if (res.data?.data) {
-            responseText = res.data.data;
-            break;
-          } else if (res.data?.result) {
-            responseText = res.data.result;
-            break;
-          } else if (res.data?.message) {
-             responseText = res.data.message;
-             break;
-          }
-        } catch (e) {
-          continue;
-        }
-      }
-      
-      if (!responseText) {
-          await m.react('✖️')
-          return client.sendMessage(m.chat, { text: '《✧》 La Inteligencia Artificial no pudo analizar la imagen. Todos los servidores de visión parecen estar saturados momentáneamente.', edit: key })
+      try {
+        responseText = await getVisionResponse({ prompt, imageUrl });
+      } catch (err) {
+        await m.react('✖️')
+        return client.sendMessage(m.chat, { text: `《✧》 ${err.message}`, edit: key })
       }
       
       await client.sendMessage(m.chat, { text: `┌───「 👁️ *VISIÓN IA* 👁️ 」───┐\n│ ❖ ${responseText.trim().replace(/\n/g, '\n│ ')}\n└─────────────────────────┘`, edit: key })
       await m.react('✔️')
     } catch (e) {
       await m.react('❌')
-      await m.reply(`> No se pudo analizar contundentemente la estructura visual. Es posible que los servidores estén offiline.\n> [Error: ${e.message}]`)
+      await m.reply(`> No se pudo analizar contundentemente la estructura visual. Es posible que los servidores estén offline.\n> [Error: ${e.message}]`)
     }
   }
 }
