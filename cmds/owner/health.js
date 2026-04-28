@@ -12,7 +12,7 @@ export default {
     const endpoints = [
       { name: 'Ryzen (Gemini Pro)', url: 'https://api.ryzendesu.vip/api/ai/gemini-pro' },
       { name: 'Siputzx (Gemini)', url: 'https://api.siputzx.my.id/api/ai/gemini' },
-      { name: 'Vreden (GPT-4)', url: 'https://api.vreden.web.id/api/ai/gpt4' },
+      { name: 'Siputzx (GPT-4)', url: 'https://api.siputzx.my.id/api/ai/gpt4' },
       { name: 'Stellar (GPTPrompt)', url: global?.APIs?.stellar?.url ? `${global.APIs.stellar.url}/ai/gptprompt` : 'https://api.yuki-wabot.my.id/ai/gptprompt' }
     ];
 

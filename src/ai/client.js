@@ -21,7 +21,7 @@ const providers = [
         const fullContent = `${prompt}\n\nHistorial:\n${historyStr}Usuario: ${content}`;
         return `?text=${encodeURIComponent(fullContent)}`;
     },
-    parseResponse: (data) => data?.response || data?.result || data?.message || data?.data
+    parseResponse: (data) => typeof data === 'string' ? data : (data?.response || data?.result || data?.message || data?.data)
   },
   {
     name: 'Siputzx (Gemini)',
@@ -29,19 +29,19 @@ const providers = [
     method: 'GET',
     buildPayload: ({ content, prompt, historyStr }) => {
         const fullContent = `${prompt}\n\nHistorial:\n${historyStr}Usuario: ${content}`;
-        return `?content=${encodeURIComponent(fullContent)}`;
+        return `?text=${encodeURIComponent(fullContent)}`;
     },
-    parseResponse: (data) => data?.data || data?.result
+    parseResponse: (data) => typeof data === 'string' ? data : (data?.data || data?.result || data?.message)
   },
   {
-    name: 'Vreden (GPT-4)',
-    url: () => 'https://api.vreden.web.id/api/ai/gpt4',
+    name: 'Siputzx (GPT-4)',
+    url: () => 'https://api.siputzx.my.id/api/ai/gpt4',
     method: 'GET',
     buildPayload: ({ content, prompt, historyStr }) => {
         const fullContent = `${prompt}\n\nHistorial:\n${historyStr}Usuario: ${content}`;
         return `?text=${encodeURIComponent(fullContent)}`;
     },
-    parseResponse: (data) => data?.result || data?.data
+    parseResponse: (data) => typeof data === 'string' ? data : (data?.data || data?.result || data?.message)
   },
   {
     name: 'Stellar (GPTPrompt)',
@@ -50,7 +50,7 @@ const providers = [
     buildPayload: ({ content, prompt }) => {
         return `?text=${encodeURIComponent(content)}&prompt=${encodeURIComponent(prompt)}&key=${global?.APIs?.stellar?.key || 'YukiBot-MD'}`;
     },
-    parseResponse: (data) => data?.result || data?.response || data?.message
+    parseResponse: (data) => typeof data === 'string' ? data : (data?.result || data?.response || data?.message)
   }
 ];
 
