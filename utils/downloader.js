@@ -219,17 +219,36 @@ export async function getTikTokData(input, isUrl) {
     return null;
   } else {
     // Search TikTok fallback
-    const endpoint = `${config.APIs.stellar.url}/search/tiktok?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`;
-    try {
-      const res = await axios.get(endpoint);
-      const json = res.data;
-      if (!json.status) return null;
-      cache.set(key, json);
-      return json;
-    } catch (e) {
-      console.warn('TikTok search fetch error:', e.message);
-      return null;
+    const apis = [
+      { endpoint: `${config.APIs.stellar.url}/search/tiktok?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`, extractor: res => res.status ? res : null },
+      { endpoint: `${config.APIs.vreden.url}/api/v1/search/tiktok?query=${encodeURIComponent(input)}`, extractor: res => {
+          if (!res.status || !res.result?.data) return null;
+          const mapped = res.result.data.map(v => ({ title: v.title, dl: v.play, author: { nickname: v.author?.nickname, unique_id: v.author?.unique_id }, duration: v.duration, stats: { likes: v.digg_count, comments: v.comment_count, views: v.play_count, shares: v.share_count } }));
+          return { status: true, data: mapped };
+        }
+      },
+      { endpoint: `https://api.siputzx.my.id/api/s/tiktok?query=${encodeURIComponent(input)}`, extractor: res => {
+          if (!res.status || !res.data) return null;
+          const mapped = res.data.map(v => ({ title: v.title, dl: v.play, author: { nickname: v.author?.nickname, unique_id: v.author?.unique_id }, duration: v.duration, stats: { likes: v.digg_count, comments: v.comment_count, views: v.play_count, shares: v.share_count } }));
+          return { status: true, data: mapped };
+        }
+      }
+    ];
+
+    for (const { endpoint, extractor } of apis) {
+      try {
+        const res = (await axios.get(endpoint)).data;
+        const result = extractor(res);
+        if (result && result.status) {
+          cache.set(key, result);
+          return result;
+        }
+      } catch (e) {
+        console.warn('TikTok search fetch error:', e.message);
+      }
+      await delay(500);
     }
+    return null;
   }
 }
 
