@@ -19,42 +19,58 @@ export default {
         try {
           await m.reply('Descargando stickers del enlace, por favor espera...')
           const axios = (await import('axios')).default
-          const { data: html } = await axios.get(inputStr, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-          })
           
           let packName = 'Sticker Pack'
-          const titleMatch = html.match(/<title>([^<]+)<\/title>/i) || html.match(/<h1[^>]*>([^<]+)<\/h1>/i)
-          if (titleMatch) packName = titleMatch[1].trim().replace(/\s+/g, ' ')
-
-          const imageRegexes = [
-            /data-src-large="([^"]+)"/g,
-            /src="([^"]+\.(?:webp|png)[^"]*)"/gi,
-            /"(https?:\/\/[^"]+\.(?:webp|png)[^"]*)"/gi
-          ]
-          
           let imageUrls = []
-          for (const regex of imageRegexes) {
-            let match
-            while ((match = regex.exec(html)) !== null) {
-              let imgUrl = match[1]
-              // Avoid duplicates and non-image strings
-              if (imgUrl.length > 500) continue
-              if (!imgUrl.startsWith('http')) {
-                if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl
-                else if (imgUrl.startsWith('/')) {
-                  try {
-                    const urlObj = new URL(inputStr)
-                    imgUrl = urlObj.origin + imgUrl
-                  } catch { continue }
-                } else {
-                  continue
-                }
+
+          if (inputStr.includes('t.me/addstickers/')) {
+            try {
+               const res = await axios.get(`https://api.ryzendesu.vip/api/downloader/telesticker?url=${encodeURIComponent(inputStr)}`)
+               if (res.data?.data) {
+                  imageUrls = res.data.data.map(i => i.url || i)
+               } else {
+                  const res2 = await axios.get(`https://api.agatz.xyz/api/telesticker?url=${encodeURIComponent(inputStr)}`)
+                  if (res2.data?.data) imageUrls = res2.data.data.map(i => i.url || i)
+               }
+               packName = inputStr.split('/').pop().replace(/_/g, ' ')
+            } catch (err) {
+               console.error("Telesticker Error:", err)
+            }
+          } else {
+            const { data: html } = await axios.get(inputStr, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
               }
-              if (!imageUrls.includes(imgUrl) && (imgUrl.includes('sticker') || imgUrl.match(/\.(webp|png)/i))) {
-                imageUrls.push(imgUrl)
+            })
+            
+            const titleMatch = html.match(/<title>([^<]+)<\/title>/i) || html.match(/<h1[^>]*>([^<]+)<\/h1>/i)
+            if (titleMatch) packName = titleMatch[1].trim().replace(/\s+/g, ' ')
+
+            const imageRegexes = [
+              /data-src-large="([^"]+)"/g,
+              /src="([^"]+\.(?:webp|png)[^"]*)"/gi,
+              /"(https?:\/\/[^"]+\.(?:webp|png)[^"]*)"/gi
+            ]
+            
+            for (const regex of imageRegexes) {
+              let match
+              while ((match = regex.exec(html)) !== null) {
+                let imgUrl = match[1]
+                if (imgUrl.length > 500) continue
+                if (!imgUrl.startsWith('http')) {
+                  if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl
+                  else if (imgUrl.startsWith('/')) {
+                    try {
+                      const urlObj = new URL(inputStr)
+                      imgUrl = urlObj.origin + imgUrl
+                    } catch { continue }
+                  } else {
+                    continue
+                  }
+                }
+                if (!imageUrls.includes(imgUrl) && (imgUrl.includes('sticker') || imgUrl.match(/\.(webp|png)/i))) {
+                  imageUrls.push(imgUrl)
+                }
               }
             }
           }
