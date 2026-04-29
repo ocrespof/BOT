@@ -62,13 +62,24 @@ export default {
         if (isUrl) {
           const { title, duration, dl, author, stats, created_at, type } = json.data
           if (!dl || (Array.isArray(dl) && dl.length === 0)) return m.reply(' Enlace inválido o sin contenido descargable.')
-          const caption = `« 𝐓𝐈𝐊𝐓𝐎𝐊 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 \n\nTítulo: ${title || 'Video'}\nAutor: ${author?.nickname || 'Desconocido'}\nLikes: ${(stats?.likes || 0).toLocaleString()}`
-          if (type === 'image') {
-            if (dl.length === 1) await client.sendMessage(m.chat, { image: { url: dl[0] }, caption }, { quoted: m })
+          const caption = `ㅤ۟∩　ׅ　★ ໌　ׅ　🅣𝗂𝗄𝖳𝗈𝗄 🅓ownload　ׄᰙ\n\n` +
+            `𖣣ֶㅤ֯⌗ ✎  ׄ ⬭ *Título:* ${title || 'Sin título'}\n` +
+            `𖣣ֶㅤ֯⌗ ꕥ  ׄ ⬭ *Autor:* ${author?.nickname || author?.unique_id || 'Desconocido'}\n` +
+            `𖣣ֶㅤ֯⌗ ⴵ  ׄ ⬭ *Duración:* ${duration || 'N/A'}\n` +
+            `𖣣ֶㅤ֯⌗ ❖  ׄ ⬭ *Likes:* ${(stats?.likes || 0).toLocaleString()}\n` +
+            `𖣣ֶㅤ֯⌗ ❀  ׄ ⬭ *Comentarios:* ${(stats?.comments || 0).toLocaleString()}\n` +
+            `𖣣ֶㅤ֯⌗ ✿  ׄ ⬭ *Vistas:* ${(stats?.views || stats?.plays || 0).toLocaleString()}\n` +
+            `𖣣ֶㅤ֯⌗ ☆  ׄ ⬭ *Compartidos:* ${(stats?.shares || 0).toLocaleString()}\n` +
+            `𖣣ֶㅤ֯⌗ ☁︎  ׄ ⬭ *Fecha:* ${created_at || 'N/A'}`;
+            
+          if (type === 'image' || (Array.isArray(dl) && dl.length > 1 && typeof dl[0] === 'string' && dl[0].includes('.jpeg'))) {
+            if (Array.isArray(dl) && dl.length === 1) await client.sendMessage(m.chat, { image: { url: dl[0] }, caption }, { quoted: m })
             else {
-              const maxMedia = dl.slice(0, 10);
+              const maxMedia = Array.isArray(dl) ? dl.slice(0, 10) : [dl];
               for (let i = 0; i < maxMedia.length; i++) {
-                 const textCap = `« 𝐓𝐈𝐊𝐓𝐎𝐊 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 ${i + 1}/${maxMedia.length} »\n\nTítulo: ${title || 'Video'}\nAutor: ${author?.nickname || 'Desconocido'}`;
+                 const textCap = `ㅤ۟∩　ׅ　★ ໌　ׅ　🅣𝗂𝗄𝖳𝗈𝗄 🅓ownload ${i + 1}/${maxMedia.length}　ׄᰙ\n\n` +
+                    `𖣣ֶㅤ֯⌗ ✎  ׄ ⬭ *Título:* ${title || 'Sin título'}\n` +
+                    `𖣣ֶㅤ֯⌗ ꕥ  ׄ ⬭ *Autor:* ${author?.nickname || 'Desconocido'}`;
                  await client.sendMessage(m.chat, { image: { url: maxMedia[i] }, caption: textCap }, { quoted: m });
                  await new Promise(r => setTimeout(r, 800));
               }
@@ -80,7 +91,8 @@ export default {
               console.error("[TikTok Audio Fallback Error]:", err.message)
             }
           } else {
-            await client.sendMessage(m.chat, { video: { url: Array.isArray(dl) ? dl[0] : dl }, caption }, { quoted: m })
+            const videoUrl = Array.isArray(dl) ? dl[0] : dl;
+            await client.sendMessage(m.chat, { video: { url: videoUrl }, caption }, { quoted: m })
           }
         } else {
           const validResults = json.data?.filter(v => v.dl && typeof v.dl === 'string' && v.dl.startsWith('http'))
@@ -89,7 +101,15 @@ export default {
           const maxResults = validResults.slice(0, 4);
           for (let i = 0; i < maxResults.length; i++) {
              const v = maxResults[i];
-             const caption = `« 𝐓𝐈𝐊𝐓𝐎𝐊 𝐒𝐄𝐀𝐑𝐂𝐇 ${i + 1}/${maxResults.length} »\n\nTítulo: ${v.title || 'Video'}\nAutor: ${v.author?.nickname || 'Desconocido'}`;
+             const caption = `ㅤ۟∩　ׅ　★ ໌　ׅ　🅣𝗂𝗄𝖳𝗈𝗄 🅢earch ${i + 1}/${maxResults.length}　ׄᰙ\n\n` +
+                `𖣣ֶㅤ֯⌗ ✎  ׄ ⬭ *Título:* ${v.title || 'Sin título'}\n` +
+                `𖣣ֶㅤ֯⌗ ꕥ  ׄ ⬭ *Autor:* ${v.author?.nickname || 'Desconocido'} ${v.author?.unique_id ? `@${v.author.unique_id}` : ''}\n` +
+                `𖣣ֶㅤ֯⌗ ⴵ  ׄ ⬭ *Duración:* ${v.duration || 'N/A'}\n` +
+                `𖣣ֶㅤ֯⌗ ❖  ׄ ⬭ *Likes:* ${(v.stats?.likes || 0).toLocaleString()}\n` +
+                `𖣣ֶㅤ֯⌗ ❀  ׄ ⬭ *Comentarios:* ${(v.stats?.comments || 0).toLocaleString()}\n` +
+                `𖣣ֶㅤ֯⌗ ✿  ׄ ⬭ *Vistas:* ${(v.stats?.views || 0).toLocaleString()}\n` +
+                `𖣣ֶㅤ֯⌗ ☆  ׄ ⬭ *Compartidos:* ${(v.stats?.shares || 0).toLocaleString()}\n` +
+                `𖣣ֶㅤ֯⌗ ❒  ׄ ⬭ *Audio:* ${v.music?.title || `Original sound - ${v.author?.unique_id || 'unknown'}`}`;
              await client.sendMessage(m.chat, { video: { url: v.dl }, caption }, { quoted: m });
              await new Promise(r => setTimeout(r, 800));
           }
@@ -100,7 +120,19 @@ export default {
         if (isUrl) {
           const data = await getMedia('pinterest', text, { isUrl: true })
           if (!data) return m.reply('No se pudo obtener el contenido.')
-          const caption = `« 𝐏𝐈𝐍 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 \n\nTítulo: ${data.title || 'Pinterest'}\nAutor: ${data.author || 'N/A'}`
+          const caption = `ㅤ۟∩　ׅ　★　ׅ　🅟𝖨𝖭 🅓ownload　ׄᰙ　\n\n` + 
+              `${data.title ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Título* › ${data.title}\n` : ''}` + 
+              `${data.description ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Descripción* › ${data.description}\n` : ''}` + 
+              `${data.author || data.name ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Autor* › ${data.author || data.name}\n` : ''}` + 
+              `${data.username ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Usuario* › ${data.username}\n` : ''}` + 
+              `${data.followers ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Seguidores* › ${data.followers}\n` : ''}` + 
+              `${data.uploadDate ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Fecha* › ${data.uploadDate}\n` : ''}` + 
+              `${data.likes ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Likes* › ${data.likes}\n` : ''}` + 
+              `${data.comments ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Comentarios* › ${data.comments}\n` : ''}` + 
+              `${data.views ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Vistas* › ${data.views}\n` : ''}` + 
+              `${data.saved ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Guardados* › ${data.saved}\n` : ''}` + 
+              `${data.format ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Formato* › ${data.format}\n` : ''}` + 
+              `𖣣ֶㅤ֯⌗ ☆  ⬭ *Enlace* › ${text}`;
           if (data.type === 'video') await client.sendMessage(m.chat, { video: { url: data.url }, caption, mimetype: 'video/mp4', fileName: 'pin.mp4' }, { quoted: m })
           else if (data.type === 'image') await client.sendMessage(m.chat, { image: { url: data.url }, caption }, { quoted: m })
           else throw new Error('Contenido no soportado.')
@@ -120,7 +152,14 @@ export default {
           const maxResults = validResults.slice(0, 4);
           for (let i = 0; i < maxResults.length; i++) {
              const r = maxResults[i];
-             const caption = `« 𝐏𝐈𝐍 𝐒𝐄𝐀𝐑𝐂𝐇 ${i + 1}/${maxResults.length} »\n\nTítulo: ${r.title || 'Pinterest'}\nAutor: ${r.name || 'N/A'}`;
+             const caption = `ㅤ۟∩　ׅ　★　ׅ　🅟𝖨𝖭 🅢earch ${i + 1}/${maxResults.length}　ׄᰙ　\n\n` + 
+                 `${r.title ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Título* › ${r.title}\n` : ''}` + 
+                 `${r.description ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Descripción* › ${r.description}\n` : ''}` + 
+                 `${r.name ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Autor* › ${r.name}\n` : ''}` + 
+                 `${r.username ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Usuario* › ${r.username}\n` : ''}` + 
+                 `${r.followers ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Seguidores* › ${r.followers}\n` : ''}` + 
+                 `${r.likes ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Likes* › ${r.likes}\n` : ''}` + 
+                 `${r.created_at ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Fecha* › ${r.created_at}` : ''}`;
              if (r.type === 'video') {
                  await client.sendMessage(m.chat, { video: { url: r.image }, caption }, { quoted: m });
              } else {
