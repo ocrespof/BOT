@@ -101,7 +101,7 @@ export default async (client, m) => {
   }
 
   if (!match) {
-    console.log("[DEBUG] No hay match (el comando no tiene el prefijo válido)");
+    console.log("[DEBUG] No hay match. pluginPrefix:", pluginPrefix, "settings.prefix:", settings.prefix);
     if (global.queueSaveDatabase) global.queueSaveDatabase();
     return;
   }
