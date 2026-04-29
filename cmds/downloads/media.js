@@ -81,9 +81,21 @@ export default {
           else throw new Error('Contenido no soportado.')
         } else {
           const results = await getMedia('pinterest', text, { isUrl: false })
-          if (!results || results.length === 0) return m.reply(` No se encontraron resultados para *${text}*.`)
-          const medias = results.slice(0, 10).map(r => ({ type: r.type === 'video' ? 'video' : 'image', data: { url: r.image }, caption: `« 𝐏𝐈𝐍 𝐒𝐄𝐀𝐑𝐂𝐇 \n\nTítulo: ${r.title || 'Pinterest'}\nAutor: ${r.name || 'N/A'}` }))
-          await client.sendAlbumMessage(m.chat, medias, { quoted: m })
+          const validResults = results.filter(r => r.image && typeof r.image === 'string' && r.image.startsWith('http'));
+          if (!validResults || validResults.length === 0) return m.reply(` No se encontraron imágenes válidas para *${text}*.`)
+          
+          // Enviar hasta 4 resultados para evitar spam
+          const maxResults = validResults.slice(0, 4);
+          for (let i = 0; i < maxResults.length; i++) {
+             const r = maxResults[i];
+             const caption = `« 𝐏𝐈𝐍 𝐒𝐄𝐀𝐑𝐂𝐇 ${i + 1}/${maxResults.length} »\n\nTítulo: ${r.title || 'Pinterest'}\nAutor: ${r.name || 'N/A'}`;
+             if (r.type === 'video') {
+                 await client.sendMessage(m.chat, { video: { url: r.image }, caption }, { quoted: m });
+             } else {
+                 await client.sendMessage(m.chat, { image: { url: r.image }, caption }, { quoted: m });
+             }
+             await new Promise(resolve => setTimeout(resolve, 800)); // Pequeño delay
+          }
         }
       }
       else if (['studocu', 'studoc'].includes(cmd)) {
