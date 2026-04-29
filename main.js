@@ -58,7 +58,7 @@ export default async (client, m) => {
   if (!users.stats[today]) users.stats[today] = { msgs: 0, cmds: 0 };
   users.stats[today].msgs++;
 
-  if (!settings._prefixCache || settings._prefixCache.namebot !== settings.namebot || settings._prefixCache.type !== settings.type || JSON.stringify(settings._prefixCache.prefixSettings) !== JSON.stringify(settings.prefix)) {
+  if (!settings._prefixCache || !(settings._prefixCache.regex instanceof RegExp) || settings._prefixCache.namebot !== settings.namebot || settings._prefixCache.type !== settings.type || JSON.stringify(settings._prefixCache.prefixSettings) !== JSON.stringify(settings.prefix)) {
     const rawBotname = settings.namebot || 'Yuki';
     const cleanBotname = rawBotname.replace(/[^a-zA-Z0-9\s]/g, '')
     const namebot = cleanBotname || 'Yuki';
@@ -101,7 +101,6 @@ export default async (client, m) => {
   }
 
   if (!match) {
-    console.log("[DEBUG] No hay match. pluginPrefix:", pluginPrefix, "settings.prefix:", settings.prefix);
     if (global.queueSaveDatabase) global.queueSaveDatabase();
     return;
   }
@@ -109,11 +108,7 @@ export default async (client, m) => {
   let args = m.text.slice(usedPrefix.length).trim().split(" ");
   let command = (args.shift() || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   let text = args.join(' ');
-  console.log(`[DEBUG] match:`, match[0], `usedPrefix: '${usedPrefix}'`, `command: '${command}'`);
-  if (!command) {
-    console.log("[DEBUG] El comando está vacío después de extraer args.");
-    return;
-  }
+  if (!command) return;
   
   if (m.message) {
     console.log(chalk.bold.blue(`╭────────────────────────────···\n│ ${chalk.cyan('Bot')}: ${gradient('lime', 'green')(botJid)}\n│ ${chalk.bold.yellow('Fecha')}: ${gradient('orange', 'yellow')(moment().format('DD/MM/YY HH:mm:ss'))}\n│ ${chalk.bold.blueBright('Usuario')}: ${gradient('cyan', 'blue')(pushname)}\n│ ${chalk.bold.magentaBright('Remitente')}: ${gradient('deepskyblue', 'darkorchid')(sender)}\n${m.isGroup ? '│' + chalk.bold.green(' Grupo') + ': ' + gradient('green', 'lime')(groupName) : '│' + chalk.bold.green(' Privado') + ': ' + gradient('pink', 'magenta')('Chat Privado')}\n${'│' + chalk.bold.magenta(' ID') + ': ' + gradient('violet', 'midnightblue')(m.isGroup ? from : 'Chat Privado')}\n│ ${chalk.bold.cyanBright('Comando usado')}: ${chalk.gray(command ? command : 'No Command')}\n╰────────────────────────────···\n`));
