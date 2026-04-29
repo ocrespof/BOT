@@ -36,8 +36,8 @@ export default {
       const canalName = botSettings.nameid || '';
       const prefix = botSettings.prefix;
       const link = botSettings.link || 'https://whatsapp.com/channel/xxxx';
-      const isOficialBot = botId === global.client.user.id.split(':')[0] + '@s.whatsapp.net';
-      const botType = isOficialBot ? 'Principal/Owner' : 'Sub Bot';
+      const isOficialBot = true;
+      const botType = 'Bot Oficial';
       let usersCounter = 0; for (let u in global.db.data.users) usersCounter++;
       const users = usersCounter;
       const device = getDevice(m.key.id);
@@ -55,49 +55,112 @@ export default {
       const cat = Object.keys(alias).find(k => alias[k].map(normalize).includes(input));
       const category = `${cat ? ` para \`${cat}\`` : '. *(˶ᵔ ᵕ ᵔ˶)*'}`
       if (args[0] && !cat) {      
-        return m.reply(` La categoria *${args[0]}* no existe, las categorias disponibles son: *${Object.keys(alias).join(', ')}*.\nPara ver la lista completa escribe *${usedPrefix}menu*\nPara ver los comandos de una categoría escribe *${usedPrefix}menu [categoría]*\nEjemplo: *${usedPrefix}menu anime*`);
+        return m.reply(` La categoria *${args[0]}* no existe.`);
       }
-      const categoriesObj = {};
-      const sortedPlugins = Object.entries(global.plugins)
-        .sort((a, b) => (b[1].priority || 0) - (a[1].priority || 0));
+      const staticMenu = `> 📥 *D E S C A R G A S*
+> _Archivos, media y documentos_
 
-      for (const [name, pluginModule] of sortedPlugins) {
-        const plugin = pluginModule.default;
-        if (!plugin || !plugin.command) continue;
-        const c = plugin.category || 'otros';
-        if (!categoriesObj[c]) categoriesObj[c] = [];
-        
-        const primaryCmd = Array.isArray(plugin.command) ? plugin.command[0] : plugin.command;
-        // Solo mostramos alias si no es muy largo
-        // const aliases = Array.isArray(plugin.command) && plugin.command.length > 1 ? ` (${plugin.command.slice(1).join(', ')})` : '';
-        const desc = plugin.desc || plugin.description || 'Comando del sistema';
-        
-        let entry = `⊳ *${usedPrefix}${primaryCmd}* ➭ ${desc}`;
-        
-        categoriesObj[c].push(entry);
-      }
+⊳ *$prefix p* ➭ Audio/Video de YT
+⊳ *$prefix fb* ➭ Videos de Facebook
+⊳ *$prefix tt* ➭ Videos de TikTok
+⊳ *$prefix ig* ➭ Reels y Post de IG
+⊳ *$prefix pin* ➭ Descargar imágenes
+⊳ *$prefix img* ➭ Búsqueda en Google
+⊳ *$prefix studocu* ➭ Docs de Studocu
 
-      const sectionInfo = {
-        info: { emj: '✨', desc: '_Comandos de información general_' },
-        main: { emj: '🚀', desc: '_Menú principal y sistema_' },
-        utils: { emj: '🛠️', desc: '_Herramientas y utilidades varias_' },
-        downloads: { emj: '📥', desc: '_Descargadores multimedia_' },
-        academia: { emj: '🎓', desc: '_Asistencia académica y universitaria_' },
-        stickers: { emj: '🎨', desc: '_Creador de stickers y multimedia_' },
-        group: { emj: '👥', desc: '_Gestión y control de grupos_' },
-        juegos: { emj: '🎮', desc: '_Juegos y entretenimiento_' },
-        owner: { emj: '👑', desc: '_Comandos de administrador_' },
-        otros: { emj: '🧩', desc: '_Funciones misceláneas_' }
-      };
+> 🎨 *S T I C K E R S*
+> _Creación de multimedia interactiva_
 
-      const sections = {};
-      for (const [c, cmds] of Object.entries(categoriesObj)) {
-        const info = sectionInfo[c.toLowerCase()] || { emj: '⚙️', desc: '_Categoría del sistema_' };
-        const header = `> ${info.emj} *${c.toUpperCase().split('').join(' ')}*\n${info.desc}\n\n`;
-        sections[c] = header + cmds.join('\n');
-      }
-      
-      const content = cat ? String(sections[cat] || '') : Object.values(sections).join('\n\n────────────────\n\n');
+⊳ *$prefix s* ➭ Crear sticker desde imagen/video
+⊳ *$prefix brat* ➭ Crear sticker estilo brat
+⊳ *$prefix bratv* ➭ Sticker brat animado
+⊳ *$prefix getpack* ➭ Bajar pack de stickers
+
+> 🛠️ *H E R R A M I E N T A S*
+> _Utilidades prácticas del día a día_
+
+⊳ *$prefix ia* ➭ Interactúa con la IA central
+⊳ *$prefix read* ➭ Ver un archivo _"View Once"_
+⊳ *$prefix ocr* ➭ Extraer texto de imágenes
+⊳ *$prefix ss* ➭ Captura de pantalla a una URL
+⊳ *$prefix clima* ➭ Estado meteorológico
+⊳ *$prefix tiny* ➭ Acortador de código compacto
+⊳ *$prefix tr* ➭ Traductor universal
+⊳ *$prefix qr* ➭ Generador de códigos QR
+⊳ *$prefix rec* ➭ Sistema de recordatorios
+⊳ *$prefix music* ➭ Identificador de canciones
+⊳ *$prefix yts* ➭ Buscar en base de datos YT
+
+> 🎓 *A C A D E M I A*
+> _Asistencia académica y universitaria_
+
+⊳ *$prefix wiki* ➭ Extracción de Wikipedia
+⊳ *$prefix vis* ➭ Análisis visual de imágenes
+⊳ *$prefix pdf* ➭ Procesamiento IA de PDFs
+⊳ *$prefix math* ➭ Solver matemático paso a paso
+⊳ *$prefix res* ➭ Sintetizador de textos extensos
+⊳ *$prefix pomo* ➭ Temporizador de estudio
+⊳ *$prefix corr* ➭ Corrector ortográfico avanzado
+⊳ *$prefix hum* / *$prefix parf* ➭ Humanizar / Parafrasear
+⊳ *$prefix apa* ➭ Generador de formato APA
+⊳ *$prefix def* ➭ Diccionario de definiciones
+⊳ *$prefix frase* ➭ Frase o reflexión diaria
+⊳ *$prefix ruleta* ➭ Sistema generador de azar
+⊳ *$prefix detia* ➭ Detector de texto IA
+⊳ *$prefix plagio* ➭ Escáner de plagio
+
+> 👥 *A D M I N I S T R A C I Ó N*
+> _Control absoluto para grupos_
+
+⊳ *$prefix gp* ➭ Extraer metadata del grupo
+⊳ *$prefix bot* ➭ Standby/Wakeup del bot
+⊳ *$prefix open* / *$prefix close* ➭ Tráfico de mensajes
+⊳ *$prefix promote* / *$prefix demote* ➭ Gestión de rangos
+⊳ *$prefix kick* ➭ Executar expulsión de usuario
+⊳ *$prefix warn* / *$prefix delwarn* ➭ Sistema de advertencias
+⊳ *$prefix warns* ➭ Listado de infractores
+⊳ *$prefix tagall* ➭ Notificación masiva general
+⊳ *$prefix tag* ➭ Notificación furtiva (Admin)
+⊳ *$prefix link* ➭ Extraer clave de invitación
+⊳ *$prefix setgpbanner* ➭ Actualizar portada de red
+⊳ *$prefix options* ➭ Panel de ajustes avanzados
+
+> 👤 *P E R F I L   Y   N I V E L*
+> _Gestión de cuenta de usuario_
+
+⊳ *$prefix profile* ➭ Ver tu perfil de usuario
+⊳ *$prefix setdesc* / *$prefix setgenre* / *$prefix setbirth* ➭ Personalizar
+⊳ *$prefix marry* / *$prefix divorce* ➭ Sistema de matrimonio
+⊳ *$prefix afk* ➭ Activar modo ausente
+⊳ *$prefix lboard* / *$prefix level* ➭ Ranking y niveles
+
+> 💰 *E C O N O M I A   Y   R P G*
+> _Sistema financiero virtual_
+
+⊳ *$prefix daily* / *$prefix weekly* / *$prefix monthly* ➭ Recompensas
+⊳ *$prefix work* / *$prefix mine* / *$prefix hunt* ➭ Trabajar y minar
+⊳ *$prefix balance* / *$prefix deposit* / *$prefix withdraw* ➭ Banco
+⊳ *$prefix slots* / *$prefix roulette* / *$prefix casino* ➭ Apuestas
+⊳ *$prefix steal* / *$prefix crime* / *$prefix slut* ➭ Crímenes
+⊳ *$prefix economyboard* ➭ Tabla de multimillonarios
+⊳ *$prefix givecoins* ➭ Transferir monedas
+
+> 🎮 *J U E G O S*
+> _Entretenimiento y desafíos_
+
+⊳ *$prefix tictactoe* ➭ Tres en raya
+⊳ *$prefix trivia* ➭ Preguntas y respuestas
+⊳ *$prefix ahorcado* ➭ Juego del ahorcado
+⊳ *$prefix ppt* ➭ Piedra, papel o tijera
+⊳ *$prefix adivinanza* ➭ Acertijos y adivinanzas
+
+> 🎭 *A N I M E   Y   R O L*
+> _Otaku y reacciones_
+
+⊳ *$prefix inter* ➭ Interactuar (abrazo, beso, etc.)
+⊳ *$prefix ppcouple* ➭ Fotos compartidas de pareja`;
+
+      const content = staticMenu;
       let menu = bodyMenu ? String(bodyMenu || '') + '\n\n' + content : content;
       const replacements = {
         $owner: owner ? (!isNaN(owner.replace(/@s\.whatsapp\.net$/, '')) ? global.db.data.users[owner]?.name || owner.split('@')[0] : owner) : 'Oculto por privacidad',
