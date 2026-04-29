@@ -2,7 +2,6 @@ import fs from 'fs';
 import { tmpdir } from 'os';
 import Crypto from 'crypto';
 import path from 'path';
-import fetch from 'node-fetch';
 import FormData from 'form-data';
 import * as cheerio from 'cheerio';
 

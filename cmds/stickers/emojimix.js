@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import fs from 'fs';
 
 const fetchJson = (url, options) => new Promise((resolve, reject) => { fetch(url, options).then(res => res.json()).then(json => resolve(json)).catch(err => reject(err)) });

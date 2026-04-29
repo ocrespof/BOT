@@ -1,6 +1,5 @@
 import axios from "axios"
 import FormData from "form-data"
-import fetch from 'node-fetch';
 
 function formatBytes(bytes) {
   if (bytes === 0) return "0 B"
