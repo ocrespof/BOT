@@ -180,18 +180,56 @@ export async function getTikTokData(input, isUrl) {
   const key = cacheKey('tiktok', cacheIdentifier);
   const cached = cache.get(key);
   if (cached) return cached;
-  const endpoint = isUrl
-    ? `${config.APIs.stellar.url}/dl/tiktok?url=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`
-    : `${config.APIs.stellar.url}/search/tiktok?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`;
-  try {
-    const res = await axios.get(endpoint);
-    const json = res.data;
-    if (!json.status) return null;
-    cache.set(key, json);
-    return json;
-  } catch (e) {
-    console.warn('TikTok fetch error:', e.message);
+  if (isUrl) {
+    const apis = [
+      { endpoint: `${config.APIs.stellar.url}/dl/tiktok?url=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`, extractor: res => res.status ? res : null },
+      { endpoint: `https://api.ryzendesu.vip/api/downloader/ttdl?url=${encodeURIComponent(input)}`, extractor: res => {
+          if (!res.success && !res.data) return null;
+          const data = res.data || res;
+          return { status: true, data: { title: data.title || '', duration: data.duration || 0, dl: data.play || data.play_url || data.video || (data.images ? data.images : []), author: { nickname: data.author?.nickname || '' }, stats: { likes: data.digg_count || 0 }, type: data.images ? 'image' : 'video' } };
+        }
+      },
+      { endpoint: `https://api.siputzx.my.id/api/d/tiktok?url=${encodeURIComponent(input)}`, extractor: res => {
+          if (!res.status || !res.data) return null;
+          const data = res.data;
+          return { status: true, data: { title: data.title || '', duration: 0, dl: data.video || data.images || [], author: { nickname: data.author?.nickname || '' }, stats: { likes: 0 }, type: data.images ? 'image' : 'video' } };
+        }
+      },
+      { endpoint: `${config.APIs.vreden.url}/api/tiktok?url=${encodeURIComponent(input)}`, extractor: res => {
+          if (!res.status || !res.result) return null;
+          const data = res.result;
+          return { status: true, data: { title: data.title || '', duration: 0, dl: data.video || data.images || [], author: { nickname: data.author || '' }, stats: { likes: data.likes || 0 }, type: data.images ? 'image' : 'video' } };
+        }
+      }
+    ];
+
+    for (const { endpoint, extractor } of apis) {
+      try {
+        const res = (await axios.get(endpoint)).data;
+        const result = extractor(res);
+        if (result && result.status) {
+          cache.set(key, result);
+          return result;
+        }
+      } catch (e) {
+        console.warn('TikTok fetch error:', e.message);
+      }
+      await delay(500);
+    }
     return null;
+  } else {
+    // Search TikTok fallback
+    const endpoint = `${config.APIs.stellar.url}/search/tiktok?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`;
+    try {
+      const res = await axios.get(endpoint);
+      const json = res.data;
+      if (!json.status) return null;
+      cache.set(key, json);
+      return json;
+    } catch (e) {
+      console.warn('TikTok search fetch error:', e.message);
+      return null;
+    }
   }
 }
 
