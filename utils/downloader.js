@@ -180,25 +180,44 @@ export async function getTikTokData(input, isUrl) {
   const key = cacheKey('tiktok', cacheIdentifier);
   const cached = cache.get(key);
   if (cached) return cached;
+
   if (isUrl) {
+    // 1. Intentar con scraper nativo usando TikWM (el más confiable)
+    try {
+      const tikwmRes = await axios.post('https://www.tikwm.com/api/', new URLSearchParams({ url: input, hd: 1 }), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36'
+        }
+      });
+      if (tikwmRes.data && tikwmRes.data.code === 0) {
+        const d = tikwmRes.data.data;
+        const result = {
+          status: true,
+          data: {
+            title: d.title || '',
+            duration: d.duration || 0,
+            dl: d.images ? d.images : (d.hdplay || d.play),
+            author: { nickname: d.author?.nickname || '', unique_id: d.author?.unique_id || '' },
+            stats: { likes: d.digg_count || 0, comments: d.comment_count || 0, views: d.play_count || 0, shares: d.share_count || 0 },
+            created_at: new Date(d.create_time * 1000).toLocaleDateString(),
+            type: d.images ? 'image' : 'video'
+          }
+        };
+        cache.set(key, result);
+        return result;
+      }
+    } catch (e) {
+      console.warn('[Native TikWM error]:', e.message);
+    }
+
+    // 2. Fallbacks de APIs REST en caso de que TikWM falle o limite la IP
     const apis = [
       { endpoint: `${config.APIs.stellar.url}/dl/tiktok?url=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`, extractor: res => res.status ? res : null },
       { endpoint: `https://api.ryzendesu.vip/api/downloader/ttdl?url=${encodeURIComponent(input)}`, extractor: res => {
           if (!res.success && !res.data) return null;
           const data = res.data || res;
           return { status: true, data: { title: data.title || '', duration: data.duration || 0, dl: data.play || data.play_url || data.video || (data.images ? data.images : []), author: { nickname: data.author?.nickname || '' }, stats: { likes: data.digg_count || 0 }, type: data.images ? 'image' : 'video' } };
-        }
-      },
-      { endpoint: `https://api.siputzx.my.id/api/d/tiktok?url=${encodeURIComponent(input)}`, extractor: res => {
-          if (!res.status || !res.data) return null;
-          const data = res.data;
-          return { status: true, data: { title: data.title || '', duration: 0, dl: data.video || data.images || [], author: { nickname: data.author?.nickname || '' }, stats: { likes: 0 }, type: data.images ? 'image' : 'video' } };
-        }
-      },
-      { endpoint: `${config.APIs.vreden.url}/api/tiktok?url=${encodeURIComponent(input)}`, extractor: res => {
-          if (!res.status || !res.result) return null;
-          const data = res.result;
-          return { status: true, data: { title: data.title || '', duration: 0, dl: data.video || data.images || [], author: { nickname: data.author || '' }, stats: { likes: data.likes || 0 }, type: data.images ? 'image' : 'video' } };
         }
       }
     ];
@@ -207,12 +226,12 @@ export async function getTikTokData(input, isUrl) {
       try {
         const res = (await axios.get(endpoint)).data;
         const result = extractor(res);
-        if (result && result.status) {
+        if (result && result.status && result.data?.dl) {
           cache.set(key, result);
           return result;
         }
       } catch (e) {
-        console.warn('TikTok fetch error:', e.message);
+        console.warn('TikTok fetch fallback error:', e.message);
       }
       await delay(500);
     }
@@ -319,20 +338,28 @@ export async function getPinterestData(input, isUrl) {
         const res = (await axios.get(endpoint)).data;
         let result = null;
         if (res?.data?.length) {
-          result = res.data.map(d => ({ type: 'image', title: d.title || null, description: d.description || null, name: d.full_name || d.name || null, username: d.username || null, followers: d.followers || null, likes: d.likes || null, created_at: d.created || d.created_at || null, image: d.hd || d.image || null }));
+          result = res.data.map(d => ({ 
+            type: 'image', 
+            title: d.title || d.grid_title || null, 
+            description: d.description || null, 
+            name: d.full_name || d.name || d.pinner?.full_name || null, 
+            username: d.username || d.pinner?.username || null, 
+            followers: d.followers || d.pinner?.follower_count || null, 
+            likes: d.likes || d.reaction_counts?.[1] || null, 
+            created_at: d.created || d.created_at || null, 
+            image: d.hd || d.image || d.image_url || d.images?.orig?.url || d.media_urls?.[0]?.url || d.url || null 
+          }));
         } else if (res?.response?.pins?.length) {
           result = res.response.pins.map(p => ({ type: p.media?.video ? 'video' : 'image', title: p.title || null, description: p.description || null, name: p.uploader?.full_name || null, username: p.uploader?.username || null, followers: p.uploader?.followers || null, likes: null, created_at: null, image: p.media?.images?.orig?.url || null }));
         } else if (res?.results?.length) {
-          result = res.results.map(url => ({ type: 'image', title: null, description: null, name: null, username: null, followers: null, likes: null, created_at: null, image: url }));
+          result = res.results.map(url => ({ type: 'image', title: null, description: null, name: null, username: null, followers: null, likes: null, created_at: null, image: typeof url === 'string' ? url : (url.image || url.url || null) }));
         } else if (res?.result?.search_data?.length) {
-          result = res.result.search_data.map(url => ({ type: 'image', title: null, description: null, name: null, username: null, followers: null, likes: null, created_at: null, image: url }));
+          result = res.result.search_data.map(url => ({ type: 'image', title: null, description: null, name: null, username: null, followers: null, likes: null, created_at: null, image: typeof url === 'string' ? url : (url.image || url.url || null) }));
         } else if (res?.result?.result?.length) {
           result = res.result.result.map(d => ({ type: d.media_urls?.[0]?.type || 'video', title: d.title || null, description: d.description || null, name: d.uploader?.full_name || null, username: d.uploader?.username || null, followers: d.uploader?.followers || null, likes: null, created_at: null, image: d.media_urls?.[0]?.url || null }));
-        } else if (res?.data?.length && res.data[0]?.image_url) {
-          result = res.data.map(d => ({ type: d.type || 'image', title: d.grid_title || null, description: d.description || null, name: d.pinner?.full_name || null, username: d.pinner?.username || null, followers: d.pinner?.follower_count || null, likes: d.reaction_counts?.[1] || null, created_at: d.created_at || null, image: d.image_url || null }));
         }
-
-        if (result && result.length > 0) {
+        
+        if (result && result.length > 0 && result.some(r => r.image)) {
           cache.set(key, result);
           return result;
         }
