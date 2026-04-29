@@ -17,10 +17,22 @@ export default {
         if (!text.match(/facebook\.com|fb\.watch|video\.fb\.com/)) return m.reply(' El enlace es invalido, envía un link de Facebook válido')
         const data = await getMedia('facebook', text)
         if (!data) return m.reply(' No se pudo obtener el contenido.')
-        const caption = `« 𝐅𝐁 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 \n\nTítulo: ${data.title || 'Video de Facebook'}\nDuración: ${data.duration || 'N/A'}`
-        if (data.type === 'video') await client.sendMessage(m.chat, { video: { url: data.url }, caption, mimetype: 'video/mp4', fileName: 'fb.mp4' }, { quoted: m })
-        else if (data.type === 'image') await client.sendMessage(m.chat, { image: { url: data.url }, caption }, { quoted: m })
-        else throw new Error('Contenido no soportado.')
+        const caption = `« 𝐅𝐁 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 \n\nTítulo: ${data.title || 'Contenido de Facebook'}`
+        
+        if (data.isCarousel || (data.urls && data.urls.length > 1)) {
+          const maxMedia = data.urls.slice(0, 10);
+          for (let i = 0; i < maxMedia.length; i++) {
+             const mData = maxMedia[i];
+             const textCap = `« 𝐅𝐁 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 ${i + 1}/${maxMedia.length} »\n\nTítulo: ${data.title || 'Facebook'}`;
+             if (mData.type === 'video') await client.sendMessage(m.chat, { video: { url: mData.url }, caption: textCap }, { quoted: m });
+             else await client.sendMessage(m.chat, { image: { url: mData.url }, caption: textCap }, { quoted: m });
+             await new Promise(r => setTimeout(r, 800));
+          }
+        } else {
+          if (data.type === 'video' || data.url.includes('.mp4')) await client.sendMessage(m.chat, { video: { url: data.url }, caption, mimetype: 'video/mp4', fileName: 'fb.mp4' }, { quoted: m })
+          else if (data.type === 'image' || data.url.includes('.jpg')) await client.sendMessage(m.chat, { image: { url: data.url }, caption }, { quoted: m })
+          else throw new Error('Contenido no soportado.')
+        }
       } 
       else if (['ig', 'instagram'].includes(cmd)) {
         if (!text.match(/instagram\.com\/(p|reel|share|tv|stories)\//)) return m.reply(' El enlace no parece *válido*. Asegúrate de que sea de *Instagram*.')
@@ -29,8 +41,14 @@ export default {
         const caption = `« 𝐈𝐆 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 \n\nAutor: ${data.title || 'Usuario de Instagram'}`
         
         if (data.isCarousel || data.urls.length > 1) {
-          const medias = data.urls.map(u => ({ type: u.type, data: { url: u.url }, caption }));
-          await client.sendAlbumMessage(m.chat, medias, { quoted: m });
+          const maxMedia = data.urls.slice(0, 10);
+          for (let i = 0; i < maxMedia.length; i++) {
+             const u = maxMedia[i];
+             const textCap = `« 𝐈𝐆 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 ${i + 1}/${maxMedia.length} »\n\nAutor: ${data.title || 'Usuario de Instagram'}`;
+             if (u.type === 'video') await client.sendMessage(m.chat, { video: { url: u.url }, caption: textCap }, { quoted: m });
+             else await client.sendMessage(m.chat, { image: { url: u.url }, caption: textCap }, { quoted: m });
+             await new Promise(r => setTimeout(r, 800));
+          }
         } else {
           const media = data.urls[0];
           if (media.type === 'video') await client.sendMessage(m.chat, { video: { url: media.url }, caption, mimetype: 'video/mp4', fileName: 'ig.mp4' }, { quoted: m })
@@ -48,8 +66,12 @@ export default {
           if (type === 'image') {
             if (dl.length === 1) await client.sendMessage(m.chat, { image: { url: dl[0] }, caption }, { quoted: m })
             else {
-              const medias = dl.map(url => ({ type: 'image', data: { url }, caption }))
-              await client.sendAlbumMessage(m.chat, medias, { quoted: m })
+              const maxMedia = dl.slice(0, 10);
+              for (let i = 0; i < maxMedia.length; i++) {
+                 const textCap = `« 𝐓𝐈𝐊𝐓𝐎𝐊 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 ${i + 1}/${maxMedia.length} »\n\nTítulo: ${title || 'Video'}\nAutor: ${author?.nickname || 'Desconocido'}`;
+                 await client.sendMessage(m.chat, { image: { url: maxMedia[i] }, caption: textCap }, { quoted: m });
+                 await new Promise(r => setTimeout(r, 800));
+              }
             }
             try {
               const audioRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`).then(r => r.json())
@@ -61,13 +83,16 @@ export default {
             await client.sendMessage(m.chat, { video: { url: Array.isArray(dl) ? dl[0] : dl }, caption }, { quoted: m })
           }
         } else {
-          const validResults = json.data?.filter(v => v.dl)
-          if (!validResults || validResults.length < 2) return m.reply(' Se requieren al menos 2 resultados válidos con contenido.')
-          const medias = validResults.filter(v => typeof v.dl === 'string' && v.dl.startsWith('http')).map(v => {
-            const caption = `« 𝐓𝐈𝐊𝐓𝐎𝐊 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 \n\nTítulo: ${v.title || 'Video'}\nAutor: ${v.author?.nickname || 'Desconocido'}`
-            return { type: 'video', data: { url: v.dl }, caption }
-          }).slice(0, 10)
-          await client.sendAlbumMessage(m.chat, medias, { quoted: m })
+          const validResults = json.data?.filter(v => v.dl && typeof v.dl === 'string' && v.dl.startsWith('http'))
+          if (!validResults || validResults.length === 0) return m.reply(' No se encontraron resultados válidos.')
+          
+          const maxResults = validResults.slice(0, 4);
+          for (let i = 0; i < maxResults.length; i++) {
+             const v = maxResults[i];
+             const caption = `« 𝐓𝐈𝐊𝐓𝐎𝐊 𝐒𝐄𝐀𝐑𝐂𝐇 ${i + 1}/${maxResults.length} »\n\nTítulo: ${v.title || 'Video'}\nAutor: ${v.author?.nickname || 'Desconocido'}`;
+             await client.sendMessage(m.chat, { video: { url: v.dl }, caption }, { quoted: m });
+             await new Promise(r => setTimeout(r, 800));
+          }
         }
       }
       else if (['pinterest', 'pin'].includes(cmd)) {
@@ -81,8 +106,15 @@ export default {
           else throw new Error('Contenido no soportado.')
         } else {
           const results = await getMedia('pinterest', text, { isUrl: false })
-          const validResults = results.filter(r => r.image && typeof r.image === 'string' && r.image.startsWith('http'));
-          if (!validResults || validResults.length === 0) return m.reply(` No se encontraron imágenes válidas para *${text}*.`)
+          const normalizedResults = results.map(r => {
+            let imgUrl = typeof r.image === 'string' ? r.image : (r.image?.url || r.url || r);
+            return { ...r, image: typeof imgUrl === 'string' ? imgUrl : null };
+          });
+          const validResults = normalizedResults.filter(r => r.image && r.image.startsWith('http'));
+          if (!validResults || validResults.length === 0) {
+             console.error("[Pinterest Debug] Resultados inválidos:", results.slice(0, 2));
+             return m.reply(` No se encontraron imágenes válidas para *${text}*.`)
+          }
           
           // Enviar hasta 4 resultados para evitar spam
           const maxResults = validResults.slice(0, 4);
