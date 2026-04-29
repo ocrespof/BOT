@@ -1,3 +1,5 @@
+import config from '../../config.js';
+
 let isNumber = (x) => typeof x === 'number' && !isNaN(x)
 
 function initDB(m, client) {
@@ -7,14 +9,14 @@ function initDB(m, client) {
   settings.self ??= false
   settings.prefix ??= ['/', '!', '.', '#']
   settings.commandsejecut ??= isNumber(settings.commandsejecut) ? settings.commandsejecut : 0
-  settings.id ??= '120363401404146384@newsletter'
-  settings.nameid ??= "'ೃ࿔ ყµҡเ ωαɓσƭ'ร - σƒƒเ૮เαℓ ૮ɦαɳɳεℓ .ೃ࿐"
-  settings.link ??= 'https://api.yuki-wabot.my.id'
-  settings.banner ??= 'https://cdn.yuki-wabot.my.id/files/tCVD.jpeg'
-  settings.icon ??= 'https://cdn.yuki-wabot.my.id/files/PJDp.jpeg'
+  settings.id ??= config.my.ch || '120363401404146384@newsletter'
+  settings.nameid ??= "'ೃ࿔ Pinkanema.ೃ࿐"
+  settings.link ??= config.links.api || 'https://api.yuki-wabot.my.id'
+  settings.banner ??= 'https://vignette.wikia.nocookie.net/mlp/images/1/17/Pinkie_Pie_starts_rapping_EGS1.png/revision/latest?cb=20170811024135'
+  settings.icon ??= 'https://cdn.twibooru.org/img/2024/3/1/3173192/medium.jpeg'
   settings.currency ??= 'Yenes'
-  settings.namebot ??= 'BOTDEPRUEBA'
-  settings.botname ??= 'BOTDEPRUEBA'  
+  settings.namebot ??= config.my.name || 'PinkieBot'
+  settings.botname ??= config.my.name || 'PinkieBot'
   settings.owner ??= ''
 
   const user = global.db.data.users[m.sender] ||= {}

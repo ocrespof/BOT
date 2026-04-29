@@ -73,10 +73,19 @@ async function cleanCache() {
     if (fs.existsSync(tmpFolder)) {
       const files = await fs.promises.readdir(tmpFolder);
       let cleaned = 0;
+      const now = Date.now();
       for (const file of files) {
-        try { await fs.promises.unlink(path.join(tmpFolder, file)); cleaned++; } catch { }
+        try { 
+          const filePath = path.join(tmpFolder, file);
+          const stat = await fs.promises.stat(filePath);
+          // Borrar solo archivos que tengan más de 10 minutos de antigüedad
+          if (now - stat.mtimeMs > 10 * 60 * 1000) {
+            await fs.promises.unlink(filePath); 
+            cleaned++; 
+          }
+        } catch { }
       }
-      if (cleaned > 0) console.log(chalk.gray(`[ 🗑️ ] Cache tmp: ${cleaned} archivos eliminados`));
+      if (cleaned > 0) console.log(chalk.gray(`[ 🗑️ ] Cache tmp: ${cleaned} archivos expirados eliminados`));
     }
     const sessionsFolder = './Sessions';
     if (fs.existsSync(sessionsFolder)) {
