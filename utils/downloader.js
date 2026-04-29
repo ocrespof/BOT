@@ -222,14 +222,17 @@ export async function getTikTokData(input, isUrl) {
     const apis = [
       { endpoint: `${config.APIs.stellar.url}/search/tiktok?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`, extractor: res => res.status ? res : null },
       { endpoint: `${config.APIs.vreden.url}/api/v1/search/tiktok?query=${encodeURIComponent(input)}`, extractor: res => {
-          if (!res.status || !res.result?.data) return null;
-          const mapped = res.result.data.map(v => ({ title: v.title, dl: v.play, author: { nickname: v.author?.nickname, unique_id: v.author?.unique_id }, duration: v.duration, stats: { likes: v.digg_count, comments: v.comment_count, views: v.play_count, shares: v.share_count } }));
-          return { status: true, data: mapped };
-        }
-      },
-      { endpoint: `https://api.siputzx.my.id/api/s/tiktok?query=${encodeURIComponent(input)}`, extractor: res => {
-          if (!res.status || !res.data) return null;
-          const mapped = res.data.map(v => ({ title: v.title, dl: v.play, author: { nickname: v.author?.nickname, unique_id: v.author?.unique_id }, duration: v.duration, stats: { likes: v.digg_count, comments: v.comment_count, views: v.play_count, shares: v.share_count } }));
+          if (!res.status || !res.result?.search_data) return null;
+          const mapped = res.result.search_data.map(v => {
+            const url = v.data?.find(d => d.type === 'no_watermark')?.url || v.data?.[0]?.url;
+            return {
+              title: v.title,
+              dl: url,
+              author: { nickname: v.author?.nickname, unique_id: v.author?.id },
+              duration: v.duration,
+              stats: { likes: v.stats?.likes, comments: v.stats?.comment, views: v.stats?.views, shares: v.stats?.share }
+            };
+          });
           return { status: true, data: mapped };
         }
       }
