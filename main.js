@@ -29,7 +29,7 @@ export default async (client, m) => {
   const user = global.db.data.users[sender] ||= {}
   const users = chat.users[sender] || {}
   const pushname = m.pushName || 'Sin nombre';
-  
+
   let groupMetadata = null
   let groupAdmins = []
   let groupName = ''
@@ -37,9 +37,9 @@ export default async (client, m) => {
     groupMetadata = await client.groupMetadata(m.chat).catch(() => null)
     groupName = groupMetadata?.subject || ''
     groupAdmins = groupMetadata?.participants.filter(p => (p.admin === 'admin' || p.admin === 'superadmin')) || []
-  }  
-  const isBotAdmins = m.isGroup ? groupAdmins.some(p => p.phoneNumber === botJid || p.jid === botJid || p.id === botJid || p.lid === botJid ) : false
-  const isAdmins = m.isGroup ? groupAdmins.some(p => p.phoneNumber === sender || p.jid === sender || p.id === sender || p.lid === sender ) : false
+  }
+  const isBotAdmins = m.isGroup ? groupAdmins.some(p => p.phoneNumber === botJid || p.jid === botJid || p.id === botJid || p.lid === botJid) : false
+  const isAdmins = m.isGroup ? groupAdmins.some(p => p.phoneNumber === sender || p.jid === sender || p.id === sender || p.lid === sender) : false
   const isOwners = [botJid, ...(settings.owner ? [settings.owner] : []), ...config.owner.map(num => num + '@s.whatsapp.net')].includes(sender);
 
   for (const name in global.plugins) {
@@ -57,7 +57,7 @@ export default async (client, m) => {
   if (!users.stats) users.stats = {};
   if (!users.stats[today]) users.stats[today] = { msgs: 0, cmds: 0 };
   users.stats[today].msgs++;
-  
+
   if (!settings._prefixCache || settings._prefixCache.namebot !== settings.namebot || settings._prefixCache.type !== settings.type || JSON.stringify(settings._prefixCache.prefixSettings) !== JSON.stringify(settings.prefix)) {
     const rawBotname = settings.namebot || 'Yuki';
     const cleanBotname = rawBotname.replace(/[^a-zA-Z0-9\s]/g, '')
@@ -109,13 +109,13 @@ export default async (client, m) => {
   let command = (args.shift() || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   let text = args.join(' ');
   if (!command) return;
-  
+
   if (m.message) {
     console.log(chalk.bold.blue(`╭────────────────────────────···\n│ ${chalk.cyan('Bot')}: ${gradient('lime', 'green')(botJid)}\n│ ${chalk.bold.yellow('Fecha')}: ${gradient('orange', 'yellow')(moment().format('DD/MM/YY HH:mm:ss'))}\n│ ${chalk.bold.blueBright('Usuario')}: ${gradient('cyan', 'blue')(pushname)}\n│ ${chalk.bold.magentaBright('Remitente')}: ${gradient('deepskyblue', 'darkorchid')(sender)}\n${m.isGroup ? '│' + chalk.bold.green(' Grupo') + ': ' + gradient('green', 'lime')(groupName) : '│' + chalk.bold.green(' Privado') + ': ' + gradient('pink', 'magenta')('Chat Privado')}\n${'│' + chalk.bold.magenta(' ID') + ': ' + gradient('violet', 'midnightblue')(m.isGroup ? from : 'Chat Privado')}\n│ ${chalk.bold.cyanBright('Comando usado')}: ${chalk.gray(command ? command : 'No Command')}\n╰────────────────────────────···\n`));
   }
-  
+
   const hasPrefix = settings.prefix === true ? true : (Array.isArray(settings.prefix) ? settings.prefix : typeof settings.prefix === 'string' ? [settings.prefix] : []).some(p => m.text?.startsWith(p));
-  if (!isOwners && settings.self) return;  
+  if (!isOwners && settings.self) return;
   if (m.chat && !m.chat.endsWith('g.us')) {
     const allowedInPrivateForUsers = [
       'play', 'mp3', 'play2', 'mp4', 'facebook', 'fb', 'tiktok', 'tt', 'instagram', 'ig', 'pinterest', 'pin', 'imagen', 'img',
@@ -137,8 +137,8 @@ export default async (client, m) => {
   }
 
   if (!users.stats) users.stats = {};
-  if (!users.stats[today]) users.stats[today] = { msgs: 0, cmds: 0 }; 
-  if (chat.adminonly && !isAdmins) return;
+  if (!users.stats[today]) users.stats[today] = { msgs: 0, cmds: 0 };
+  if (m.isGroup && chat.adminonly && !isAdmins && !isOwners) return;
   const cmdData = global.comandos.get(command);
   if (!cmdData) {
     if (settings.prefix === true) return;
@@ -159,7 +159,7 @@ export default async (client, m) => {
   if (now - user.lastMessageTime < globalSpamDelay && !isOwners) {
     if (!user.warnedSpam) {
       user.warnedSpam = true;
-      user.lastMessageTime = now + 3000; 
+      user.lastMessageTime = now + 3000;
       return m.reply(`*¡No hagas spam!* Espera un momento antes de enviar otro comando.`);
     }
     return;
