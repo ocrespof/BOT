@@ -44,7 +44,7 @@ function hasPendingChanges(newDataStr) {
 let isSaving = false
 global.saveDatabaseAsync = async function saveDatabaseAsync() {
   if (isSaving) return
-  const dataStr = JSON.stringify(global.db.data, null, 2)
+  const dataStr = JSON.stringify(global.db.data)
   if (!hasPendingChanges(dataStr)) return
   
   isSaving = true
@@ -61,7 +61,7 @@ global.saveDatabaseAsync = async function saveDatabaseAsync() {
 }
 
 global.saveDatabase = function saveDatabase() {
-  const dataStr = JSON.stringify(global.db.data, null, 2)
+  const dataStr = JSON.stringify(global.db.data)
   if (!hasPendingChanges(dataStr)) return
   const tmpFile = dbFile + '.tmp'
   fs.writeFileSync(tmpFile, dataStr)

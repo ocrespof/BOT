@@ -6,6 +6,7 @@ import path from 'path';
 import gradient from 'gradient-string';
 import seeCommands from './core/system/commandLoader.js';
 import initDB from './core/system/initDB.js';
+import config from './config.js';
 import antilink from './cmds/group/antilink.js';
 import level from './cmds/level.js';
 import { getGroupAdmins } from './core/message.js';
@@ -38,7 +39,7 @@ export default async (client, m) => {
   }  
   const isBotAdmins = m.isGroup ? groupAdmins.some(p => p.phoneNumber === botJid || p.jid === botJid || p.id === botJid || p.lid === botJid ) : false
   const isAdmins = m.isGroup ? groupAdmins.some(p => p.phoneNumber === sender || p.jid === sender || p.id === sender || p.lid === sender ) : false
-  const isOwners = [botJid, ...(settings.owner ? [settings.owner] : []), ...global.owner.map(num => num + '@s.whatsapp.net')].includes(sender);
+  const isOwners = [botJid, ...(settings.owner ? [settings.owner] : []), ...config.owner.map(num => num + '@s.whatsapp.net')].includes(sender);
 
   for (const name in global.plugins) {
     const plugin = global.plugins[name];
@@ -149,6 +150,38 @@ export default async (client, m) => {
   }
   if (cmdData.isAdmin && !isAdmins) return client.reply(m.chat, mess.admin, m);
   if (cmdData.botAdmin && !isBotAdmins) return client.reply(m.chat, mess.botAdmin, m);
+
+  // --- Anti-Spam Global ---
+  const now = Date.now();
+  const globalSpamDelay = 1500; // 1.5 seconds
+  if (!user.lastMessageTime) user.lastMessageTime = 0;
+  if (now - user.lastMessageTime < globalSpamDelay && !isOwners) {
+    if (!user.warnedSpam) {
+      user.warnedSpam = true;
+      user.lastMessageTime = now + 3000; 
+      return m.reply(`*¡No hagas spam!* Espera un momento antes de enviar otro comando.`);
+    }
+    return;
+  }
+  user.warnedSpam = false;
+  user.lastMessageTime = now;
+
+  // --- Cooldown por Comando ---
+  const cmdCooldown = (cmdData.cooldown || 0) * 1000;
+  if (cmdCooldown > 0 && !isOwners) {
+    if (!user.cooldowns) user.cooldowns = {};
+    if (user.cooldowns[command] && now < user.cooldowns[command]) {
+      if (!user.warnedCooldowns) user.warnedCooldowns = {};
+      if (!user.warnedCooldowns[command] || now > user.warnedCooldowns[command]) {
+        const timeLeft = Math.ceil((user.cooldowns[command] - now) / 1000);
+        user.warnedCooldowns[command] = now + 5000;
+        return m.reply(`⏳ *Cooldown activo.*\nDebes esperar *${timeLeft}s* para volver a usar *${command}*.`);
+      }
+      return;
+    }
+    user.cooldowns[command] = now + cmdCooldown;
+  }
+
   try {
     await client.readMessages([m.key]);
     user.usedcommands = (user.usedcommands || 0) + 1;

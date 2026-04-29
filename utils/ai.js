@@ -1,6 +1,6 @@
 // utils/ai.js
+import config from '../config.js';
 import axios from 'axios';
-import fetch from 'node-fetch';
 
 /**
  * Centralized AI client with fallback support.
@@ -28,11 +28,11 @@ export async function getAIResponse({ text, content, prompt, user }) {
   // 2. Try Fallback APIs (Stellar, Sylphy, etc.)
   const apis = [
     { 
-      url: `${global.APIs.stellar.url}/ai/gptprompt?text=${encodeURIComponent(query)}&prompt=${encodeURIComponent(logic)}&key=${global.APIs.stellar.key}`,
+      url: `${config.APIs.stellar.url}/ai/gptprompt?text=${encodeURIComponent(query)}&prompt=${encodeURIComponent(logic)}&key=${config.APIs.stellar.key}`,
       extractor: json => json.result?.text || json.result || json.results
     },
     {
-      url: `${global.APIs.sylphy.url}/ai/gemini?q=${encodeURIComponent(query)}&prompt=${encodeURIComponent(logic)}&api_key=${global.APIs.sylphy.key}`,
+      url: `${config.APIs.sylphy.url}/ai/gemini?q=${encodeURIComponent(query)}&prompt=${encodeURIComponent(logic)}&api_key=${config.APIs.sylphy.key}`,
       extractor: json => json.result?.text || json.result
     }
   ];

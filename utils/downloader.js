@@ -4,6 +4,7 @@
  * Each function returns a normalized object containing the essential fields
  * needed by the command modules (type, url, title, caption, etc.).
  */
+import config from '../config.js';
 import axios from 'axios';
 import { cache } from './cache.js';
 
@@ -21,7 +22,7 @@ export async function getFacebookMedia(url) {
   if (cached) return cached;
   const apis = [
     {
-      endpoint: `${global.APIs.stellar.url}/dl/facebook?url=${encodeURIComponent(url)}&key=${global.APIs.stellar.key}`,
+      endpoint: `${config.APIs.stellar.url}/dl/facebook?url=${encodeURIComponent(url)}&key=${config.APIs.stellar.key}`,
       extractor: res => {
         if (!res.status || !Array.isArray(res.resultados)) return null;
         const hd = res.resultados.find(x => x.quality?.includes('720p'));
@@ -32,7 +33,7 @@ export async function getFacebookMedia(url) {
       },
     },
     {
-      endpoint: `${global.APIs.ootaizumi.url}/downloader/facebook?url=${encodeURIComponent(url)}`,
+      endpoint: `${config.APIs.ootaizumi.url}/downloader/facebook?url=${encodeURIComponent(url)}`,
       extractor: res => {
         if (!res.status || !res.result?.downloads?.length) return null;
         const hd = res.result.downloads.find(x => x.quality?.includes('720p'));
@@ -43,7 +44,7 @@ export async function getFacebookMedia(url) {
       },
     },
     {
-      endpoint: `${global.APIs.vreden.url}/api/v1/download/facebook?url=${encodeURIComponent(url)}`,
+      endpoint: `${config.APIs.vreden.url}/api/v1/download/facebook?url=${encodeURIComponent(url)}`,
       extractor: res => {
         if (!res.status || !res.result?.download) return null;
         const hd = res.result.download.hd;
@@ -54,7 +55,7 @@ export async function getFacebookMedia(url) {
       },
     },
     {
-      endpoint: `${global.APIs.delirius.url}/download/facebook?url=${encodeURIComponent(url)}`,
+      endpoint: `${config.APIs.delirius.url}/download/facebook?url=${encodeURIComponent(url)}`,
       extractor: res => {
         if (!res.urls || !Array.isArray(res.urls)) return null;
         const hd = res.urls.find(x => x.hd)?.hd;
@@ -87,7 +88,7 @@ export async function getInstagramMedia(url) {
   if (cached) return cached;
   const apis = [
     {
-      endpoint: `${global.APIs.stellar.url}/dl/instagram?url=${encodeURIComponent(url)}&key=${global.APIs.stellar.key}`,
+      endpoint: `${config.APIs.stellar.url}/dl/instagram?url=${encodeURIComponent(url)}&key=${config.APIs.stellar.key}`,
       extractor: res => {
         if (!res.status || !Array.isArray(res.data) || !res.data.length) return null;
         const urls = res.data.filter(m => m.url).map(m => ({ type: m.tipo === 'video' ? 'video' : 'image', url: m.url }));
@@ -96,7 +97,7 @@ export async function getInstagramMedia(url) {
       },
     },
     {
-      endpoint: `${global.APIs.stellar.url}/dl/instagramv2?url=${encodeURIComponent(url)}&key=${global.APIs.stellar.key}`,
+      endpoint: `${config.APIs.stellar.url}/dl/instagramv2?url=${encodeURIComponent(url)}&key=${config.APIs.stellar.key}`,
       extractor: res => {
         if (!res.status) return null;
         const mediaUrls = res.data.mediaUrls?.length ? res.data.mediaUrls : [res.data.url].filter(Boolean);
@@ -111,7 +112,7 @@ export async function getInstagramMedia(url) {
       },
     },
     {
-      endpoint: `${global.APIs.nekolabs.url}/downloader/instagram?url=${encodeURIComponent(url)}`,
+      endpoint: `${config.APIs.nekolabs.url}/downloader/instagram?url=${encodeURIComponent(url)}`,
       extractor: res => {
         if (!res.success || !res.result?.downloadUrl?.length) return null;
         const urls = res.result.downloadUrl.map(u => ({ type: u.includes('.mp4') || res.result.metadata?.isVideo ? 'video' : 'image', url: u }));
@@ -124,7 +125,7 @@ export async function getInstagramMedia(url) {
       },
     },
     {
-      endpoint: `${global.APIs.delirius.url}/download/instagram?url=${encodeURIComponent(url)}`,
+      endpoint: `${config.APIs.delirius.url}/download/instagram?url=${encodeURIComponent(url)}`,
       extractor: res => {
         if (!res.status || !Array.isArray(res.data) || !res.data.length) return null;
         const urls = res.data.filter(m => m.url).map(m => ({ type: m.type === 'video' ? 'video' : 'image', url: m.url }));
@@ -133,7 +134,7 @@ export async function getInstagramMedia(url) {
       },
     },
     {
-      endpoint: `${global.APIs.ootaizumi.url}/downloader/instagram/v2?url=${encodeURIComponent(url)}`,
+      endpoint: `${config.APIs.ootaizumi.url}/downloader/instagram/v2?url=${encodeURIComponent(url)}`,
       extractor: res => {
         if (!res.status || !res.result?.url?.length) return null;
         const urls = res.result.url.filter(m => m.url).map(m => ({ type: m.type === 'mp4' || m.ext === 'mp4' ? 'video' : 'image', url: m.url }));
@@ -147,7 +148,7 @@ export async function getInstagramMedia(url) {
       },
     },
     {
-      endpoint: `${global.APIs.ootaizumi.url}/downloader/instagram/v1?url=${encodeURIComponent(url)}`,
+      endpoint: `${config.APIs.ootaizumi.url}/downloader/instagram/v1?url=${encodeURIComponent(url)}`,
       extractor: res => {
         if (!res.status || !res.result?.media?.length) return null;
         const urls = res.result.media.filter(m => m.url).map(m => ({ type: m.isVideo ? 'video' : 'image', url: m.url }));
@@ -180,8 +181,8 @@ export async function getTikTokData(input, isUrl) {
   const cached = cache.get(key);
   if (cached) return cached;
   const endpoint = isUrl
-    ? `${global.APIs.stellar.url}/dl/tiktok?url=${encodeURIComponent(input)}&key=${global.APIs.stellar.key}`
-    : `${global.APIs.stellar.url}/search/tiktok?query=${encodeURIComponent(input)}&key=${global.APIs.stellar.key}`;
+    ? `${config.APIs.stellar.url}/dl/tiktok?url=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`
+    : `${config.APIs.stellar.url}/search/tiktok?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`;
   try {
     const res = await axios.get(endpoint);
     const json = res.data;
@@ -203,13 +204,13 @@ export async function getPinterestData(input, isUrl) {
   if (isUrl) {
     const apis = [
       {
-        endpoint: `${global.APIs.stellar.url}/dl/pinterest?url=${encodeURIComponent(input)}&key=${global.APIs.stellar.key}`, extractor: res => {
+        endpoint: `${config.APIs.stellar.url}/dl/pinterest?url=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`, extractor: res => {
           if (!res.status || !res.data?.dl) return null;
           return { type: res.data.type, title: res.data.title || null, author: res.data.author || null, username: res.data.username || null, uploadDate: res.data.uploadDate || null, format: res.data.type === 'video' ? 'mp4' : 'jpg', url: res.data.dl, thumbnail: res.data.thumbnail || null };
         }
       },
       {
-        endpoint: `${global.APIs.vreden.url}/api/v1/download/pinterest?url=${encodeURIComponent(input)}`, extractor: res => {
+        endpoint: `${config.APIs.vreden.url}/api/v1/download/pinterest?url=${encodeURIComponent(input)}`, extractor: res => {
           if (!res.status || !res.result?.media_urls?.length) return null;
           const media = res.result.media_urls.find(m => m.quality === 'original') || res.result.media_urls[0];
           if (!media?.url) return null;
@@ -217,7 +218,7 @@ export async function getPinterestData(input, isUrl) {
         }
       },
       {
-        endpoint: `${global.APIs.nekolabs.url}/downloader/pinterest?url=${encodeURIComponent(input)}`, extractor: res => {
+        endpoint: `${config.APIs.nekolabs.url}/downloader/pinterest?url=${encodeURIComponent(input)}`, extractor: res => {
           if (!res.success || !res.result?.medias?.length) return null;
           const media = res.result.medias.find(m => m.extension === 'mp4' || m.extension === 'jpg');
           if (!media?.url) return null;
@@ -225,13 +226,13 @@ export async function getPinterestData(input, isUrl) {
         }
       },
       {
-        endpoint: `${global.APIs.delirius.url}/download/pinterestdl?url=${encodeURIComponent(input)}`, extractor: res => {
+        endpoint: `${config.APIs.delirius.url}/download/pinterestdl?url=${encodeURIComponent(input)}`, extractor: res => {
           if (!res.status || !res.data?.download?.url) return null;
           return { type: res.data.download.type, title: res.data.title || null, description: res.data.description || null, author: res.data.author_name || null, username: res.data.username || null, followers: res.data.followers || null, uploadDate: res.data.upload || null, likes: res.data.likes || null, comments: res.data.comments || null, format: res.data.download.type, url: res.data.download.url, thumbnail: res.data.thumbnail || null, source: res.data.source || null };
         }
       },
       {
-        endpoint: `${global.APIs.ootaizumi.url}/downloader/pinterest?url=${encodeURIComponent(input)}`, extractor: res => {
+        endpoint: `${config.APIs.ootaizumi.url}/downloader/pinterest?url=${encodeURIComponent(input)}`, extractor: res => {
           if (!res.status || !res.result?.download) return null;
           return { type: res.result.download.includes('.mp4') ? 'video' : 'image', title: res.result.title || null, description: null, author: res.result.author?.name || null, username: res.result.author?.username || null, uploadDate: res.result.upload || null, format: res.result.download.includes('.mp4') ? 'mp4' : 'jpg', url: res.result.download, thumbnail: res.result.thumb || null, source: res.result.source || null };
         }
@@ -251,7 +252,7 @@ export async function getPinterestData(input, isUrl) {
     }
     return null;
   } else {
-    const apis = [`${global.APIs.stellar.url}/search/pinterest?query=${encodeURIComponent(input)}&key=${global.APIs.stellar.key}`, `${global.APIs.stellar.url}/search/pinterestv2?query=${encodeURIComponent(input)}&key=${global.APIs.stellar.key}`, `${global.APIs.delirius.url}/search/pinterestv2?text=${encodeURIComponent(input)}`, `${global.APIs.vreden.url}/api/v1/search/pinterest?query=${encodeURIComponent(input)}`, `${global.APIs.vreden.url}/api/v2/search/pinterest?query=${encodeURIComponent(input)}&limit=10&type=videos`, `${global.APIs.delirius.url}/search/pinterest?text=${encodeURIComponent(input)}`, `${global.APIs.siputzx.url}/api/s/pinterest?query=${encodeURIComponent(input)}&type=image`];
+    const apis = [`${config.APIs.stellar.url}/search/pinterest?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`, `${config.APIs.stellar.url}/search/pinterestv2?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`, `${config.APIs.delirius.url}/search/pinterestv2?text=${encodeURIComponent(input)}`, `${config.APIs.vreden.url}/api/v1/search/pinterest?query=${encodeURIComponent(input)}`, `${config.APIs.vreden.url}/api/v2/search/pinterest?query=${encodeURIComponent(input)}&limit=10&type=videos`, `${config.APIs.delirius.url}/search/pinterest?text=${encodeURIComponent(input)}`, `${config.APIs.siputzx.url}/api/s/pinterest?query=${encodeURIComponent(input)}&type=image`];
 
     for (const endpoint of apis) {
       try {
@@ -296,7 +297,7 @@ export async function getStudocuData(url) {
         return { title: res.title || res.data?.title || 'Documento', url: res.url || res.data?.url || res.download };
       }
     },
-    { endpoint: `${global.APIs.vreden.url}/api/studocu?url=${encodeURIComponent(url)}`, extractor: res => {
+    { endpoint: `${config.APIs.vreden.url}/api/studocu?url=${encodeURIComponent(url)}`, extractor: res => {
         if (!res.status || !res.result?.url) return null;
         return { title: res.result.title || null, url: res.result.url };
       }
@@ -333,14 +334,14 @@ export async function getYouTubeAudioData(url) {
   if (cached) return cached;
 
   const apis = [
-    { api: 'Axi', endpoint: `${global.APIs.axi.url}/down/ytaudio?url=${encodeURIComponent(url)}`, extractor: res => res?.resultado?.url_dl },    
-    { api: 'Ootaizumi', endpoint: `${global.APIs.ootaizumi.url}/downloader/youtube/play?query=${encodeURIComponent(url)}`, extractor: res => res.result?.download },
-    { api: 'Vreden', endpoint: `${global.APIs.vreden.url}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=256`, extractor: res => res.result?.download?.url },
-    { api: 'Stellar', endpoint: `${global.APIs.stellar.url}/dl/ytdl?url=${encodeURIComponent(url)}&format=mp3&key=${global.APIs.stellar.key}`, extractor: res => res.result?.download },
-    { api: 'Ootaizumi v2', endpoint: `${global.APIs.ootaizumi.url}/downloader/youtube?url=${encodeURIComponent(url)}&format=mp3`, extractor: res => res.result?.download },
-    { api: 'Vreden v2', endpoint: `${global.APIs.vreden.url}/api/v1/download/play/audio?query=${encodeURIComponent(url)}`, extractor: res => res.result?.download?.url },
-    { api: 'Nekolabs', endpoint: `${global.APIs.nekolabs.url}/downloader/youtube/v1?url=${encodeURIComponent(url)}&format=mp3`, extractor: res => res.result?.downloadUrl },
-    { api: 'Nekolabs v2', endpoint: `${global.APIs.nekolabs.url}/downloader/youtube/play/v1?q=${encodeURIComponent(url)}`, extractor: res => res.result?.downloadUrl }
+    { api: 'Axi', endpoint: `${config.APIs.axi.url}/down/ytaudio?url=${encodeURIComponent(url)}`, extractor: res => res?.resultado?.url_dl },    
+    { api: 'Ootaizumi', endpoint: `${config.APIs.ootaizumi.url}/downloader/youtube/play?query=${encodeURIComponent(url)}`, extractor: res => res.result?.download },
+    { api: 'Vreden', endpoint: `${config.APIs.vreden.url}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=256`, extractor: res => res.result?.download?.url },
+    { api: 'Stellar', endpoint: `${config.APIs.stellar.url}/dl/ytdl?url=${encodeURIComponent(url)}&format=mp3&key=${config.APIs.stellar.key}`, extractor: res => res.result?.download },
+    { api: 'Ootaizumi v2', endpoint: `${config.APIs.ootaizumi.url}/downloader/youtube?url=${encodeURIComponent(url)}&format=mp3`, extractor: res => res.result?.download },
+    { api: 'Vreden v2', endpoint: `${config.APIs.vreden.url}/api/v1/download/play/audio?query=${encodeURIComponent(url)}`, extractor: res => res.result?.download?.url },
+    { api: 'Nekolabs', endpoint: `${config.APIs.nekolabs.url}/downloader/youtube/v1?url=${encodeURIComponent(url)}&format=mp3`, extractor: res => res.result?.downloadUrl },
+    { api: 'Nekolabs v2', endpoint: `${config.APIs.nekolabs.url}/downloader/youtube/play/v1?q=${encodeURIComponent(url)}`, extractor: res => res.result?.downloadUrl }
   ];
 
   for (const { api, endpoint, extractor } of apis) {
@@ -367,10 +368,10 @@ export async function getGoogleImageData(query) {
   if (cached) return cached;
 
   const endpoints = [
-    { url: `${global.APIs.stellar.url}/search/googleimagen?query=${encodeURIComponent(query)}&key=${global.APIs.stellar.key}`, extractor: res => res.data?.map(d => ({ url: d.url, title: d.title || null, domain: d.domain || null, resolution: d.width && d.height ? `${d.width}x${d.height}` : null })) || [] },
-    { url: `${global.APIs.siputzx.url}/api/images?query=${encodeURIComponent(query)}`, extractor: res => res.data?.map(d => ({ url: d.url, title: null, domain: null, resolution: d.width && d.height ? `${d.width}x${d.height}` : null })) || [] },
-    { url: `${global.APIs.delirius.url}/search/gimage?query=${encodeURIComponent(query)}`, extractor: res => res.data?.map(d => ({ url: d.url, title: d.origin?.title || null, domain: d.origin?.website?.domain || null, resolution: d.width && d.height ? `${d.width}x${d.height}` : null })) || [] },
-    { url: `${global.APIs.apifaa.url}/faa/google-image?query=${encodeURIComponent(query)}`, extractor: res => res.result?.map(u => ({ url: u, title: null, domain: null, resolution: null })) || [] }
+    { url: `${config.APIs.stellar.url}/search/googleimagen?query=${encodeURIComponent(query)}&key=${config.APIs.stellar.key}`, extractor: res => res.data?.map(d => ({ url: d.url, title: d.title || null, domain: d.domain || null, resolution: d.width && d.height ? `${d.width}x${d.height}` : null })) || [] },
+    { url: `${config.APIs.siputzx.url}/api/images?query=${encodeURIComponent(query)}`, extractor: res => res.data?.map(d => ({ url: d.url, title: null, domain: null, resolution: d.width && d.height ? `${d.width}x${d.height}` : null })) || [] },
+    { url: `${config.APIs.delirius.url}/search/gimage?query=${encodeURIComponent(query)}`, extractor: res => res.data?.map(d => ({ url: d.url, title: d.origin?.title || null, domain: d.origin?.website?.domain || null, resolution: d.width && d.height ? `${d.width}x${d.height}` : null })) || [] },
+    { url: `${config.APIs.apifaa.url}/faa/google-image?query=${encodeURIComponent(query)}`, extractor: res => res.result?.map(u => ({ url: u, title: null, domain: null, resolution: null })) || [] }
   ];
   
   for (const { url, extractor } of endpoints) {

@@ -38,7 +38,6 @@
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.37",
     "node-cache": "latest",
-    "node-fetch": "^3.2.10",
     "node-schedule": "2.1.1",
     "pdf-parse": "^1.1.1",
     "pdfkit": "^0.15.0",

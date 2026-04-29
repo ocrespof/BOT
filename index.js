@@ -1,4 +1,16 @@
-import "./settings.js";
+import config from "./config.js";
+
+// Bridge for legacy plugin globals
+global.owner = config.owner;
+global.botNumber = config.botNumber;
+global.sessionName = config.sessionName;
+global.version = config.version;
+global.dev = config.dev;
+global.links = config.links;
+global.my = config.my;
+global.mess = config.mess;
+global.APIs = config.APIs;
+global.config = config;
 import main from './main.js';
 import events from './cmds/main/events.js';
 import { Browsers, makeWASocket, makeCacheableSignalKeyStore, useMultiFileAuthState, fetchLatestBaileysVersion, jidDecode, DisconnectReason } from "@whiskeysockets/baileys";
@@ -176,15 +188,15 @@ async function startBot() {
       const reason = lastDisconnect?.error?.output?.statusCode || 0;
       if (reason === DisconnectReason.loggedOut) {
         log.warning("Escanee nuevamente y ejecute...");
-        exec("rm -rf ./Sessions/Owner/*");
+        await fs.promises.rm("./Sessions/Owner", { recursive: true, force: true }).catch(() => {});
         process.exit(1);
       } else if (reason === DisconnectReason.forbidden) {
         log.error("Error de conexión, escanee nuevamente y ejecute...");
-        exec("rm -rf ./Sessions/Owner/*");
+        await fs.promises.rm("./Sessions/Owner", { recursive: true, force: true }).catch(() => {});
         process.exit(1);
       } else if (reason === DisconnectReason.multideviceMismatch) {
         log.warning("Inicia nuevamente");
-        exec("rm -rf ./Sessions/Owner/*");
+        await fs.promises.rm("./Sessions/Owner", { recursive: true, force: true }).catch(() => {});
         process.exit(0);
       } else if (reason === DisconnectReason.connectionReplaced) {
         log.warning("Primero cierre la sesión actual...");
@@ -261,11 +273,13 @@ cleanCache();
 process.on('uncaughtException', (err) => {
   const msg = err?.message || '';
   if (msg.includes('rate-overlimit') || msg.includes('timed out') || msg.includes('Connection Closed')) return;
-  Logger.error('[uncaughtException] ' + msg.slice(0, 120), err);
+  Logger.error('[uncaughtException] Fatal error! Estado comprometido:', err);
+  if (global.saveDatabase) global.saveDatabase();
+  process.exit(1); // Forzar reinicio limpio (ej. vía PM2)
 });
 
 process.on('unhandledRejection', (reason) => {
   const msg = String(reason?.message || reason || '');
   if (msg.includes('rate-overlimit') || msg.includes('timed out') || msg.includes('Connection Closed')) return;
-  Logger.error('[unhandledRejection] ' + msg.slice(0, 120), reason);
+  Logger.error('[unhandledRejection] Promesa rechazada no capturada:', reason);
 });
