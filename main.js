@@ -58,10 +58,9 @@ export default async (client, m) => {
   
   if (!settings._prefixCache || settings._prefixCache.namebot !== settings.namebot || settings._prefixCache.type !== settings.type || JSON.stringify(settings._prefixCache.prefixSettings) !== JSON.stringify(settings.prefix)) {
     const rawBotname = settings.namebot || 'Yuki';
-    const tipo = settings.type || 'Sub';
     const cleanBotname = rawBotname.replace(/[^a-zA-Z0-9\s]/g, '')
     const namebot = cleanBotname || 'Yuki';
-    const shortForms = [namebot.charAt(0), namebot.split(" ")[0], tipo.split(" ")[0], namebot.split(" ")[0].slice(0, 2), namebot.split(" ")[0].slice(0, 3)];
+    const shortForms = [namebot.charAt(0), namebot.split(" ")[0], namebot.split(" ")[0].slice(0, 2), namebot.split(" ")[0].slice(0, 3)];
     const prefixes = shortForms.map(name => `${name}`);
     prefixes.unshift(namebot);
     let prefixReg;
@@ -109,21 +108,11 @@ export default async (client, m) => {
   let text = args.join(' ');
   if (!command) return;
   
-  const chatData = global.db.data.chats[from] || {};
-  const consolePrimary = chatData.primaryBot;
-  if (m.message || !consolePrimary || consolePrimary === botJid) {
+  if (m.message) {
     console.log(chalk.bold.blue(`╭────────────────────────────···\n│ ${chalk.cyan('Bot')}: ${gradient('lime', 'green')(botJid)}\n│ ${chalk.bold.yellow('Fecha')}: ${gradient('orange', 'yellow')(moment().format('DD/MM/YY HH:mm:ss'))}\n│ ${chalk.bold.blueBright('Usuario')}: ${gradient('cyan', 'blue')(pushname)}\n│ ${chalk.bold.magentaBright('Remitente')}: ${gradient('deepskyblue', 'darkorchid')(sender)}\n${m.isGroup ? '│' + chalk.bold.green(' Grupo') + ': ' + gradient('green', 'lime')(groupName) : '│' + chalk.bold.green(' Privado') + ': ' + gradient('pink', 'magenta')('Chat Privado')}\n${'│' + chalk.bold.magenta(' ID') + ': ' + gradient('violet', 'midnightblue')(m.isGroup ? from : 'Chat Privado')}\n│ ${chalk.bold.cyanBright('Comando usado')}: ${chalk.gray(command ? command : 'No Command')}\n╰────────────────────────────···\n`));
   }
   
   const hasPrefix = settings.prefix === true ? true : (Array.isArray(settings.prefix) ? settings.prefix : typeof settings.prefix === 'string' ? [settings.prefix] : []).some(p => m.text?.startsWith(p));
-  
-  const botprimaryId = chat?.primaryBot;
-  if (botprimaryId && botprimaryId !== botJid) {
-    if (hasPrefix) {
-      return;
-    }
-  }
-  
   if (!isOwners && settings.self) return;  
   if (m.chat && !m.chat.endsWith('g.us')) {
     const allowedInPrivateForUsers = [
