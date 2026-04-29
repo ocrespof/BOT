@@ -23,6 +23,7 @@
   "dependencies": {
     "@vitalets/google-translate-api": "^8.0.0",
     "@whiskeysockets/baileys": "github:this-xys/baileys",
+    "acrcloud": "^1.4.0",
     "aptoide-scraper": "github:DIEGO-OFC/dv-aptoide-scraper",
     "axios": "^0.24.0",
     "cfonts": "latest",
