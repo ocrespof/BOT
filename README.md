@@ -1,158 +1,118 @@
-> [!NOTE]
-> **BOTDEPRUEBA (Antiguo YukiBot) ahora está optimizado específicamente para Termux y plataformas de bajos recursos.**
+<div align="center">
 
-<p align="center"> 
-<img src="https://iili.io/qpPn1K7.gif" alt="BOTDEPRUEBA" style="width: 75%; height: auto; max-width: 100px;">
+# ✧ YukiBot MD ✧
+**A Ultra-Lightweight, High-Performance WhatsApp Assistant**
 
-<p align="center"> 
-<a href="#"><img title="BOTDEPRUEBA" src="https://img.shields.io/badge/¡Bot Ligero y Optimizado para Termux! -purple?colorA=%239b33b0&colorB=%231c007b&style=for-the-badge"></a> 
-</p>
+[![Termux Ready](https://img.shields.io/badge/Optimized_for-Termux-7e57c2?style=for-the-badge&logo=android)](https://termux.com/)
+[![Baileys](https://img.shields.io/badge/Powered_by-Baileys-25D366?style=for-the-badge&logo=whatsapp)](https://github.com/WhiskeySockets/Baileys)
+[![NodeJS](https://img.shields.io/badge/Node.js-Ready-43853D?style=for-the-badge&logo=node.js)](https://nodejs.org/)
 
----
+<img src="https://iili.io/qpPn1K7.gif" alt="YukiBot MD" width="120px">
 
-## 🪾 Descripción 
+*A minimalist yet incredibly powerful WhatsApp bot engineered for absolute speed and reliability on Android platforms.*
 
-**BOTDEPRUEBA** es un bot de WhatsApp funcional basado en `baileys`, reestructurado y purgado para enfocarse estrictamente en la utilidad, administración y velocidad extrema en Android. 
-
-Se eliminaron módulos pesados (Anime, Gacha, NSFW, bases de datos colosales) para asegurar **cero lag**, implementando *Timeouts* en red y lectura inteligente de disco duro. 
+</div>
 
 ---
 
-## 🥦 Características Destacadas
+## ⚡ Why YukiBot MD?
 
-- **Rapidez Extrema:** Guarda asíncrono y recolector temporal de memoria mejorado de NodeJS.
-- **Inteligencia Artificial y Academia:** Detector de IA y plagio, humanización y parafraseo, OCR, procesador de PDFs y solver matemático integrado.
-- **Utilidades y Espiritualidad:** Obtención interactiva de versículos bíblicos y devocionales diarios.
-- **Multimedia y Reacciones:** Descargas de redes y comandos exclusivos de emociones usando de Pinkie Pie.
-- **Moderación:** Sistema de warns, anti-links, hidetags y control absoluto.
-- **Stickers Livianos:** Creadores minimalistas listos (`sticker`, `toimg` y modo texto urbano `brat`).
+YukiBot has been aggressively optimized, stripping away heavy databases and monolithic modules to ensure **zero-lag execution** on low-resource environments like Termux.
+
+> [!TIP]
+> **Performance First:** Features intelligent disk reading, network timeouts, and asynchronous saves to maximize uptime.
+
+### ✨ Core Features
+| Category | Capabilities |
+| :--- | :--- |
+| **🚀 Speed** | Asynchronous disk I/O, advanced Node.js garbage collection, and global error handling. |
+| **🎓 AI & Academy** | Plagiarism scanning, PDF analysis, text humanization, OCR, and step-by-step math solver. |
+| **📥 Media Engine** | Multi-API fallback system for flawless downloads from TikTok, IG, FB, Pinterest, Scribd, and Studocu. |
+| **🎨 Interactions** | Lightweight sticker generator, animated brat text, and high-quality Anime GIF reactions. |
+| **🛡️ Moderation** | Anti-links, advanced warn system, stealth tags, and total group traffic control. |
 
 ---
 
-## Información Importante
+## 🚀 Quick Start Guide
 
-Evita completamente usar forks, mods o versiones alteradas de Baileys.
-No utilices “baileys mods” ni variantes no oficiales.
-Siempre usa la librería principal y oficial de Baileys.
+> [!IMPORTANT]  
+> Do not use modified or unofficial forks of `baileys`. YukiBot relies strictly on the official WhisperSockets library.
+
+### 📱 Installation via Termux (Android)
+
+1. **Setup Environment:**
+   ```bash
+   termux-setup-storage
+   apt update && apt upgrade -y
+   pkg install -y git nodejs ffmpeg imagemagick yarn
+   ```
+
+2. **Clone & Install:**
+   ```bash
+   git clone https://github.com/ocrespof/BOT.git
+   cd BOT
+   yarn install
+   npm install
+   ```
+
+3. **Start the Bot:**
+   ```bash
+   npm start
+   ```
 
 ---
 
-### Instalaciónes Básicas
+## ⚙️ Process Management (24/7 Uptime)
+
+To keep the bot running continuously in the background, we recommend using PM2:
+
+```bash
+# Keep Termux awake and start PM2
+termux-wake-lock
+npm i -g pm2
+pm2 start index.js --name "YukiBot"
+pm2 save
+pm2 logs
+```
 
 <details>
-<summary><strong>🍒 Cloud</strong> — Shell</summary>
+<summary><strong>🎛️ Useful PM2 Commands</strong></summary>
 
+- `pm2 stop YukiBot` : Pause the bot
+- `pm2 restart YukiBot` : Restart the process
+- `pm2 delete YukiBot` : Remove from background tasks
+- `pm2 logs YukiBot` : View real-time terminal output
+</details>
+
+---
+
+## 🛠️ Troubleshooting
+
+**Lost Connection or Blank Terminal?**
+If your phone reboots or Termux closes unexpectedly:
 ```bash
-git clone https://github.com/ocrespof/BOT.git
+cd ~/BOT && npm start
 ```
 
+**Need to Pair a New Number?**
+If you want to clear your current session and scan a new QR / Pairing Code:
 ```bash
-cd BOT
-```
-
-```bash
-yarn install
-```
-
-```bash
-npm install
-```
-
-```bash
+cd ~/BOT
+rm -rf Sessions/Owner
 npm start
 ```
 
-</details>
-
-<details>
-<summary><strong>🍒 Termux</strong> — Manualmente</summary>
-
-```bash
-termux-setup-storage
-```
-```bash
-apt update && apt upgrade && pkg install -y git nodejs ffmpeg imagemagick yarn
-```
-
-```bash
-git clone https://github.com/ocrespof/BOT.git
-```
-
-```bash
-cd BOT
-```
-
-```bash
-yarn install
-```
-
-```bash
-npm install
-```
-
-```bash
-npm start
-```
-
-> *Si aparece **(Y/I/N/O/D/Z) [default=N] ?** use la letra **"y"** y luego **"ENTER"** para continuar con la instalación.*
-
-</details>
-
-<details>
-<summary><strong>🍒 Comandos para tener mas tiempo activo</strong> — el Bot</summary>
-
-> *Ejecutar estos comandos dentro de la carpeta BOT*
-```bash
-termux-wake-lock && npm i -g pm2 && pm2 start index.js && pm2 save && pm2 logs 
-``` 
-
-#### Opciones Disponibles
-> *Esto eliminará todo el historial que hayas establecido con PM2:*
-```bash 
-pm2 delete index
-``` 
-
-> *Si tienes cerrado Termux y quiere ver de nuevo la ejecución use:*
-```bash 
-pm2 logs 
-``` 
-
-> *Si desea detener la ejecución de Termux use:*
-```bash 
-pm2 stop index
-``` 
-
-> *Si desea iniciar de nuevo la ejecución de Termux use:*
-```bash 
-pm2 start index
-```
-
---- 
-
-### En caso de detenerse
-> _Si despues que ya instalastes tu bot y termux te salta en blanco, se fue tu internet o reiniciaste tu celular, solo realizaras estos pasos:_
-```bash
-cd && cd BOT && npm start
-```
 ---
-
-### Obtener nuevo inicio de Sessión 
-> *Detén el bot, haz click en el símbolo (ctrl) [default=z] usar la letra "z" + "ENTER" hasta que salga algo verdes similar a: `BOT $`*
- 
-```bash 
-cd && cd BOT && rm -rf Sessions/Owner && npm start
-```
-</details>
-
----
-
-### Patrocinadores del Proyecto
-
-<details>
-<summary><strong>☁️ Yuki</strong> — API</summary>
 
 <div align="center">
-  <a href="https://api.yuki-wabot.my.id">
-    <img src="https://api.yuki-wabot.my.id/favicon.ico" alt="Logo" height="125px">
-  </a>
+
+### 💖 Acknowledgments & APIs
+
+Special thanks to our incredible API sponsors that power our downloaders:
+<br>
+<a href="https://api.yuki-wabot.my.id">
+  <img src="https://api.yuki-wabot.my.id/favicon.ico" alt="Yuki API" height="60px">
+</a>
+
+*Made with love for the WhatsApp Bot community.*
 </div>
