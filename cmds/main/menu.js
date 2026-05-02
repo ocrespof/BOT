@@ -4,12 +4,15 @@ import fs from 'fs';
 import moment from 'moment-timezone';
 
 const bodyMenu = `
-┌───「 💻 *$namebot* 💻 」───┐
-│ 🤖 *Prefijo:* [ $prefix ]
-│ ⏱️ *Actividad:* $uptime
-└───「 📚 ⚙️ 🚀 🧠 🔬 」───┘
+⛥ ───「  *$namebot*  」─── ⛥
+│
+├ 👑 *Usuario:* @$sender
+├ 🤖 *Prefijo:* [ $prefix ]
+├ ⏱️ *Actividad:* $uptime
+│
+⛥ ─────────────────── ⛥
 
-🚀 *¡Hola, *@$sender*!*$cat`;
+🚀 *Explorando el menú$cat:*`;
 
 function normalize(text = '') {
   text = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
@@ -57,108 +60,98 @@ export default {
       if (args[0] && !cat) {      
         return m.reply(` La categoria *${args[0]}* no existe.`);
       }
-      const staticMenu = `> 📥 *D E S C A R G A S*
-> _Archivos, media y documentos_
+      const staticMenu = `
+> 📥  *D E S C A R G A S*
+> _Multimedia y Documentos_
+ ⊳ *$prefix p* ➭ Audio/Video de YT
+ ⊳ *$prefix fb* ➭ Videos de Facebook
+ ⊳ *$prefix tt* ➭ Videos de TikTok
+ ⊳ *$prefix ig* ➭ Reels de Instagram
+ ⊳ *$prefix pin* ➭ Bajar de Pinterest
+ ⊳ *$prefix img* ➭ Búsqueda de imágenes
+ ⊳ *$prefix studocu* ➭ Documentos de Studocu
+ ⊳ *$prefix scribd* ➭ Documentos de Scribd
 
-⊳ *$prefix p* ➭ Audio/Video de YT
-⊳ *$prefix fb* ➭ Videos de Facebook
-⊳ *$prefix tt* ➭ Videos de TikTok
-⊳ *$prefix ig* ➭ Reels y Post de IG
-⊳ *$prefix pin* ➭ Descargar imágenes
-⊳ *$prefix img* ➭ Búsqueda en Google
-⊳ *$prefix studocu* ➭ Docs de Studocu
+> 🎨  *S T I C K E R S*
+> _Creación Interactiva_
+ ⊳ *$prefix s* ➭ Crear sticker básico
+ ⊳ *$prefix brat* ➭ Crear sticker brat
+ ⊳ *$prefix bratv* ➭ Brat animado
+ ⊳ *$prefix getpack* ➭ Bajar pack de stickers
 
-> 🎨 *S T I C K E R S*
-> _Creación de multimedia interactiva_
+> 🛠️  *H E R R A M I E N T A S*
+> _Utilidades y Productividad_
+ ⊳ *$prefix ia* ➭ Inteligencia Artificial
+ ⊳ *$prefix read* ➭ Ver mensaje View Once
+ ⊳ *$prefix ocr* ➭ Extraer texto de imagen
+ ⊳ *$prefix ss* ➭ Captura a web
+ ⊳ *$prefix clima* ➭ Estado meteorológico
+ ⊳ *$prefix tiny* ➭ Acortar enlace
+ ⊳ *$prefix tr* ➭ Traductor de idiomas
+ ⊳ *$prefix qr* ➭ Creador de QR
+ ⊳ *$prefix rec* ➭ Recordatorios
+ ⊳ *$prefix music* ➭ Identificador musical
+ ⊳ *$prefix yts* ➭ Buscar en YT
 
-⊳ *$prefix s* ➭ Crear sticker desde imagen/video
-⊳ *$prefix brat* ➭ Crear sticker estilo brat
-⊳ *$prefix bratv* ➭ Sticker brat animado
-⊳ *$prefix getpack* ➭ Bajar pack de stickers
+> 🎓  *A C A D E M I A*
+> _Asistencia Universitaria_
+ ⊳ *$prefix wiki* ➭ Wikipedia Search
+ ⊳ *$prefix vis* ➭ Análisis visual IA
+ ⊳ *$prefix pdf* ➭ Analizador de PDFs
+ ⊳ *$prefix math* ➭ Solver matemático
+ ⊳ *$prefix res* ➭ Resumidor de textos
+ ⊳ *$prefix pomo* ➭ Método Pomodoro
+ ⊳ *$prefix corr* ➭ Corrector ortográfico
+ ⊳ *$prefix hum* / *$prefix parf* ➭ Humanizar / Parafrasear
+ ⊳ *$prefix apa* ➭ Citas APA automáticas
+ ⊳ *$prefix def* ➭ Diccionario virtual
+ ⊳ *$prefix frase* ➭ Frase inspiradora
+ ⊳ *$prefix ruleta* ➭ Selector al azar
+ ⊳ *$prefix detia* ➭ Escáner IA
+ ⊳ *$prefix plagio* ➭ Detector de plagio
 
-> 🛠️ *H E R R A M I E N T A S*
-> _Utilidades prácticas del día a día_
+> 👥  *A D M I N I S T R A C I Ó N*
+> _Gestión Grupal_
+ ⊳ *$prefix gp* ➭ Info del grupo
+ ⊳ *$prefix bot* ➭ Standby del bot
+ ⊳ *$prefix open* / *$prefix close* ➭ Configuración del chat
+ ⊳ *$prefix promote* / *$prefix demote* ➭ Configurar rangos
+ ⊳ *$prefix kick* ➭ Expulsar
+ ⊳ *$prefix warn* / *$prefix delwarn* ➭ Advertencias
+ ⊳ *$prefix warns* ➭ Ver infractores
+ ⊳ *$prefix tagall* ➭ Llamado general
+ ⊳ *$prefix tag* ➭ Llamado silencioso
+ ⊳ *$prefix link* ➭ Enlace de invitación
+ ⊳ *$prefix setgpbanner* ➭ Cambiar portada
+ ⊳ *$prefix options* ➭ Ajustes de grupo
 
-⊳ *$prefix ia* ➭ Interactúa con la IA central
-⊳ *$prefix read* ➭ Ver un archivo _"View Once"_
-⊳ *$prefix ocr* ➭ Extraer texto de imágenes
-⊳ *$prefix ss* ➭ Captura de pantalla a una URL
-⊳ *$prefix clima* ➭ Estado meteorológico
-⊳ *$prefix tiny* ➭ Acortador de código compacto
-⊳ *$prefix tr* ➭ Traductor universal
-⊳ *$prefix qr* ➭ Generador de códigos QR
-⊳ *$prefix rec* ➭ Sistema de recordatorios
-⊳ *$prefix music* ➭ Identificador de canciones
-⊳ *$prefix yts* ➭ Buscar en base de datos YT
+> 👤  *P E R F I L   Y   N I V E L*
+> _Cuenta y Rangos_
+ ⊳ *$prefix profile* ➭ Mi perfil
+ ⊳ *$prefix setdesc* / *$prefix setgenre* / *$prefix setbirth* ➭ Configurar
+ ⊳ *$prefix marry* / *$prefix divorce* ➭ Matrimonio
+ ⊳ *$prefix afk* ➭ Modo inactivo
+ ⊳ *$prefix lboard* / *$prefix level* ➭ Niveles
 
-> 🎓 *A C A D E M I A*
-> _Asistencia académica y universitaria_
+> 💰  *E C O N O M Í A*
+> _RPG Virtual_
+ ⊳ *$prefix daily* / *$prefix weekly* / *$prefix monthly* ➭ Cobrar
+ ⊳ *$prefix work* / *$prefix mine* / *$prefix hunt* ➭ Acciones
+ ⊳ *$prefix balance* / *$prefix deposit* / *$prefix withdraw* ➭ Banco
+ ⊳ *$prefix slots* / *$prefix roulette* / *$prefix casino* ➭ Azar
+ ⊳ *$prefix steal* / *$prefix crime* / *$prefix slut* ➭ Ilegal
+ ⊳ *$prefix economyboard* ➭ Tabla de economía
+ ⊳ *$prefix givecoins* ➭ Transferir
 
-⊳ *$prefix wiki* ➭ Extracción de Wikipedia
-⊳ *$prefix vis* ➭ Análisis visual de imágenes
-⊳ *$prefix pdf* ➭ Procesamiento IA de PDFs
-⊳ *$prefix math* ➭ Solver matemático paso a paso
-⊳ *$prefix res* ➭ Sintetizador de textos extensos
-⊳ *$prefix pomo* ➭ Temporizador de estudio
-⊳ *$prefix corr* ➭ Corrector ortográfico avanzado
-⊳ *$prefix hum* / *$prefix parf* ➭ Humanizar / Parafrasear
-⊳ *$prefix apa* ➭ Generador de formato APA
-⊳ *$prefix def* ➭ Diccionario de definiciones
-⊳ *$prefix frase* ➭ Frase o reflexión diaria
-⊳ *$prefix ruleta* ➭ Sistema generador de azar
-⊳ *$prefix detia* ➭ Detector de texto IA
-⊳ *$prefix plagio* ➭ Escáner de plagio
-
-> 👥 *A D M I N I S T R A C I Ó N*
-> _Control absoluto para grupos_
-
-⊳ *$prefix gp* ➭ Extraer metadata del grupo
-⊳ *$prefix bot* ➭ Standby/Wakeup del bot
-⊳ *$prefix open* / *$prefix close* ➭ Tráfico de mensajes
-⊳ *$prefix promote* / *$prefix demote* ➭ Gestión de rangos
-⊳ *$prefix kick* ➭ Executar expulsión de usuario
-⊳ *$prefix warn* / *$prefix delwarn* ➭ Sistema de advertencias
-⊳ *$prefix warns* ➭ Listado de infractores
-⊳ *$prefix tagall* ➭ Notificación masiva general
-⊳ *$prefix tag* ➭ Notificación furtiva (Admin)
-⊳ *$prefix link* ➭ Extraer clave de invitación
-⊳ *$prefix setgpbanner* ➭ Actualizar portada de red
-⊳ *$prefix options* ➭ Panel de ajustes avanzados
-
-> 👤 *P E R F I L   Y   N I V E L*
-> _Gestión de cuenta de usuario_
-
-⊳ *$prefix profile* ➭ Ver tu perfil de usuario
-⊳ *$prefix setdesc* / *$prefix setgenre* / *$prefix setbirth* ➭ Personalizar
-⊳ *$prefix marry* / *$prefix divorce* ➭ Sistema de matrimonio
-⊳ *$prefix afk* ➭ Activar modo ausente
-⊳ *$prefix lboard* / *$prefix level* ➭ Ranking y niveles
-
-> 💰 *E C O N O M I A   Y   R P G*
-> _Sistema financiero virtual_
-
-⊳ *$prefix daily* / *$prefix weekly* / *$prefix monthly* ➭ Recompensas
-⊳ *$prefix work* / *$prefix mine* / *$prefix hunt* ➭ Trabajar y minar
-⊳ *$prefix balance* / *$prefix deposit* / *$prefix withdraw* ➭ Banco
-⊳ *$prefix slots* / *$prefix roulette* / *$prefix casino* ➭ Apuestas
-⊳ *$prefix steal* / *$prefix crime* / *$prefix slut* ➭ Crímenes
-⊳ *$prefix economyboard* ➭ Tabla de multimillonarios
-⊳ *$prefix givecoins* ➭ Transferir monedas
-
-> 🎮 *J U E G O S*
-> _Entretenimiento y desafíos_
-
-⊳ *$prefix tictactoe* ➭ Tres en raya
-⊳ *$prefix trivia* ➭ Preguntas y respuestas
-⊳ *$prefix ahorcado* ➭ Juego del ahorcado
-⊳ *$prefix ppt* ➭ Piedra, papel o tijera
-⊳ *$prefix adivinanza* ➭ Acertijos y adivinanzas
-
-> 🎭 *A N I M E   Y   R O L*
-> _Otaku y reacciones_
-
-⊳ *$prefix inter* ➭ Interactuar (abrazo, beso, etc.)
-⊳ *$prefix ppcouple* ➭ Fotos compartidas de pareja`;
+> 🎮  *E N T R E T E N I M I E N T O*
+> _Juegos Interactivos_
+ ⊳ *$prefix tictactoe* ➭ Tres en raya
+ ⊳ *$prefix trivia* ➭ Preguntas y respuestas
+ ⊳ *$prefix ahorcado* ➭ El ahorcado
+ ⊳ *$prefix ppt* ➭ Piedra, papel, tijeras
+ ⊳ *$prefix adivinanza* ➭ Acertijos
+ ⊳ *$prefix inter* ➭ Emociones anime
+ ⊳ *$prefix ppcouple* ➭ Iconos de pareja`;
 
       const content = staticMenu;
       let menu = bodyMenu ? String(bodyMenu || '') + '\n\n' + content : content;
