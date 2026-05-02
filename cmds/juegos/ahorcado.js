@@ -73,8 +73,18 @@ export default {
   usage: '.ahorcado',
   cooldown: 5,
   run: async (client, m, args, usedPrefix, command) => {
-    if (global.juegos.has(m.chat)) {
-      return m.reply(' Ya hay un juego activo en este chat. Termina antes de iniciar otro.');
+    if (global.juegos.has(m.chat + '_ahorcado')) {
+      return m.reply(' Ya hay un juego de ahorcado activo en este chat. Termina antes de iniciar otro.');
+    }
+
+    let apuesta = 150; // Apuesta base
+    if (args[0] && !isNaN(args[0])) {
+      apuesta = parseInt(args[0]);
+      if (apuesta < 10) return m.reply('❌ La apuesta mínima es de 10 XP.');
+      if (apuesta > global.db.data.users[m.sender].exp) {
+        return m.reply('❌ No tienes suficiente XP para esa apuesta.');
+      }
+      global.db.data.users[m.sender].exp -= apuesta; // Restar apuesta inicial
     }
 
     const palabraSecreta = palabras[Math.floor(Math.random() * palabras.length)].toUpperCase();
@@ -87,13 +97,13 @@ export default {
 
     const timeout = 120000; // 2 minutos
     const id = setTimeout(async () => {
-      if (global.juegos.has(m.chat)) {
-        global.juegos.delete(m.chat);
+      if (global.juegos.has(m.chat + '_ahorcado')) {
+        global.juegos.delete(m.chat + '_ahorcado');
         await client.sendMessage(m.chat, { text: `⏰ Tiempo agotado. La palabra era: *${palabraSecreta}*` });
       }
     }, timeout);
 
-    global.juegos.set(m.chat, {
+    global.juegos.set(m.chat + '_ahorcado', {
       type: 'ahorcado',
       palabra: palabraSecreta,
       progreso: progreso,
@@ -101,17 +111,18 @@ export default {
       letrasUsadas: [],
       maxIntentos: 6,
       timeoutId: id,
-      jugador: m.sender // Opcional: permitir a cualquiera del grupo adivinar
+      jugador: m.sender,
+      apuesta: apuesta
     });
 
-    const board = `🎮 *EL AHORCADO* 🎮\n\n${hangmanStages[0]}\n\nPalabra: \`${progreso.join(' ')}\`\n\n*Escribe una letra* en el chat para adivinar.`;
+    const board = `🎮 *EL AHORCADO* 🎮\n\n${hangmanStages[0]}\n\nPalabra: \`${progreso.join(' ')}\`\n💰 Apuesta: ${apuesta} XP\n\n*Escribe una letra* en el chat para adivinar.`;
     await client.sendMessage(m.chat, { text: board });
   }
 };
 
 export const before = async (client, m) => {
-  if (!global.juegos.has(m.chat)) return false;
-  const game = global.juegos.get(m.chat);
+  if (!global.juegos.has(m.chat + '_ahorcado')) return false;
+  const game = global.juegos.get(m.chat + '_ahorcado');
   if (game.type !== 'ahorcado') return false;
 
   const text = m.text.trim().toUpperCase();
@@ -143,7 +154,8 @@ export const before = async (client, m) => {
   // Comprobar derrota
   if (game.intentos >= game.maxIntentos) {
     clearTimeout(game.timeoutId);
-    global.juegos.delete(m.chat);
+    global.juegos.delete(m.chat + '_ahorcado');
+    global.db.data.users[m.sender].gameLosses = (global.db.data.users[m.sender].gameLosses || 0) + 1;
     const msg = `💀 *¡ESTÁS AHORCADO!* 💀\n\n${hangmanStages[6]}\n\nPerdiste. La palabra secreta era: *${game.palabra}*`;
     await client.sendMessage(m.chat, { text: msg }, { quoted: m });
     return true;
@@ -152,12 +164,14 @@ export const before = async (client, m) => {
   // Comprobar victoria
   if (!game.progreso.includes('_')) {
     clearTimeout(game.timeoutId);
-    global.juegos.delete(m.chat);
+    global.juegos.delete(m.chat + '_ahorcado');
     
     // Recompensa
-    global.db.data.users[m.sender].exp = (global.db.data.users[m.sender].exp || 0) + 150;
+    const ganancia = game.apuesta * 2;
+    global.db.data.users[m.sender].exp = (global.db.data.users[m.sender].exp || 0) + ganancia;
+    global.db.data.users[m.sender].gameWins = (global.db.data.users[m.sender].gameWins || 0) + 1;
     
-    const msg = `🎉 *¡F E L I C I D A D E S!* 🎉\n\nAdivinaste la palabra: *${game.palabra}*\n🎁 Ganaste *150 XP*`;
+    const msg = `🎉 *¡F E L I C I D A D E S!* 🎉\n\nAdivinaste la palabra: *${game.palabra}*\n🎁 Ganaste *${ganancia} XP*`;
     await client.sendMessage(m.chat, { text: msg }, { quoted: m });
     return true;
   }

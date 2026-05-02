@@ -62,9 +62,19 @@ export default {
   desc: 'Juega una trivia centrada en el área de TICs (Tecnología y Computación).',
   cooldown: 5,
   
-  run: async (client, m) => {
-    if (global.juegos.has(m.chat)) {
-      return m.reply(' Ya hay un juego activo en este chat. ¡Responde la pregunta actual!');
+  run: async (client, m, args, usedPrefix, command) => {
+    if (global.juegos.has(m.chat + '_trivia')) {
+      return m.reply(' Ya hay una trivia activa en este chat. ¡Responde la pregunta actual!');
+    }
+
+    let apuesta = 200; // Apuesta base
+    if (args[0] && !isNaN(args[0])) {
+      apuesta = parseInt(args[0]);
+      if (apuesta < 10) return m.reply('❌ La apuesta mínima es de 10 XP.');
+      if (apuesta > global.db.data.users[m.sender].exp) {
+        return m.reply('❌ No tienes suficiente XP para esa apuesta.');
+      }
+      global.db.data.users[m.sender].exp -= apuesta; // Restar apuesta inicial
     }
 
     try {
@@ -72,20 +82,21 @@ export default {
       
       const timeout = 45000; // 45 segundos
       const id = setTimeout(async () => {
-        if (global.juegos.has(m.chat)) {
-          global.juegos.delete(m.chat);
+        if (global.juegos.has(m.chat + '_trivia')) {
+          global.juegos.delete(m.chat + '_trivia');
           await client.sendMessage(m.chat, { text: `┌───「 ⏳ *TIEMPO AGOTADO* ⏳ 」───┐\n│ Nadie respondió a tiempo.\n│ La respuesta correcta era: *${q.r}*\n└──────────────────────────┘` });
         }
       }, timeout);
 
-      global.juegos.set(m.chat, {
+      global.juegos.set(m.chat + '_trivia', {
         type: 'trivia',
         answer: q.r,
         timeoutId: id,
-        sender: m.sender
+        sender: m.sender,
+        apuesta: apuesta
       });
 
-      const txt = `┌───「 🧠 *TRIVIA TICS* 🧠 」───┐\n│ *Pregunta:* ${q.p}\n│ ⏳ Tienes *45 segundos* para responder.\n└────────────────────────┘`;
+      const txt = `┌───「 🧠 *TRIVIA TICS* 🧠 」───┐\n│ *Pregunta:* ${q.p}\n│ 💰 *Apuesta:* ${apuesta} XP\n│ ⏳ Tienes *45 segundos* para responder.\n└────────────────────────┘`;
       await client.sendMessage(m.chat, { text: txt });
 
     } catch (err) {
@@ -95,8 +106,8 @@ export default {
 };
 
 export const before = async (client, m) => {
-  if (!m.text || !global.juegos.has(m.chat)) return;
-  const juego = global.juegos.get(m.chat);
+  if (!m.text || !global.juegos.has(m.chat + '_trivia')) return;
+  const juego = global.juegos.get(m.chat + '_trivia');
   if (juego.type === 'trivia') {
     const respuestaUsuario = normalize(m.text);
     const respuestaCorrecta = normalize(juego.answer);
@@ -107,13 +118,14 @@ export const before = async (client, m) => {
 
     if (acierto) {
       clearTimeout(juego.timeoutId);
-      global.juegos.delete(m.chat);
+      global.juegos.delete(m.chat + '_trivia');
       
-      const exp = 200;
-      global.db.data.users[m.sender].exp = (global.db.data.users[m.sender].exp || 0) + exp;
+      const ganancia = juego.apuesta * 2;
+      global.db.data.users[m.sender].exp = (global.db.data.users[m.sender].exp || 0) + ganancia;
+      global.db.data.users[m.sender].gameWins = (global.db.data.users[m.sender].gameWins || 0) + 1;
       
       await client.sendMessage(m.chat, { 
-        text: `┌───「 🎉 *¡CORRECTO!* 🎉 」───┐\n│ ¡Felicidades @${m.sender.split('@')[0]}!\n│ La respuesta era: *${juego.answer}*\n│ 💰 +${exp} XP\n└───────────────────────┘`, 
+        text: `┌───「 🎉 *¡CORRECTO!* 🎉 」───┐\n│ ¡Felicidades @${m.sender.split('@')[0]}!\n│ La respuesta era: *${juego.answer}*\n│ 💰 Ganaste *${ganancia} XP*\n└───────────────────────┘`, 
         mentions: [m.sender] 
       }, { quoted: m });
       return true;
