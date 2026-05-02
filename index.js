@@ -254,7 +254,9 @@ async function startBot() {
       if (!kay?.message) return;
       if (kay.key?.remoteJid === 'status@broadcast') return;
       kay.message = Object.keys(kay.message)[0] === 'ephemeralMessage' ? kay.message.ephemeralMessage.message : kay.message;
-      if (kay.key.fromMe && kay.key.id.startsWith('3EB0')) return;
+      // Solo filtrar mensajes generados internamente por el bot (protocolos/status)
+      // No filtrar mensajes fromMe del usuario-owner
+      if (kay.key.fromMe && kay.key.id.startsWith('3EB0') && kay.key.id.length >= 20) return;
       
       // No procesar mensajes antiguos de cuando el bot estaba apagado
       const messageAge = Math.floor(Date.now() / 1000) - Number(kay.messageTimestamp);

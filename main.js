@@ -18,7 +18,7 @@ export default async (client, m) => {
   console.log(chalk.yellow("[DEBUG] Mensaje recibido:"), m.text, " | Sender:", m.sender);
   const sender = m.sender;
   let body = m.message.conversation || m.message.extendedTextMessage?.text || m.message.imageMessage?.caption || m.message.videoMessage?.caption || m.message.buttonsResponseMessage?.selectedButtonId || m.message.listResponseMessage?.singleSelectReply?.selectedRowId || m.message.templateButtonReplyMessage?.selectedId || '';
-  if ((m.id.startsWith("3EB0") || (m.id.startsWith("BAE5") && m.id.length === 16) || (m.id.startsWith("B24E") && m.id.length === 20))) return
+  if (m.isBot) return
   initDB(m, client)
   antilink(client, m);
 
@@ -46,7 +46,7 @@ export default async (client, m) => {
     const plugin = global.plugins[name];
     if (plugin && typeof plugin.all === "function") {
       try {
-        await plugin.all.call(client, m, { client });
+        await plugin.all(client, m);
       } catch (err) {
         console.error(`Error en plugin.all -> ${name}`, err);
       }
@@ -85,20 +85,24 @@ export default async (client, m) => {
   }) : typeof pluginPrefix === 'string' ? [[new RegExp(strRegex(pluginPrefix)).exec(m.text), new RegExp(strRegex(pluginPrefix))]] : [[null, null]];
   let match = matchs.find(p => p[0]);
 
+  let intercepted = false;
   for (const name in global.plugins) {
     const plugin = global.plugins[name];
     if (!plugin) continue;
     if (plugin.disabled) continue;
     if (typeof plugin.before === "function") {
       try {
-        if (await plugin.before.call(client, m, { client })) {
-          continue;
+        if (await plugin.before(client, m)) {
+          intercepted = true;
+          break;
         }
       } catch (err) {
-        console.error(`Error en plugin.all -> ${name}`, err);
+        console.error(`Error en plugin.before -> ${name}`, err);
       }
     }
   }
+
+  if (intercepted) return;
 
   if (!match) {
     if (global.queueSaveDatabase) global.queueSaveDatabase();
