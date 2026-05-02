@@ -146,6 +146,9 @@ export default {
 > 🎮  *E N T R E T E N I M I E N T O*
 > _Juegos Interactivos_
  ⊳ *$prefix tictactoe* ➭ Tres en raya
+ ⊳ *$prefix connect4* ➭ Conecta 4
+ ⊳ *$prefix blackjack* ➭ Blackjack (21)
+ ⊳ *$prefix wordle* ➭ Adivina la palabra
  ⊳ *$prefix trivia* ➭ Preguntas y respuestas
  ⊳ *$prefix ahorcado* ➭ El ahorcado
  ⊳ *$prefix ppt* ➭ Piedra, papel, tijeras
