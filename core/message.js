@@ -176,7 +176,7 @@ export async function smsg(client, m, store) {
           const data = await axios.get(content, { responseType: 'arraybuffer' })
           const mime = data.headers['content-type'] || (await FileType.fromBuffer(data.data)).mime
           if (/gif|image|video|audio|pdf|stream/i.test(mime)) {
-            return client.sendMedia(chat, data.data, '', caption, quoted, content)
+            return client.sendFile(chat, data.data, '', caption, quoted, false, options)
           } else {
             return client.sendMessage(chat, { text: content, mentions, ...options }, { quoted, ephemeralExpiration })
           }
@@ -272,7 +272,10 @@ export async function smsg(client, m, store) {
   let mimetype = options.mimetype || type.mime
   let file = buffer
   let pathFile = filename
-  if (/webp/.test(type.mime) || (/image/.test(type.mime) && options.asSticker)) {
+  if (options.asGif || /gif/.test(type.mime)) {
+    mtype = "video"
+    options.gifPlayback = true
+  } else if (/webp/.test(type.mime) || (/image/.test(type.mime) && options.asSticker)) {
     mtype = "sticker"
   } else if (/image/.test(type.mime) || (/webp/.test(type.mime) && options.asImage)) {
     mtype = "image"
@@ -289,6 +292,7 @@ export async function smsg(client, m, store) {
   delete options.asVideo
   delete options.asDocument
   delete options.asImage
+  delete options.asGif
   const message = { ...options, caption, ptt, [mtype]: file, mimetype, fileName: filename || pathFile.split("/").pop(), }
   return client.sendMessage(jid, message, { quoted, ...options })
   }
