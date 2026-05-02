@@ -11,7 +11,8 @@ export default {
       if (!url.startsWith('http')) url = 'https://' + url
       
       await m.react('🕒')
-      const ss = await (await fetch(`https://image.thum.io/get/fullpage/${url}`, { timeout: 30000 })).buffer()
+      const response = await axios.get(`https://image.thum.io/get/fullpage/${url}`, { responseType: 'arraybuffer', timeout: 30000 })
+      const ss = Buffer.from(response.data)
       
       if (!ss) throw new Error('No se pudo obtener la captura de pantalla.')
       
