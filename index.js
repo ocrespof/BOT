@@ -28,6 +28,15 @@ import db from "./core/system/database.js";
 import { exec } from "child_process";
 
 import Logger from './utils/logger.js';
+
+// ---- ANTI-CRASH GLOBAL ----
+process.on('uncaughtException', (err) => {
+  Logger.error('Excepción no capturada (uncaughtException):', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  Logger.error('Promesa rechazada no manejada (unhandledRejection):', reason);
+});
+// ---------------------------
 const log = {
   ...Logger,
   warning: Logger.warn
@@ -246,6 +255,11 @@ async function startBot() {
       if (kay.key?.remoteJid === 'status@broadcast') return;
       kay.message = Object.keys(kay.message)[0] === 'ephemeralMessage' ? kay.message.ephemeralMessage.message : kay.message;
       if (kay.key.fromMe && kay.key.id.startsWith('3EB0')) return;
+      
+      // No procesar mensajes antiguos de cuando el bot estaba apagado
+      const messageAge = Math.floor(Date.now() / 1000) - Number(kay.messageTimestamp);
+      if (messageAge > 60) return;
+
       const m = await smsg(sock, kay);
       main(sock, m, chatUpdate);
     } catch (err) {
