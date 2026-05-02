@@ -29,13 +29,7 @@ import { exec } from "child_process";
 
 import Logger from './utils/logger.js';
 
-// ---- ANTI-CRASH GLOBAL ----
-process.on('uncaughtException', (err) => {
-  Logger.error('Excepción no capturada (uncaughtException):', err);
-});
-process.on('unhandledRejection', (reason, promise) => {
-  Logger.error('Promesa rechazada no manejada (unhandledRejection):', reason);
-});
+// Anti-crash handlers are at the bottom of this file
 // ---------------------------
 const log = {
   ...Logger,

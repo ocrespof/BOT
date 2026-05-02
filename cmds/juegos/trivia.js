@@ -121,14 +121,23 @@ export const before = async (client, m) => {
       global.juegos.delete(m.chat + '_trivia');
       
       const ganancia = juego.apuesta * 2;
-      global.db.data.users[m.sender].exp = (global.db.data.users[m.sender].exp || 0) + ganancia;
-      global.db.data.users[m.sender].gameWins = (global.db.data.users[m.sender].gameWins || 0) + 1;
+      const winner = m.sender;
+      
+      // Si ganó alguien diferente al que apostó, devolver apuesta al original
+      if (winner !== juego.sender) {
+        global.db.data.users[juego.sender].exp = (global.db.data.users[juego.sender].exp || 0) + juego.apuesta;
+      }
+      
+      // El ganador recibe la recompensa
+      global.db.data.users[winner].exp = (global.db.data.users[winner].exp || 0) + ganancia;
+      global.db.data.users[winner].gameWins = (global.db.data.users[winner].gameWins || 0) + 1;
       
       await client.sendMessage(m.chat, { 
-        text: `┌───「 🎉 *¡CORRECTO!* 🎉 」───┐\n│ ¡Felicidades @${m.sender.split('@')[0]}!\n│ La respuesta era: *${juego.answer}*\n│ 💰 Ganaste *${ganancia} XP*\n└───────────────────────┘`, 
-        mentions: [m.sender] 
+        text: `┌───「 🎉 *¡CORRECTO!* 🎉 」───┐\n│ ¡Felicidades @${winner.split('@')[0]}!\n│ La respuesta era: *${juego.answer}*\n│ 💰 Ganaste *${ganancia} XP*\n└───────────────────────┘`, 
+        mentions: [winner] 
       }, { quoted: m });
       return true;
     }
   }
 };
+

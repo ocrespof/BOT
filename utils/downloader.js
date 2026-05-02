@@ -283,6 +283,17 @@ export async function getYouTubeAudioData(url) {
   return executeWithFallback('youtube_audio', url, apis, { timeout: 15000 });
 }
 
+export async function getYouTubeVideoData(url) {
+  const apis = [
+    { endpoint: `${config.APIs.vreden.url}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=720`, extractor: res => res.result?.download?.url ? { url: res.result.download.url, api: 'Vreden' } : null },
+    { endpoint: `${config.APIs.stellar.url}/dl/ytdl?url=${encodeURIComponent(url)}&format=mp4&key=${config.APIs.stellar.key}`, extractor: res => res.result?.download ? { url: res.result.download, api: 'Stellar' } : null },
+    { endpoint: `${config.APIs.ootaizumi.url}/downloader/youtube?url=${encodeURIComponent(url)}&format=mp4`, extractor: res => res.result?.download ? { url: res.result.download, api: 'Ootaizumi' } : null },
+    { endpoint: `${config.APIs.nekolabs.url}/downloader/youtube/v1?url=${encodeURIComponent(url)}&format=mp4`, extractor: res => res.result?.downloadUrl ? { url: res.result.downloadUrl, api: 'Nekolabs' } : null },
+    { endpoint: `https://api.siputzx.my.id/api/d/ytmp4?url=${encodeURIComponent(url)}`, extractor: res => res.data?.dl ? { url: res.data.dl, api: 'Siputzx' } : null }
+  ];
+  return executeWithFallback('youtube_video', url, apis, { timeout: 15000 });
+}
+
 export async function getGoogleImageData(query) {
   const apis = [
     { endpoint: `${config.APIs.stellar.url}/search/googleimagen?query=${encodeURIComponent(query)}&key=${config.APIs.stellar.key}`, extractor: res => res.data?.length ? res.data.map(d => ({ url: d.url, title: d.title || null, domain: d.domain || null, resolution: d.width && d.height ? `${d.width}x${d.height}` : null })) : null },
@@ -323,6 +334,7 @@ export async function getMedia(platform, url, options = {}) {
     case 'studocu': return await getStudocuData(url);
     case 'scribd': return await getScribdData(url);
     case 'youtube_audio': return await getYouTubeAudioData(url);
+    case 'youtube_video': return await getYouTubeVideoData(url);
     case 'google_image': return await getGoogleImageData(url);
     default: throw new Error(`Unsupported platform: ${platform}`);
   }

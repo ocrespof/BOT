@@ -142,6 +142,10 @@ export default {
  ⊳ *$prefix steal* / *$prefix crime* / *$prefix slut* ➭ Ilegal
  ⊳ *$prefix economyboard* ➭ Tabla de economía
  ⊳ *$prefix givecoins* ➭ Transferir
+ ⊳ *$prefix shop* ➭ 🏪 Tienda del bot
+ ⊳ *$prefix buy* ➭ Comprar artículos
+ ⊳ *$prefix inventory* ➭ Ver tu mochila
+ ⊳ *$prefix settitle* ➭ Equipar un título
 
 > 🎮  *E N T R E T E N I M I E N T O*
 > _Juegos Interactivos_

@@ -11,6 +11,10 @@ import antilink from './cmds/group/antilink.js';
 import level from './cmds/level.js';
 import { getGroupAdmins } from './core/message.js';
 import Logger from './utils/logger.js';
+import NodeCache from 'node-cache';
+
+// Caché de metadata de grupo — TTL 5 min, evita llamadas de red en cada mensaje
+const groupMetaCache = new NodeCache({ stdTTL: 300, checkperiod: 60, useClones: false });
 
 seeCommands();
 
@@ -34,7 +38,11 @@ export default async (client, m) => {
   let groupAdmins = []
   let groupName = ''
   if (m.isGroup) {
-    groupMetadata = await client.groupMetadata(m.chat).catch(() => null)
+    groupMetadata = groupMetaCache.get(m.chat)
+    if (!groupMetadata) {
+      groupMetadata = await client.groupMetadata(m.chat).catch(() => null)
+      if (groupMetadata) groupMetaCache.set(m.chat, groupMetadata)
+    }
     groupName = groupMetadata?.subject || ''
     groupAdmins = groupMetadata?.participants.filter(p => (p.admin === 'admin' || p.admin === 'superadmin')) || []
   }
@@ -155,6 +163,14 @@ export default async (client, m) => {
   }
   if (cmdData.isAdmin && !isAdmins) return client.reply(m.chat, mess.admin, m);
   if (cmdData.botAdmin && !isBotAdmins) return client.reply(m.chat, mess.botAdmin, m);
+
+  // --- Economy Guard Middleware ---
+  if (cmdData.economy) {
+    const chatEco = global.db.data.chats[m.chat] || {}
+    if (chatEco.adminonly || !chatEco.economy) {
+      return m.reply(`Los comandos de *Economía* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n*${usedPrefix}economy on*`);
+    }
+  }
 
   // --- Anti-Spam Global ---
   const now = Date.now();

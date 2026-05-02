@@ -169,3 +169,76 @@ export function getGroupAdmins(participants) {
   }
   return admins || [];
 }
+
+// ── Funciones centralizadas de economía ──
+
+/**
+ * Formatea milisegundos a string legible en español.
+ * Ejemplo: 125000 → "2 minutos 5 segundos"
+ */
+export function formatTime(ms) {
+  if (ms <= 0 || isNaN(ms)) return 'Ahora';
+  const totalSec = Math.ceil(ms / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const seconds = totalSec % 60;
+  const parts = [];
+  if (days > 0) parts.push(`${days} día${days !== 1 ? 's' : ''}`);
+  if (hours > 0) parts.push(`${hours} hora${hours !== 1 ? 's' : ''}`);
+  if (minutes > 0) parts.push(`${minutes} minuto${minutes !== 1 ? 's' : ''}`);
+  if (seconds > 0 || parts.length === 0) parts.push(`${seconds} segundo${seconds !== 1 ? 's' : ''}`);
+  return parts.join(' ');
+}
+
+/** Alias de formatTime para compatibilidad */
+export const msToTime = formatTime;
+
+/**
+ * Formatea un número con separadores de miles.
+ * Ejemplo: 1500000 → "1,500,000"
+ */
+export function formatNumber(number) {
+  return Number(number).toLocaleString();
+}
+
+// ── Funciones centralizadas de nivel/XP ──
+
+const XP_GROWTH = Math.pow(Math.PI / Math.E, 1.618) * Math.E * 0.75;
+
+export function xpRange(level, multiplier = global.multiplier || 2) {
+  if (level < 0) throw new TypeError('level cannot be negative value');
+  level = Math.floor(level);
+  const min = level === 0 ? 0 : Math.round(Math.pow(level, XP_GROWTH) * multiplier) + 1;
+  const max = Math.round(Math.pow(level + 1, XP_GROWTH) * multiplier);
+  return { min, max, xp: max - min };
+}
+
+export function findLevel(xp, multiplier = global.multiplier || 2) {
+  if (xp === Infinity) return Infinity;
+  if (isNaN(xp)) return NaN;
+  if (xp <= 0) return -1;
+  let level = 0;
+  do { level++; } while (xpRange(level, multiplier).min <= xp);
+  return --level;
+}
+
+export function canLevelUp(level, xp, multiplier = global.multiplier || 2) {
+  if (level < 0) return false;
+  if (xp === Infinity) return true;
+  if (isNaN(xp)) return false;
+  if (xp <= 0) return false;
+  return level < findLevel(xp, multiplier);
+}
+
+/**
+ * Helper para obtener configuración del bot de forma consistente.
+ */
+export function getBotSettings(client) {
+  const botId = client.user.id.split(':')[0] + '@s.whatsapp.net';
+  return global.db.data.settings[botId] || {};
+}
+
+export function getBotCurrency(client) {
+  return getBotSettings(client).currency || 'Yenes';
+}

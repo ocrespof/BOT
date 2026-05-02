@@ -15,7 +15,7 @@ export default {
     const user = db.chats[m.chat].users[m.sender]
     user.lastApuesta ||= 0
     let Aku = Math.floor(Math.random() * 101)
-    let Kamu = Math.floor(Math.random() * 55)
+    let Kamu = Math.floor(Math.random() * 101)
     let count = args[0]
     const userName = db.users[m.sender]?.name || m.sender.split('@')[0]
     const tiempoEspera = 30 * 1000

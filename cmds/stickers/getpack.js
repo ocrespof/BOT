@@ -82,22 +82,29 @@ export default {
           const selectedUrls = imageUrls.slice(0, 50)
           const validStickerBufs = []
           
-          for (let i = 0; i < selectedUrls.length; i++) {
-            try {
-              const res = await axios.get(selectedUrls[i], { responseType: 'arraybuffer', timeout: 5000 })
-              let buf = Buffer.from(res.data)
-              if (!selectedUrls[i].toLowerCase().endsWith('.webp')) {
-                try {
-                  const { default: exif } = await import('../../core/exif.js')
-                  buf = await exif.imageToWebp(buf)
-                } catch (e) {
-                  // Fallback if conversion fails
+          // Process in chunks of 5 to avoid overwhelming network but drastically speed up download
+          const chunkArray = (arr, size) => arr.length > 0 ? [arr.slice(0, size), ...chunkArray(arr.slice(size), size)] : [];
+          const urlChunks = chunkArray(selectedUrls, 5);
+          
+          for (const chunk of urlChunks) {
+            const chunkPromises = chunk.map(async (url) => {
+              try {
+                const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 5000 });
+                let buf = Buffer.from(res.data);
+                if (!url.toLowerCase().endsWith('.webp')) {
+                  try {
+                    const { default: exif } = await import('../../core/exif.js');
+                    buf = await exif.imageToWebp(buf);
+                  } catch (e) {}
                 }
+                return buf;
+              } catch (e) {
+                return null;
               }
-              validStickerBufs.push(buf)
-            } catch (e) {
-              // Ignore failed fetches
-            }
+            });
+            
+            const results = await Promise.all(chunkPromises);
+            validStickerBufs.push(...results.filter(Boolean));
           }
           
           if (validStickerBufs.length === 0) {

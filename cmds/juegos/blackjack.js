@@ -57,9 +57,9 @@ export default {
     if (args[0] && !isNaN(args[0])) {
       apuesta = parseInt(args[0]);
       if (apuesta < 10) return m.reply('❌ La apuesta mínima es de 10 XP.');
-      if (apuesta > (global.db.data.users[m.sender]?.exp || 0)) {
-        return m.reply('❌ No tienes suficiente XP para esa apuesta.');
-      }
+    }
+    if (apuesta > (global.db.data.users[m.sender]?.exp || 0)) {
+      return m.reply(`❌ No tienes suficiente XP para esa apuesta. Tienes *${global.db.data.users[m.sender]?.exp || 0} XP*.`);
     }
     global.db.data.users[m.sender].exp -= apuesta;
 
