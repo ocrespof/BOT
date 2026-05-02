@@ -1,6 +1,6 @@
 import { resolveLidToRealJid } from "../../core/utils.js"
 
-export async function before(m, { client }) {
+export async function before(client, m) {
 const botJid = client.user.id.split(':')[0] + '@s.whatsapp.net'
 const primaryBot = global.db.data.chats[m.chat].primaryBot
 if (primaryBot && botJid !== primaryBot) return 
