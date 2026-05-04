@@ -7,7 +7,7 @@ import gradient from 'gradient-string';
 import seeCommands from './core/system/commandLoader.js';
 import initDB from './core/system/initDB.js';
 import config from './config.js';
-import antilink from './cmds/group/antilink.js';
+import antilink from './cmds/antilink.js';
 import level from './cmds/level.js';
 import { getGroupAdmins } from './core/message.js';
 import Logger from './utils/logger.js';
@@ -15,13 +15,13 @@ import NodeCache from 'node-cache';
 
 // Caché de metadata de grupo — TTL 5 min, evita llamadas de red en cada mensaje
 const groupMetaCache = new NodeCache({ stdTTL: 300, checkperiod: 60, useClones: false });
+global.groupMetaCache = groupMetaCache;
 
 seeCommands();
 
 export default async (client, m) => {
   console.log(chalk.yellow("[DEBUG] Mensaje recibido:"), m.text, " | Sender:", m.sender);
   const sender = m.sender;
-  let body = m.message.conversation || m.message.extendedTextMessage?.text || m.message.imageMessage?.caption || m.message.videoMessage?.caption || m.message.buttonsResponseMessage?.selectedButtonId || m.message.listResponseMessage?.singleSelectReply?.selectedRowId || m.message.templateButtonReplyMessage?.selectedId || '';
   if (m.isBot) return
   initDB(m, client)
   antilink(client, m);
@@ -31,7 +31,7 @@ export default async (client, m) => {
   const chat = global.db.data.chats[m.chat] || {}
   const settings = global.db.data.settings[botJid] || {}
   const user = global.db.data.users[sender] ||= {}
-  const users = chat.users[sender] || {}
+  const users = chat.users?.[sender] || {}
   const pushname = m.pushName || 'Sin nombre';
 
   let groupMetadata = null
@@ -209,7 +209,7 @@ export default async (client, m) => {
     settings.commandsejecut = (settings.commandsejecut || 0) + 1;
     users.usedTime = new Date();
     users.lastCmd = Date.now();
-    user.exp = (user.exp || 0) + Math.floor(Math.random() * 100);
+    user.exp = (user.exp || 0) + Math.floor(Math.random() * 16) + 5;
     user.name = m.pushName;
     users.stats[today].cmds++;
     await cmdData.run(client, m, args, usedPrefix, command, text);
