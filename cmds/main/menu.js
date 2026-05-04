@@ -63,14 +63,25 @@ function buildDynamicMenu(prefix, filterCat = null) {
     const meta = categoryMeta[cat] || { emoji: '📦', label: cat.toUpperCase(), desc: '' };
     
     // Deduplicar — comandos del mismo plugin solo aparecen una vez (el primer alias)
+    // A menos que el plugin especifique un array 'help', en cuyo caso mostramos todos los de ahí.
     const pluginsSeen = new Set();
     const uniqueCmds = [];
     for (const cmd of cmds) {
       const data = global.comandos.get(cmd);
       if (!data) continue;
-      if (pluginsSeen.has(data.pluginName)) continue;
-      pluginsSeen.add(data.pluginName);
-      uniqueCmds.push({ cmd, desc: data.desc || '' });
+      
+      const plugin = global.plugins[data.pluginName];
+      const customHelp = plugin?.help;
+
+      if (customHelp && Array.isArray(customHelp)) {
+        if (!customHelp.includes(cmd)) continue; // Solo mostrar si está explícitamente en el array help
+        uniqueCmds.push({ cmd, desc: data.desc || '' });
+      } else {
+        // Lógica tradicional: mostrar solo el primer alias del archivo
+        if (pluginsSeen.has(data.pluginName)) continue;
+        pluginsSeen.add(data.pluginName);
+        uniqueCmds.push({ cmd, desc: data.desc || '' });
+      }
     }
 
     menu += `\n> ${meta.emoji}  *${meta.label}*\n`;
