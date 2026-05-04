@@ -4,6 +4,7 @@ import { getAIResponse } from '../../utils/ai.js';
 export default {
   command: ['humanizar', 'hum', 'humanize', 'parafrasear', 'parf', 'reescribir'],
   category: 'academia',
+  desc: 'Humanizar texto IA.',
   run: async (client, m, args, usedPrefix, command) => {
     let text = args.join(' ').trim();
     if (m.quoted && m.quoted.text) text = m.quoted.text;

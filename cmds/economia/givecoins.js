@@ -4,6 +4,7 @@ import { resolveLidToRealJid } from "../../core/utils.js"
 export default {
   command: ['givecoins', 'pay', 'coinsgive'],
   category: 'economia',
+  desc: 'Transferir coins a otro usuario.',
   economy: true,
   group: true,
   run: async (client, m, args, usedPrefix, command) => {

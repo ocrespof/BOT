@@ -4,6 +4,7 @@ import { getBotCurrency, formatTime } from '../../utils/tools.js';
 export default {
   command: ['apostar', 'casino'],
   category: 'economia',
+  desc: 'Apostar en el casino.',
   economy: true,
   run: async (client, m, args, usedPrefix, command) => {
     const user = global.db.data.users[m.sender]

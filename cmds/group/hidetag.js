@@ -3,6 +3,7 @@ import { getGroupMeta } from '../../utils/tools.js';
 export default {
   command: ['hidetag', 'tag'],
   category: 'grupo',
+  desc: 'Mensaje oculto para todos.',
   isAdmin: true,
   run: async (client, m, args, usedPrefix, command) => {
     const groupMetadata = m.isGroup ? await getGroupMeta(client, m.chat) : null

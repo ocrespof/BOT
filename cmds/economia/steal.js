@@ -4,6 +4,7 @@ import { resolveLidToRealJid } from "../../core/utils.js"
 export default {
   command: ['robar', 'steal', 'rob'],
   category: 'economia',
+  desc: 'Robar coins a otro.',
   economy: true,
   run: async (client, m, args, usedPrefix, command) => {
     const db = global.db.data

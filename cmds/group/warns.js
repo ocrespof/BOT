@@ -2,7 +2,8 @@ import { resolveLidToRealJid } from "../../core/utils.js"
 
 export default {
   command: ['warns'],
-  category: 'group',
+  category: 'grupo',
+  desc: 'Ver infractores.',
   isAdmin: true,
   run: async (client, m, args) => {
     const chat = global.db.data.chats[m.chat]

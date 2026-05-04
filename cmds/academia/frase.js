@@ -4,6 +4,7 @@ import { translate } from '../../utils/translate.js';
 export default {
   command: ['frase', 'motivacion'],
   category: 'academia',
+  desc: 'Frase motivacional.',
   run: async (client, m, args, usedPrefix, command) => {
     try {
       m.react('💡');

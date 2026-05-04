@@ -3,6 +3,7 @@ import { formatTime, getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['ppt'],
   category: 'economia',
+  desc: 'Piedra, papel o tijeras.',
   economy: true,
   run: async (client, m, args, usedPrefix, command) => {
     const monedas = getBotCurrency(client)

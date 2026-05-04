@@ -2,8 +2,10 @@ import { resolveLidToRealJid } from "../../core/utils.js"
 
 export default {
   command: ['topcount', 'topmensajes', 'topmsgcount', 'topmessages'],
-  category: 'rpg',
+  category: 'grupo',
+  desc: 'Ranking de mensajes del grupo.',
   run: async (client, m, args, command, text, prefix) => {
+    if (!m.isGroup) return m.reply("Este comando solo funciona en grupos.");
     const db = global.db.data
     const chatId = m.chat
     const chatData = db.chats[chatId]

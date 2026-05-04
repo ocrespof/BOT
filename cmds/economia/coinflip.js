@@ -3,6 +3,7 @@ import { getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['cf', 'flip', 'coinflip'],
   category: 'economia',
+  desc: 'Lanzar una moneda.',
   economy: true,
   run: async (client, m, args, usedPrefix, command) => {
     const user = global.db.data.users[m.sender]

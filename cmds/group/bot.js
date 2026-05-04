@@ -1,6 +1,7 @@
 export default {
   command: ['bot'],
   category: 'grupo',
+  desc: 'Activar/desactivar bot.',
   isAdmin: true,
   run: async (client, m, args) => {
     const chat = global.db.data.chats[m.chat]

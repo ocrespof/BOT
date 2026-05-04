@@ -3,6 +3,7 @@ import { getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['withdraw', 'with', 'retirar'],
   category: 'economia',
+  desc: 'Retirar coins del banco.',
   economy: true,
   run: async (client, m, args, usedPrefix, command) => {
     const monedas = getBotCurrency(client)

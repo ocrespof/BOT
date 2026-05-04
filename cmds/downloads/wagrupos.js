@@ -2,7 +2,8 @@ import { getBuffer } from '../../core/message.js'
 
 export default {
   command: ['wpgrupos', 'gruposwa', 'wagrupos'],
-  category: 'internet',
+  category: 'downloads',
+  desc: 'Grupos de WhatsApp.',
   run: async (client, m, args, command) => {
     if (!args || !args[0]) {
       return m.reply(

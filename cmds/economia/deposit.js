@@ -3,6 +3,7 @@ import { getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['dep', 'deposit', 'd'],
   category: 'economia',
+  desc: 'Depositar coins al banco.',
   economy: true,
   run: async (client, m, args, usedPrefix) => {
     const monedas = getBotCurrency(client)

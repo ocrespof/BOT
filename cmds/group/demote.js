@@ -3,6 +3,7 @@ import { getGroupMeta } from '../../utils/tools.js';
 export default {
   command: ['demote'],
   category: 'grupo',
+  desc: 'Degradar administrador.',
   isAdmin: true,
   botAdmin: true,
   run: async (client, m, args, usedPrefix, command) => {

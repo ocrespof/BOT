@@ -3,6 +3,7 @@ import { getAIResponse } from '../../utils/ai.js';
 export default {
   command: ['dia', 'detia', 'ai?'],
   category: 'academia',
+  desc: 'Detector de IA en textos.',
   run: async (client, m, args, usedPrefix, command) => {
     let text = args.join(' ').trim();
     if (m.quoted && m.quoted.text) text = m.quoted.text;

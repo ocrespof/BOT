@@ -3,6 +3,7 @@ import { pickRandom, formatTime, getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['pescar', 'fish'],
   category: 'economia',
+  desc: 'Pescar recursos.',
   economy: true,
   run: async (client, m, args, usedPrefix) => {
     const user = global.db.data.users[m.sender]

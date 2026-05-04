@@ -3,6 +3,7 @@ import { getGroupMeta } from '../../utils/tools.js';
 export default {
   command: ['open', 'abrir'],
   category: 'grupo',
+  desc: 'Abrir el grupo.',
   isAdmin: true,
   botAdmin: true,
   run: async (client, m, args, usedPrefix, command) => {

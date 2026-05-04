@@ -17,6 +17,7 @@ const generarProblema = (dificultad) => {
 export default {
   command: ['math', 'mates', 'resp'],
   category: 'economia',
+  desc: 'Resolver cálculos por XP.',
   economy: true,
   run: async (client, m, args, usedPrefix, command) => {
     const chatId = m.chat

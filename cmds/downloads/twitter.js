@@ -1,7 +1,8 @@
 
 export default {
   command: ['twitter', 'x', 'xdl'],
-  category: 'downloader',
+  category: 'downloads',
+  desc: 'Descargar de Twitter/X.',
   run: async (client, m, args) => {
     if (!args[0]) {
       return m.reply(' Por favor, ingrese un enlace de Twitter/X.')

@@ -3,6 +3,7 @@ import { getGroupMeta } from '../../utils/tools.js';
 export default {
   command: ['kick'],
   category: 'grupo',
+  desc: 'Expulsar del grupo.',
   isAdmin: true,
   botAdmin: true,
   run: async (client, m, args, usedPrefix, command) => {

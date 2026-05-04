@@ -3,7 +3,9 @@ import { resolveLidToRealJid } from "../../core/utils.js"
 export default {
   command: ['count', 'mensajes', 'messages', 'msgcount'],
   category: 'grupo',
+  desc: 'Ver conteo de mensajes de un usuario.',
   run: async (client, m, args, usedPrefix, command, text) => {
+    if (!m.isGroup) return m.reply("Este comando solo funciona en grupos.");
     const db = global.db.data
     const chatId = m.chat
     const chatData = db.chats[chatId]

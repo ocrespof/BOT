@@ -3,6 +3,7 @@ import { getAIResponse } from '../../utils/ai.js'
 export default {
   command: ['resumir', 'res', 'resumen'],
   category: 'academia',
+  desc: 'Resumir textos largos.',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ').trim()
     if (!text) return m.reply(` Escribe o pega el texto que deseas resumir.\n*Ejemplo:* ${usedPrefix + command} La mitocondria es...`)

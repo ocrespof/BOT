@@ -3,6 +3,7 @@ import { pickRandom, getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['w', 'work', 'chambear', 'chamba', 'trabajar'],
   category: 'economia',
+  desc: 'Trabajar por coins.',
   economy: true,
   cooldown: 3,
   run: async (client, m, args, usedPrefix, command) => {

@@ -83,6 +83,7 @@ export function checkAchievements(sender) {
 export default {
   command: ['achievements', 'logros', 'badges'],
   category: 'economia',
+  economy: true,
   desc: 'Muestra tus logros y progreso.',
   cooldown: 5,
   run: async (client, m, args, usedPrefix, command) => {

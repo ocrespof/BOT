@@ -3,6 +3,7 @@ import { formatTime, getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['infoeconomy', 'cooldowns', 'economyinfo', 'einfo'],
   category: 'economia',
+  desc: 'Info de la economía del grupo.',
   economy: true,
   run: async (client, m, args, usedPrefix) => {
     const user = global.db.data.users[m.sender]

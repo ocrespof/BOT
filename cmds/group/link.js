@@ -1,6 +1,7 @@
 export default {
   command: ['link'],
   category: 'grupo',
+  desc: 'Enlace de invitación.',
   botAdmin: true,
   run: async (client, m, args, usedPrefix, command) => {
     try {

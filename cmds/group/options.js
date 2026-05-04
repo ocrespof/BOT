@@ -5,6 +5,7 @@ export default {
     'adminonly', 'onlyadmin'
   ],
   category: 'grupo',
+  desc: 'Ajustes del grupo.',
   isAdmin: true,
   run: async (client, m, args, usedPrefix, command) => {
     const chatData = global.db.data.chats[m.chat]

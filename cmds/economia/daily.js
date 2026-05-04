@@ -3,6 +3,7 @@ import { formatTime, getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['daily', 'diario'],
   category: 'economia',
+  desc: 'Recompensa diaria.',
   economy: true,
   run: async (client, m, args, usedPrefix) => {
     const monedas = getBotCurrency(client)

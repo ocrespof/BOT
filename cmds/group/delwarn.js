@@ -2,7 +2,8 @@ import { resolveLidToRealJid } from "../../core/utils.js"
 
 export default {
   command: ['delwarn'],
-  category: 'group',
+  category: 'grupo',
+  desc: 'Eliminar advertencias.',
   isAdmin: true,
   run: async (client, m, args) => {
     const chat = global.db.data.chats[m.chat]

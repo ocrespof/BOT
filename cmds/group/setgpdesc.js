@@ -1,6 +1,7 @@
 export default {
   command: ['setgpdesc'],
   category: 'grupo',
+  desc: 'Cambiar descripción del grupo.',
   isAdmin: true,
   botAdmin: true,
   run: async (client, m, args, usedPrefix, command) => {

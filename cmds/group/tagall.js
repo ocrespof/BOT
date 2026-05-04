@@ -3,6 +3,7 @@ import { getGroupMeta } from '../../utils/tools.js';
 export default {
   command: ['todos', 'invocar', 'tagall'],
   category: 'grupo',
+  desc: 'Mencionar a todos.',
   isAdmin: true,
   run: async (client, m, args) => {
     const groupInfo = await getGroupMeta(client, m.chat)

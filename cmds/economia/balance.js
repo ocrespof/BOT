@@ -3,6 +3,7 @@ import { getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['balance', 'bal', 'saldo', 'coins', 'money'],
   category: 'economia',
+  desc: 'Ver tu saldo.',
   economy: true,
   run: async (client, m, args, usedPrefix) => {
     const monedas = getBotCurrency(client)

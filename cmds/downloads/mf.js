@@ -6,7 +6,8 @@ import cheerio from 'cheerio'
 
 export default {
   command: ['mediafire', 'mf'],
-  category: 'downloader',
+  category: 'downloads',
+  desc: 'Descargar de Mediafire.',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ').trim()
 

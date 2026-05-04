@@ -4,6 +4,7 @@ import { formatTime, getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['slot'],
   category: 'economia',
+  desc: 'Máquina tragamonedas.',
   economy: true,
   run: async (client, m, args, usedPrefix, command) => {
     const currency = getBotCurrency(client)

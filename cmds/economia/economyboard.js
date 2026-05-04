@@ -3,6 +3,7 @@ import { getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['economyboard', 'eboard', 'baltop'],
   category: 'economia',
+  desc: 'Ranking de riqueza.',
   economy: true,
   run: async (client, m, args, usedPrefix, command) => {
     const monedas = getBotCurrency(client)

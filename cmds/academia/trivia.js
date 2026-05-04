@@ -24,6 +24,7 @@ const preguntas = [
 export default {
   command: ['quizacademico', 'quiz', 'preguntados'],
   category: 'academia',
+  desc: 'Quiz de preguntas académicas.',
   run: async (client, m, args, usedPrefix, command) => {
     global.db.data = global.db.data || {};
     global.db.data.trivia = global.db.data.trivia || {};

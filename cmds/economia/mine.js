@@ -3,6 +3,7 @@ import { pickRandom, formatTime, getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['mine', 'minar'],
   category: 'economia',
+  desc: 'Minar recursos.',
   economy: true,
   run: async (client, m, args, usedPrefix) => {
     const monedas = getBotCurrency(client)

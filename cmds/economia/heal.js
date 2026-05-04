@@ -4,6 +4,7 @@ import { resolveLidToRealJid } from "../../core/utils.js"
 export default {
   command: ['heal', 'curar'],
   category: 'economia',
+  desc: 'Curarte con pociones.',
   economy: true,
   run: async (client, m, args, usedPrefix) => {
     const currency = getBotCurrency(client)

@@ -3,6 +3,7 @@ import { httpGet, httpPost, httpAxios as axios } from '../../utils/http.js';
 export default {
   command: ['wiki', 'wikipedia'],
   category: 'academia',
+  desc: 'Búsqueda en Wikipedia.',
   run: async (client, m, args, usedPrefix, command, text) => {
     if (!text) return m.reply(` Escribe qué deseas buscar.\n*Ejemplo:* ${usedPrefix + command} Segunda Guerra Mundial`);
     try {

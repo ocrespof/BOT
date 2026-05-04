@@ -3,6 +3,7 @@ import { getAIResponse } from '../../utils/ai.js'
 export default {
   command: ['solve', 'solucionar', 'resolver'],
   category: 'academia',
+  desc: 'Resuelve ecuaciones.',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ').trim()
     if (!text) {

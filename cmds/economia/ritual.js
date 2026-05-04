@@ -3,6 +3,7 @@ import { pickRandom, formatTime, getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['ritual', 'invoke'],
   category: 'economia',
+  desc: 'Invocar un ritual.',
   economy: true,
   run: async (client, m, args, usedPrefix) => {
     const monedas = getBotCurrency(client)

@@ -3,6 +3,7 @@ import { getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['rt', 'roulette'],
   category: 'economia',
+  desc: 'Ruleta de apuestas.',
   economy: true,
   run: async (client, m, args, usedPrefix) => {
     const currency = getBotCurrency(client)

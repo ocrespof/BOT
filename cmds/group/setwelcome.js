@@ -1,6 +1,7 @@
 export default {
   command: ['setwelcome'],
   category: 'grupo',
+  desc: 'Configurar mensaje de bienvenida.',
   isAdmin: true,
   run: async (client, m, args, usedPrefix, command, text) => {
     if (!global?.db?.data?.chats) global.db.data.chats = {}

@@ -1,6 +1,7 @@
 export default {
   command: ['setwarnlimit'],
-  category: 'group',
+  category: 'grupo',
+  desc: 'Configurar límite de warns.',
   isAdmin: true,
   run: async (client, m, args) => {
     const chat = global.db.data.chats[m.chat]

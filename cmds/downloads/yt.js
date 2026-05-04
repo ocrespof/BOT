@@ -3,7 +3,8 @@ import {getBuffer} from '../../core/message.js';
 
 export default {
   command: ['ytsearch', 'search'],
-  category: 'internet',
+  category: 'downloads',
+  desc: 'Descargar de YouTube.',
   run: async (client, m, args) => {
     if (!args || !args[0]) {
       return m.reply(' Por favor, Ingrese el título de un vídeo.')

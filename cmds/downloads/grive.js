@@ -1,7 +1,8 @@
 
 export default {
   command: ['drive', 'gdrive'],
-  category: 'downloader',
+  category: 'downloads',
+  desc: 'Descargar de Google Drive.',
   run: async (client, m, args, usedPrefix, command) => {
     if (!args[0]) {
       return m.reply(' Por favor, ingresa un link de Google Drive..')

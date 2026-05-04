@@ -3,6 +3,7 @@ import { getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['slut', 'prostituirse'],
   category: 'economia',
+  desc: 'Trabajo arriesgado.',
   economy: true,
   run: async (client, m, args, usedPrefix) => {
     const currency = getBotCurrency(client)

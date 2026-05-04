@@ -3,6 +3,7 @@ import { getGroupMeta } from '../../utils/tools.js';
 export default {
   command: ['closet', 'close', 'cerrar'],
   category: 'grupo',
+  desc: 'Cerrar el grupo.',
   isAdmin: true,
   botAdmin: true,
   run: async (client, m, args, usedPrefix, command) => {

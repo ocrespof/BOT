@@ -3,6 +3,7 @@ import { formatTime, getBotCurrency } from '../../utils/tools.js';
 export default {
   command: ['weekly', 'semanal'],
   category: 'economia',
+  desc: 'Recompensa semanal.',
   economy: true,
   run: async (client, m, args, usedPrefix) => {
     const monedas = getBotCurrency(client)

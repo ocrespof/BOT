@@ -3,7 +3,8 @@ import { getBuffer } from "../../core/message.js"
 
 export default {
   command: ['apk', 'aptoide', 'apkdl'],
-  category: 'download',
+  category: 'downloads',
+  desc: 'Descargar APKs.',
   run: async (client, m, args, usedPrefix, command) => {
     if (!args || !args.length) {
       return m.reply(' Por favor, ingresa el nombre de la aplicación.')

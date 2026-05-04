@@ -3,6 +3,7 @@ import { getAIResponse } from '../../utils/ai.js'
 export default {
   command: ['def', 'significado', 'diccionario'],
   category: 'academia',
+  desc: 'Diccionario virtual.',
   run: async (client, m, args, usedPrefix, command) => {
     let text = args.join(' ').trim()
     if (m.quoted && m.quoted.text) text = m.quoted.text;

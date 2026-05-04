@@ -1,6 +1,7 @@
 export default {
   command: ['setgpbanner'],
   category: 'grupo',
+  desc: 'Cambiar portada del grupo.',
   isAdmin: true,
   botAdmin: true,
   run: async (client, m, args, usedPrefix, command) => {

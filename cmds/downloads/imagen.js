@@ -2,7 +2,8 @@ import { getMedia, isImageUrl } from '../../utils/downloader.js'
 
 export default {
   command: ['imagen', 'img', 'image'],
-  category: 'search',
+  category: 'downloads',
+  desc: 'Crear imágenes con IA.',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ')
     if (!text) {

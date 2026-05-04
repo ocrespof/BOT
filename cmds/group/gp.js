@@ -5,6 +5,7 @@ import { getGroupMeta } from '../../utils/tools.js';
 export default {
   command: ['gp', 'groupinfo'],
   category: 'grupo',
+  desc: 'Info del grupo.',
   run: async (client, m, args, usedPrefix, command) => {
     const from = m.chat
     if (!m.isGroup) return m.reply(' Este comando solo se puede usar en grupos.')

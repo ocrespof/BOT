@@ -5,6 +5,7 @@ import { getAIResponse } from '../../utils/ai.js'
 export default {
   command: ['chatpdf', 'pdf'],
   category: 'academia',
+  desc: 'Analizar documentos PDF.',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ').trim()
     if (!text) return m.reply(` Debes comentarme qué deseas que busque o que lea. Ej: *${usedPrefix + command} ¿De qué trata el documento?*`)

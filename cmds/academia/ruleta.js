@@ -1,6 +1,7 @@
 export default {
   command: ['ruleta', 'sorteo', 'asignar'],
   category: 'academia',
+  desc: 'Selector al azar.',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ').trim();
     if (!text.includes('|')) {

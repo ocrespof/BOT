@@ -1,6 +1,7 @@
 export default {
   command: ['setgpname'],
   category: 'grupo',
+  desc: 'Configurar nombre del grupo.',
   isAdmin: true,
   botAdmin: true,
   run: async (client, m, args, usedPrefix, command) => {
