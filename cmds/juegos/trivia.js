@@ -1,8 +1,9 @@
 import { gameEngine } from '../../utils/gameEngine.js';
+import translate from '@vitalets/google-translate-api';
 
 const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
-const bancoPreguntas = [
+const bancoPreguntasLocales = [
   { p: "¿Qué protocolo se utiliza para enviar correos electrónicos?", r: "smtp" },
   { p: "¿Qué significa HTML?", r: "hypertext markup language" },
   { p: "¿Cuál es el puerto predeterminado para HTTP?", r: "80" },
@@ -12,53 +13,21 @@ const bancoPreguntas = [
   { p: "¿Qué protocolo se usa para la transferencia de archivos?", r: "ftp" },
   { p: "¿Qué componente es considerado el cerebro de la computadora?", r: "cpu" },
   { p: "¿Qué significa RAM?", r: "random access memory" },
-  { p: "¿Qué lenguaje de programación es conocido por su logo de una taza de café?", r: "java" },
-  { p: "¿Qué significa URL?", r: "uniform resource locator" },
-  { p: "¿Qué protocolo proporciona seguridad a las comunicaciones por internet (HTTP seguro)?", r: "https" },
-  { p: "¿Qué acrónimo se usa para referirse al sistema básico de entrada/salida de una PC?", r: "bios" },
-  { p: "¿En qué sistema numérico se basan las computadoras?", r: "binario" },
-  { p: "¿Qué tipo de malware se disfraza como software legítimo?", r: "troyano" },
-  { p: "¿Qué comando en la terminal de Linux se usa para listar directorios?", r: "ls" },
-  { p: "¿Qué lenguaje se usa principalmente para dar estilo a las páginas web?", r: "css" },
-  { p: "¿Qué significa SSD?", r: "solid state drive" },
-  { p: "¿Qué red social fue fundada por Mark Zuckerberg?", r: "facebook" },
-  { p: "¿Cómo se llama el proceso de encontrar y corregir errores en el código?", r: "debugging" },
-  { p: "¿Qué sistema operativo móvil es desarrollado por Google?", r: "android" },
-  { p: "¿Qué significa LAN?", r: "local area network" },
-  { p: "¿Qué tecnología permite la conexión inalámbrica de dispositivos a corta distancia?", r: "bluetooth" },
-  { p: "¿Qué lenguaje es considerado el estándar para bases de datos relacionales?", r: "sql" },
-  { p: "¿Cómo se le llama a un conjunto de 8 bits?", r: "byte" },
-  { p: "¿Quién es considerado el padre de la computación?", r: "alan turing" },
-  { p: "¿Qué lenguaje se ejecuta principalmente en el navegador web?", r: "javascript" },
-  { p: "¿Qué comando de Git se usa para enviar cambios al repositorio remoto?", r: "push" },
-  { p: "¿Qué significa API?", r: "application programming interface" },
-  { p: "¿Qué compañía desarrolló el sistema operativo Windows?", r: "microsoft" },
-  { p: "¿Qué significa Wi-Fi?", r: "wireless fidelity" },
-  { p: "¿Cuál es el sistema operativo de código abierto más popular?", r: "linux" },
-  { p: "¿Qué lenguaje de programación fue creado por Guido van Rossum?", r: "python" },
-  { p: "¿Qué herramienta se usa para el control de versiones de código?", r: "git" },
-  { p: "¿Qué etiqueta HTML se usa para insertar una imagen?", r: "img" },
-  { p: "¿Cuál es el puerto por defecto para el protocolo SSH?", r: "22" },
-  { p: "¿Qué significa DNS?", r: "domain name system" },
-  { p: "¿Qué tecnología de virtualización de contenedores es simbolizada por una ballena?", r: "docker" },
-  { p: "¿Qué lenguaje de programación fue diseñado por Apple?", r: "swift" },
-  { p: "¿Qué significa PDF?", r: "portable document format" },
-  { p: "¿Cuál es el motor de búsqueda más utilizado en el mundo?", r: "google" },
-  { p: "¿Qué componente de hardware es responsable de procesar los gráficos?", r: "gpu" },
-  { p: "¿Qué significa USB?", r: "universal serial bus" },
-  { p: "¿Qué lenguaje se usa para estructurar el contenido de una web?", r: "html" },
-  { p: "¿Qué significa AI?", r: "artificial intelligence" },
-  { p: "¿Cómo se llama la primera programadora de la historia?", r: "ada lovelace" },
-  { p: "¿Qué significa CMS (ej. WordPress)?", r: "content management system" },
-  { p: "¿Cuál es el puerto por defecto para MySQL?", r: "3306" },
-  { p: "¿Qué significa JSON?", r: "javascript object notation" },
-  { p: "¿Qué empresa creó el lenguaje Java?", r: "sun microsystems" }
+  { p: "¿Qué lenguaje de programación es conocido por su logo de una taza de café?", r: "java" }
 ];
+
+const decodeHTML = (str) => {
+  return str.replace(/&quot;/g, '"')
+            .replace(/&#039;/g, "'")
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>');
+};
 
 export default {
   command: ['trivia', 'triviatic'],
   category: 'juegos',
-  desc: 'Juega una trivia centrada en el área de TICs.',
+  desc: 'Juega una trivia de cultura general de respuesta libre (API externa).',
   cooldown: 5,
   run: async (client, m, args, usedPrefix, command) => {
     if (gameEngine.has(m.chat, 'trivia')) {
@@ -73,19 +42,44 @@ export default {
     const bet = gameEngine.validateBet(m.sender, apuesta);
     if (bet === false) return m.reply(`❌ No tienes suficiente XP para esa apuesta. Tienes *${global.db.data.users[m.sender]?.exp || 0} XP*.`);
 
-    const q = bancoPreguntas[Math.floor(Math.random() * bancoPreguntas.length)];
+    let pText, rText;
+
+    try {
+      const res = await fetch('https://opentdb.com/api.php?amount=1');
+      if (!res.ok) throw new Error("API falló");
+      const data = await res.json();
+      const item = data.results[0];
+
+      const qEng = decodeHTML(item.question);
+      const correctEng = decodeHTML(item.correct_answer);
+
+      const allEng = [qEng, correctEng];
+      const translated = await translate(allEng.join(' ||| '), { to: 'es' });
+      const parts = translated.text.split(/\|\|\|/g).map(s => s.trim());
+
+      pText = parts[0];
+      rText = normalize(parts[1]); 
+    } catch (e) {
+      console.log("[Trivia] Fallback a preguntas locales:", e.message);
+      const q = bancoPreguntasLocales[Math.floor(Math.random() * bancoPreguntasLocales.length)];
+      pText = q.p;
+      rText = q.r;
+    }
 
     gameEngine.start(m.chat, 'trivia', m.sender, {
-      answer: q.r,
+      answer: rText,
       apuesta: bet,
     }, {
       timeout: 45000,
       onTimeout: () => {
-        client.sendMessage(m.chat, { text: `┌───「 ⏳ *TIEMPO AGOTADO* ⏳ 」───┐\n│ Nadie respondió a tiempo.\n│ La respuesta correcta era: *${q.r}*\n└──────────────────────────┘` });
+        client.sendMessage(m.chat, { text: `┌───「 ⏳ *TIEMPO AGOTADO* ⏳ 」───┐\n│ Nadie respondió a tiempo.\n│ La respuesta correcta era: *${rText}*\n└──────────────────────────┘` });
       }
     });
 
-    await client.sendMessage(m.chat, { text: `┌───「 🧠 *TRIVIA TICS* 🧠 」───┐\n│ *Pregunta:* ${q.p}\n│ 💰 *Apuesta:* ${bet} XP\n│ ⏳ Tienes *45 segundos* para responder.\n└────────────────────────┘` });
+    // Pista visual para ayudar en respuestas libres traducidas
+    const hint = rText.length > 2 ? `💡 Pista: Empieza por "${rText[0].toUpperCase()}" y tiene ${rText.replace(/\s/g, '').length} letras.` : "";
+
+    await client.sendMessage(m.chat, { text: `┌───「 🧠 *TRIVIA GENERAL* 🧠 」───┐\n│ *Pregunta:* ${pText}\n│\n│ ${hint}\n│ 💰 *Apuesta:* ${bet} XP\n│ ⏳ Tienes *45 segundos* para responder.\n└────────────────────────┘` });
   },
 };
 

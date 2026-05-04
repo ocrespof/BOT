@@ -1,8 +1,9 @@
 import { gameEngine } from '../../utils/gameEngine.js';
+import translate from '@vitalets/google-translate-api';
 
 const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
-const adivinanzas = [
+const adivinanzasLocales = [
   { p: "Oro parece, plata no es, el que no lo adivine, bien tonto es.", r: "platano" },
   { p: "Tengo agujas pero no sé coser, tengo números pero no sé leer, las horas te doy ¿Sabes quién soy?", r: "reloj" },
   { p: "Blanca por dentro, verde por fuera. Si quieres que te lo diga, espera.", r: "pera" },
@@ -28,7 +29,7 @@ const adivinanzas = [
 export default {
   command: ['adivinanza', 'acertijo', 'riddle'],
   category: 'juegos',
-  desc: 'Juega a las adivinanzas.',
+  desc: 'Juega a las adivinanzas infinitas (API externa).',
   cooldown: 5,
   run: async (client, m, args, usedPrefix, command) => {
     if (gameEngine.has(m.chat, 'adivinanza')) return m.reply(' Ya hay una adivinanza activa en este chat. ¡Responde primero!');
@@ -38,16 +39,38 @@ export default {
     const bet = gameEngine.validateBet(m.sender, apuesta);
     if (bet === false) return m.reply(`❌ No tienes suficiente XP. Tienes *${global.db.data.users[m.sender]?.exp || 0} XP*.`);
 
-    const item = adivinanzas[Math.floor(Math.random() * adivinanzas.length)];
+    let pText, rText;
+
+    try {
+      // Intentar obtener una adivinanza de la API pública
+      const res = await fetch('https://riddles-api.vercel.app/random');
+      if (!res.ok) throw new Error("API falló");
+      const data = await res.json();
+      
+      // Traducir al español usando Google Translate
+      const textToTranslate = `${data.riddle} ||| ${data.answer}`;
+      const translated = await translate(textToTranslate, { to: 'es' });
+      const parts = translated.text.split(/\|\|\|/g).map(s => s.trim());
+      
+      pText = parts[0];
+      // Remover caracteres extraños de la respuesta para facilitar adivinar
+      rText = normalize(parts[1]); 
+    } catch (e) {
+      console.log("[Adivinanzas] Fallback a adivinanzas locales:", e.message);
+      const item = adivinanzasLocales[Math.floor(Math.random() * adivinanzasLocales.length)];
+      pText = item.p;
+      rText = item.r;
+    }
 
     gameEngine.start(m.chat, 'adivinanza', m.sender, {
-      answer: item.r, apuesta: bet,
+      answer: rText, 
+      apuesta: bet,
     }, {
       timeout: 60000,
-      onTimeout: () => client.sendMessage(m.chat, { text: `⏳ ¡Se acabó el tiempo!\nLa respuesta correcta era: *${item.r}*` }),
+      onTimeout: () => client.sendMessage(m.chat, { text: `⏳ ¡Se acabó el tiempo!\nLa respuesta correcta era: *${rText}*` }),
     });
 
-    await client.sendMessage(m.chat, { text: `« 𝐀𝐃𝐈𝐕𝐈𝐍𝐀𝐍𝐙𝐀 \n\n${item.p}\n\n💰 *Apuesta:* ${bet} XP\n⏳ Tienen *60 segundos* para adivinar. ¡Escriban su respuesta en el chat!` });
+    await client.sendMessage(m.chat, { text: `« 𝐀𝐃𝐈𝐕𝐈𝐍𝐀𝐍𝐙𝐀 \n\n${pText}\n\n💰 *Apuesta:* ${bet} XP\n⏳ Tienen *60 segundos* para adivinar. ¡Escriban su respuesta en el chat!` });
   }
 };
 
@@ -58,6 +81,8 @@ export const before = async (client, m) => {
 
   const respuestaUsuario = normalize(m.text);
   const respuestaCorrecta = normalize(juego.answer);
+  
+  // Validamos si la respuesta del usuario está dentro de la correcta o viceversa para ser flexibles
   const acierto = (respuestaUsuario === respuestaCorrecta ||
     (respuestaCorrecta.length > 3 && respuestaUsuario.includes(respuestaCorrecta)) ||
     (respuestaUsuario.length > 3 && respuestaCorrecta.includes(respuestaUsuario)));
