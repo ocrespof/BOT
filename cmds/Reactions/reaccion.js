@@ -193,7 +193,7 @@ async function fetchGifBuffer(query) {
     // Clave pública oficial de Tenor
     const tenorKey = 'LIVDSRZULELA';
     const res = await axios.get(`https://api.tenor.com/v1/search`, {
-      params: { key: tenorKey, q: `pinkie pie ${query}`, limit: 20 },
+      params: { key: tenorKey, q: `the amazing digital circus ${query}`, limit: 20 },
       timeout: 10000
     });
 
@@ -214,8 +214,8 @@ async function fetchGifBuffer(query) {
 
 export default {
   command: allCommands,
-  category: 'anime',
-  desc: 'Reacciones animadas con GIFs de Pinkie Pie y Equestria Girls.',
+  category: 'juegos',
+  desc: 'Reacciones animadas con GIFs.',
   run: async (client, m, args, usedPrefix, command) => {
     const currentCommand = Object.keys(alias).find(key => alias[key].includes(command)) || command;
     if (!captions[currentCommand]) return;
