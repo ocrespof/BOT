@@ -192,7 +192,7 @@ async function fetchGifBuffer(query) {
   const giphyKey = '80fK562JEwSX0HM6CjJ6Me2QmOrnIaiB';
   // Modificamos la búsqueda para que sea exclusivamente de Pinkie Pie / Equestria Girls
   const res = await axios.get(`https://api.giphy.com/v1/gifs/search`, {
-    params: { api_key: giphyKey, q: `pinkie pie equestria girls ${query}`, limit: 20, rating: 'g' },
+    params: { api_key: giphyKey, q: `pinkie pie ${query}`, limit: 20, rating: 'g' },
     timeout: 10000
   });
 
