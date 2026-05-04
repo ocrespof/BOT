@@ -186,20 +186,19 @@ const gifCategory = {
 const allCommands = Object.values(alias).flat();
 
 /**
- * Obtiene un GIF de Giphy como buffer de vídeo descargable.
- * Giphy devuelve MP4 en .images.original.mp4 que es lo que WA necesita.
+ * Obtiene un GIF de Giphy como buffer de vídeo descargable (MP4).
  */
 async function fetchGifBuffer(query) {
   const giphyKey = '80fK562JEwSX0HM6CjJ6Me2QmOrnIaiB';
+  // Modificamos la búsqueda para que sea exclusivamente de Pinkie Pie / Equestria Girls
   const res = await axios.get(`https://api.giphy.com/v1/gifs/search`, {
-    params: { api_key: giphyKey, q: `anime ${query}`, limit: 20, rating: 'g' },
+    params: { api_key: giphyKey, q: `pinkie pie equestria girls ${query}`, limit: 20, rating: 'g' },
     timeout: 10000
   });
 
   if (!res.data?.data?.length) return null;
 
   const randomGif = res.data.data[Math.floor(Math.random() * res.data.data.length)];
-  // Giphy expone un MP4 directamente – esto es lo que WA puede reproducir como gifPlayback
   const mp4Url = randomGif.images?.original?.mp4 || randomGif.images?.fixed_height?.mp4;
 
   if (!mp4Url) return null;
@@ -208,22 +207,10 @@ async function fetchGifBuffer(query) {
   return Buffer.from(videoRes.data);
 }
 
-/**
- * Obtiene un GIF del banco local como buffer descargado.
- */
-async function fetchLocalGifBuffer(gifUrl) {
-  try {
-    const res = await axios.get(gifUrl, { responseType: 'arraybuffer', timeout: 15000 });
-    return Buffer.from(res.data);
-  } catch {
-    return null;
-  }
-}
-
 export default {
   command: allCommands,
   category: 'anime',
-  desc: 'Reacciones animadas con GIFs de anime.',
+  desc: 'Reacciones animadas convertidas en stickers de Pinkie Pie.',
   run: async (client, m, args, usedPrefix, command) => {
     const currentCommand = Object.keys(alias).find(key => alias[key].includes(command)) || command;
     if (!captions[currentCommand]) return;
@@ -240,19 +227,20 @@ export default {
       : `\`${fromName}\` ${captionText}`;
 
     try {
-      // Buscar siempre en Giphy (formato MP4 válido para WhatsApp)
+      // Enviar el texto de la reacción primero
+      await client.sendMessage(m.chat, { text: caption, mentions: [who, m.sender] }, { quoted: m });
+
+      // Buscar animación de Pinkie Pie en Giphy (formato MP4 válido para convertir a Sticker)
       let videoBuffer = await fetchGifBuffer(currentCommand);
 
       if (videoBuffer) {
-        await client.sendMessage(m.chat, {
-          video: videoBuffer,
-          gifPlayback: true,
-          caption,
-          mentions: [who, m.sender]
-        }, { quoted: m });
-      } else {
-        // Si todo falla, enviar solo texto
-        await client.sendMessage(m.chat, { text: caption, mentions: [who, m.sender] }, { quoted: m });
+        // Enviar como sticker animado
+        if (typeof client.sendVideoAsSticker === 'function') {
+           await client.sendVideoAsSticker(m.chat, videoBuffer, m, { packname: "Pinkie Pie", author: "Reacciones" });
+        } else {
+           // Fallback en caso de que sendVideoAsSticker no esté disponible
+           await client.sendMessage(m.chat, { video: videoBuffer, gifPlayback: true }, { quoted: m });
+        }
       }
     } catch (e) {
       await m.reply(`Ha ocurrido un error inesperado al ejecutar el comando.\n[Error: ${e.message}]`);
