@@ -26,6 +26,12 @@ export default async (client, m) => {
   initDB(m, client)
   antilink(client, m);
 
+  // Buffer de mensajes globales para comandos que necesiten contexto (ej. .q N)
+  global.msgBuffer = global.msgBuffer || {};
+  global.msgBuffer[m.chat] = global.msgBuffer[m.chat] || [];
+  global.msgBuffer[m.chat].push(m);
+  if (global.msgBuffer[m.chat].length > 50) global.msgBuffer[m.chat].shift();
+
   const from = m.key.remoteJid;
   const botJid = client.user.id.split(':')[0] + '@s.whatsapp.net' || client.user.lid;
   const chat = global.db.data.chats[m.chat] || {}
