@@ -186,20 +186,19 @@ const gifCategory = {
 const allCommands = Object.values(alias).flat();
 
 /**
- * Obtiene un GIF de Giphy como buffer de vídeo descargable (MP4).
+ * Obtiene un GIF de Tenor como buffer de vídeo descargable (MP4).
  */
 async function fetchGifBuffer(query) {
-  const giphyKey = '80fK562JEwSX0HM6CjJ6Me2QmOrnIaiB';
-  // Modificamos la búsqueda para que sea exclusivamente de Pinkie Pie / Equestria Girls
-  const res = await axios.get(`https://api.giphy.com/v1/gifs/search`, {
-    params: { api_key: giphyKey, q: `pinkie pie ${query}`, limit: 20, rating: 'g' },
+  const tenorKey = 'LIVDSRZULECB'; // Clave pública de Tenor
+  const res = await axios.get(`https://g.tenor.com/v1/search`, {
+    params: { key: tenorKey, q: `pinkie pie equestria girls ${query}`, limit: 20 },
     timeout: 10000
   });
 
-  if (!res.data?.data?.length) return null;
+  if (!res.data?.results?.length) return null;
 
-  const randomGif = res.data.data[Math.floor(Math.random() * res.data.data.length)];
-  const mp4Url = randomGif.images?.original?.mp4 || randomGif.images?.fixed_height?.mp4;
+  const randomGif = res.data.results[Math.floor(Math.random() * res.data.results.length)];
+  const mp4Url = randomGif.media?.[0]?.mp4?.url;
 
   if (!mp4Url) return null;
 
@@ -210,7 +209,7 @@ async function fetchGifBuffer(query) {
 export default {
   command: allCommands,
   category: 'anime',
-  desc: 'Reacciones animadas convertidas en stickers de Pinkie Pie.',
+  desc: 'Reacciones animadas con GIFs de Pinkie Pie y Equestria Girls.',
   run: async (client, m, args, usedPrefix, command) => {
     const currentCommand = Object.keys(alias).find(key => alias[key].includes(command)) || command;
     if (!captions[currentCommand]) return;
@@ -227,20 +226,20 @@ export default {
       : `\`${fromName}\` ${captionText}`;
 
     try {
-      // Enviar el texto de la reacción primero
-      await client.sendMessage(m.chat, { text: caption, mentions: [who, m.sender] }, { quoted: m });
-
-      // Buscar animación de Pinkie Pie en Giphy (formato MP4 válido para convertir a Sticker)
+      // Buscar animación de Pinkie Pie en Tenor (formato MP4 válido para WhatsApp)
       let videoBuffer = await fetchGifBuffer(currentCommand);
 
       if (videoBuffer) {
-        // Enviar como sticker animado
-        if (typeof client.sendVideoAsSticker === 'function') {
-           await client.sendVideoAsSticker(m.chat, videoBuffer, m, { packname: "Pinkie Pie", author: "Reacciones" });
-        } else {
-           // Fallback en caso de que sendVideoAsSticker no esté disponible
-           await client.sendMessage(m.chat, { video: videoBuffer, gifPlayback: true }, { quoted: m });
-        }
+        // Enviar como GIF animado (reproducible en WhatsApp)
+        await client.sendMessage(m.chat, {
+          video: videoBuffer,
+          gifPlayback: true,
+          caption,
+          mentions: [who, m.sender]
+        }, { quoted: m });
+      } else {
+        // Si todo falla, enviar solo el texto
+        await client.sendMessage(m.chat, { text: caption, mentions: [who, m.sender] }, { quoted: m });
       }
     } catch (e) {
       await m.reply(`Ha ocurrido un error inesperado al ejecutar el comando.\n[Error: ${e.message}]`);
