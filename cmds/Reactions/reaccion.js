@@ -240,27 +240,8 @@ export default {
       : `\`${fromName}\` ${captionText}`;
 
     try {
-      let videoBuffer = null;
-
-      // 1. Intentar desde el banco local de GIFs
-      const cat = gifCategory[currentCommand];
-      if (cat && reactionGifs[cat]) {
-        const gifArray = reactionGifs[cat];
-        const randomUrl = gifArray[Math.floor(Math.random() * gifArray.length)];
-        videoBuffer = await fetchLocalGifBuffer(randomUrl);
-      }
-
-      // 2. Si no hay banco local o falló, buscar en Giphy (formato MP4)
-      if (!videoBuffer) {
-        videoBuffer = await fetchGifBuffer(currentCommand);
-      }
-
-      // 3. Último recurso: fallback al banco happy
-      if (!videoBuffer) {
-        const fallback = reactionGifs['happy'];
-        const randomUrl = fallback[Math.floor(Math.random() * fallback.length)];
-        videoBuffer = await fetchLocalGifBuffer(randomUrl);
-      }
+      // Buscar siempre en Giphy (formato MP4 válido para WhatsApp)
+      let videoBuffer = await fetchGifBuffer(currentCommand);
 
       if (videoBuffer) {
         await client.sendMessage(m.chat, {
