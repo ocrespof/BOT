@@ -147,6 +147,7 @@ const aliasMap = {
 };
 
 export default {
+  help: ['fb', 'ig', 'tiktok', 'tiktoksearch', 'pinterest', 'studocu'],
   command: Object.keys(aliasMap),
   category: 'downloads',
   cooldown: 5,
