@@ -3,6 +3,7 @@ import axios from 'axios'
 export default {
   command: ['ssweb', 'ss'],
   category: ['tools'],
+  desc: 'Captura de pantalla web.',
   run: async (client, m, args, usedPrefix, command) => {
     try {
       if (!args[0]) return m.reply(`> 🌐 Por favor, ingresa el enlace (URL) de una página.\n> *Ejemplo:* ${usedPrefix + command} https://google.com`)

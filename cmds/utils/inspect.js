@@ -4,7 +4,8 @@ import { getGroupMeta } from '../../utils/tools.js';
 
 export default {
   command: ["inspect","inspeccionar"],
-  category: "tools",
+  category: 'utils',
+  desc: "Inspeccionar grupo/enlace.",
   run: async (client, m, args, usedPrefix, command, text) => {
     if (!text) return client.reply(m.chat, ` Por favor, ingrese el enlace de grupo/comunidad o canal.`, m)
     const channelUrl = text?.match(/(?:https:\/\/)?(?:www\.)?(?:chat\.|wa\.)?whatsapp\.com\/(?:channel\/|joinchat\/)?([0-9A-Za-z]{22,24})/i)?.[1]

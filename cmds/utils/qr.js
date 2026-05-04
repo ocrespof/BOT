@@ -1,6 +1,7 @@
 export default {
   command: ['qr', 'qrcode'],
   category: 'utils',
+  desc: 'Generar código QR.',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ').trim();
     if (!text) return m.reply(` Escribe un texto o URL para generar el Código QR.\n*Ejemplo:* ${usedPrefix + command} https://google.com`);

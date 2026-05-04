@@ -5,7 +5,8 @@ import { xpRange, getBotCurrency } from '../../utils/tools.js';
 
 export default {
   command: ['profile', 'perfil'],
-  category: 'rpg',
+  category: 'profile',
+  desc: 'Muestra tu perfil completo.',
   run: async (client, m, args, usedPrefix, command) => {
     const texto = m.mentionedJid
     const who2 = texto.length > 0 ? texto[0] : m.quoted ? m.quoted.sender : m.sender

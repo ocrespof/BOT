@@ -3,7 +3,8 @@ const regex = /^(?:https:\/\/|git@)github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?$/i
 
 export default {
   command: ['gitclone', 'git'],
-  category: 'github',
+  category: 'utils',
+  desc: 'Clonar repositorio de GitHub.',
   run: async (client, m, args, usedPrefix, command, text) => {
     if (!text) return client.reply(m.chat, ' Por favor, proporciona un enlace o nombre del repositorio de GitHub.', m)
     try {

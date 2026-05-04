@@ -3,7 +3,8 @@ import { resolveLidToRealJid } from "../../core/utils.js"
 
 export default {
   command: ['marry', 'casarse'],
-  category: 'rpg',
+  category: 'profile',
+  desc: 'Casarte con alguien.',
   run: async (client, m, args) => {
     const db = global.db.data
     const chatId = m.chat

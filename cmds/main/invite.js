@@ -14,6 +14,7 @@ async function getGroupName(client, chatId) {
 export default {
   command: ['invite', 'invitar'],
   category: 'info',
+  desc: 'Invita al bot a otro grupo.',
   run: async (client, m, args) => {
     const user = global.db.data.users[m.sender] || {};
     const grupo = m.isGroup ? await getGroupName(client, m.chat) : 'Chat privado';

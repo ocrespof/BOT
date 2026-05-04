@@ -1,6 +1,7 @@
 export default {
   command: ['divorce'],
-  category: 'rpg',
+  category: 'profile',
+  desc: 'Divorciarte de tu pareja.',
   run: async (client, m) => {
     const db = global.db.data
     const userId = m.sender

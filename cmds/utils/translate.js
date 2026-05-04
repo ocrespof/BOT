@@ -3,6 +3,7 @@ import translate from '@vitalets/google-translate-api'
 export default {
   command: ['translate', 'trad', 'traducir'],
   category: 'utils',
+  desc: 'Traducir texto.',
   run: async (client, m, args, usedPrefix, command) => {
     const defaultLang = 'es'
     if (!args[0] && !m.quoted) return m.reply(' Ingresa el idioma seguido del texto que quieras traducir.')

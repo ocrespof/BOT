@@ -4,6 +4,7 @@ import fs from 'fs';
 export default {
   command: ['qc'],
   category: 'stickers',
+  desc: 'Sticker con texto.',
   run: async (client, m, args, usedPrefix, command, text) => {
     try {
       let textFinal = args.join(' ') || m.quoted?.text;

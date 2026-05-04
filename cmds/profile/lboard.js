@@ -2,7 +2,8 @@ import { xpRange } from '../../utils/tools.js';
 
 export default {
   command: ['lboard', 'lb', 'leaderboard'],
-  category: 'rpg',
+  category: 'profile',
+  desc: 'Ranking de niveles del grupo.',
   run: async (client, m, args, usedPrefix, command) => {
     const db = global.db.data
     try {

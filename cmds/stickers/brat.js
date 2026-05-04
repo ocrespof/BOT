@@ -20,6 +20,7 @@ const fetchSticker = async (text, attempt = 1) => {
 export default {
   command: ['brat'],
   category: 'stickers',
+  desc: 'Sticker estilo brat.',
   run: async (client, m, args, usedPrefix, command, text) => {
     try {
       text = m.quoted?.text || text;

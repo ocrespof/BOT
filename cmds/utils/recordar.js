@@ -1,6 +1,7 @@
 export default {
   command: ['recordar', 'rec', 'remind'],
   category: 'utils',
+  desc: 'Establecer recordatorios.',
   run: async (client, m, args, usedPrefix, command) => {
     const input = args.join(' ').trim();
     const dividerMatch = input.match(/\s*\|\s*/);

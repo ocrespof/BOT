@@ -3,6 +3,7 @@ import { resolveLidToRealJid } from "../../core/utils.js"
 export default {
   command: ['pfp', 'getpic'],
   category: 'utils',
+  desc: 'Obtener foto de perfil.',
   run: async (client, m, args, usedPrefix, command) => {
     const mentioned = m.mentionedJid
     const who2 = mentioned.length > 0 ? mentioned[0] : m.quoted ? m.quoted.sender : false

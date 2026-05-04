@@ -57,7 +57,8 @@ async function webp2png(source) {
 
 export default {
   command: ['toimg', 'toimage'],
-  category: 'tools',
+  category: 'utils',
+  desc: 'Convertir sticker a imagen.',
   run: async (client, m, args, usedPrefix, command, text) => {
     if (!m.quoted) {
       return client.reply(m.chat, ` Debes citar un sticker para convertir.`, m);

@@ -5,6 +5,7 @@ const fetchJson = (url, options) => new Promise((resolve, reject) => { fetch(url
 export default {
   command: ['emojimix'],
   category: 'stickers',
+  desc: 'Fusionar emojis.',
   run: async (client, m, args, usedPrefix, command, text) => {
     try {
       if (!args[0]) {

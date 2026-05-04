@@ -3,7 +3,8 @@ import FormData from 'form-data';
 
 export default {
     command: ['ocr', 'texto', 'escaner'],
-    category: 'academia',
+    category: 'utils',
+  desc: 'Extraer texto de imagen.',
     run: async (client, m) => {
         let q = m.quoted ? m.quoted : m;
         let mime = (q.msg || q).mimetype || '';

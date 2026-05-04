@@ -3,6 +3,7 @@ import { getGroupMeta } from '../../utils/tools.js';
 export default {
   command: ['say', 'decir'],
   category: 'grupo',
+  desc: 'Texto a voz.',
   run: async (client, m, args, usedPrefix, command) => {
     const groupMetadata = m.isGroup ? await getGroupMeta(client, m.chat) : null
     const groupParticipants = groupMetadata?.participants || []

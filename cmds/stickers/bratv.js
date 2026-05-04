@@ -10,6 +10,7 @@ const fetchStickerVideo = async (text) => {
 export default {
   command: ['bratv'],
   category: 'stickers',
+  desc: 'Sticker brat animado.',
   run: async (client, m, args, usedPrefix, command, text) => {
     try {
       text = m.quoted?.text || text;

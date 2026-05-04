@@ -37,7 +37,8 @@ async function downloadMedia(msg, type) {
 /* ================= COMMAND MODULE ================= */
 export default {
     command: ['shazam', 'whatmusic', 'songid'],
-    category: 'info',
+    category: 'utils',
+  desc: 'Identificar canciones.',
     description: 'Identify a song from audio or video',
     usage: 'Responder a audio o video',
     run: async (client, m, args, usedPrefix, command) => {

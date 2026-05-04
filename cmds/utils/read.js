@@ -2,7 +2,8 @@ import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 
 export default {
   command: ['readviewonce', 'read', 'readvo', 'viewonce', 'vv'],
-  category: 'tools',
+  category: 'utils',
+  desc: 'Ver mensaje ViewOnce.',
   description: 'Re-send a view-once image or video.',
   usage: '.viewonce (responder a un mensaje de vista única)',
   run: async (client, m, args, usedPrefix, command) => {

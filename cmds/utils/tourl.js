@@ -65,6 +65,7 @@ async function uploadAuto(buffer, mime) {
 export default {
   command: ['tourl'],
   category: 'utils',
+  desc: 'Subir archivo a URL.',
   run: async (client, m, args, usedPrefix, command) => {
     const q = m.quoted || m;
     const mime = (q.msg || q).mimetype || '';

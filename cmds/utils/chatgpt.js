@@ -2,7 +2,8 @@ import { getAIResponse } from '../../utils/ai.js'
 
 export default {
   command: ['ia', 'chatgpt'],
-  category: 'ai',
+  category: 'utils',
+  desc: 'Inteligencia Artificial.',
   run: async (client, m, args, usedPrefix, command) => {
     const botId = client.user.id.split(':')[0] + '@s.whatsapp.net'
 

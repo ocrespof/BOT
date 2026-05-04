@@ -5,6 +5,7 @@ import { xpRange } from '../../utils/tools.js';
 export default {
   command: ['level', 'lvl'],
   category: 'profile',
+  desc: 'Muestra tu nivel y experiencia.',
   run: async (client, m, args) => {
     const db = global.db.data
     const chatId = m.chat

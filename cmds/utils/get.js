@@ -4,6 +4,7 @@ import { format } from 'util'
 export default {
   command: ['get', 'fetch'],
   category: 'utils',
+  desc: 'Descargar desde URL.',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args[0];
     if (!text) return m.reply(' Ingresa un enlace para realizar la solicitud.')

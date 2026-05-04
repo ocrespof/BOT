@@ -5,6 +5,7 @@ import { runtime } from '../../utils/tools.js';
 export default {
   command: ['infobot', 'infosocket'],
   category: 'info',
+  desc: 'Muestra información técnica del bot.',
   run: async (client, m, args, usedPrefix, command) => {
     const botId = client.user.id.split(':')[0] + "@s.whatsapp.net"
     const botSettings = global.db.data.settings[botId] || {}

@@ -10,6 +10,7 @@ const fetchFn = fetch
 export default {
   command: ['hd', 'enhance', 'remini'],
   category: 'utils',
+  desc: 'Mejorar calidad de imagen.',
   run: async (client, m, args, usedPrefix, command) => {
     try {
       const q = m.quoted || m

@@ -3,6 +3,7 @@ import { formatTime } from '../../utils/tools.js';
 export default {
   command: ['report', 'reporte', 'sug', 'suggest'],
   category: 'info',
+  desc: 'Envía un reporte o sugerencia al desarrollador.',
   run: async (client, m, args, usedPrefix, command, text) => {
     const texto = text.trim()
     const now = Date.now()

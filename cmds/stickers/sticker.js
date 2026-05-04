@@ -8,6 +8,7 @@ const { writeExif } = exif;
 export default {
   command: ['sticker', 's'],
   category: 'stickers',
+  desc: 'Crear sticker.',
   run: async (client, m, args, usedPrefix, command) => {
     try {
       if (args[0] === '-list') {
