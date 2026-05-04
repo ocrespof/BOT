@@ -186,30 +186,36 @@ const gifCategory = {
 const allCommands = Object.values(alias).flat();
 
 /**
- * Obtiene un GIF de Tenor como buffer de vídeo descargable (MP4).
+ * Obtiene un GIF animado de Tenor como buffer de vídeo descargable (MP4).
  */
 async function fetchGifBuffer(query) {
-  const tenorKey = 'LIVDSRZULECB'; // Clave pública de Tenor
-  const res = await axios.get(`https://g.tenor.com/v1/search`, {
-    params: { key: tenorKey, q: `pinkie pie ${query}`, limit: 20 },
-    timeout: 10000
-  });
+  try {
+    // Clave pública oficial de Tenor
+    const tenorKey = 'LIVDSRZULELA';
+    const res = await axios.get(`https://api.tenor.com/v1/search`, {
+      params: { key: tenorKey, q: `pinkie pie ${query}`, limit: 20 },
+      timeout: 10000
+    });
 
-  if (!res.data?.results?.length) return null;
+    if (!res.data?.results?.length) return null;
 
-  const randomGif = res.data.results[Math.floor(Math.random() * res.data.results.length)];
-  const mp4Url = randomGif.media?.[0]?.mp4?.url;
+    const randomGif = res.data.results[Math.floor(Math.random() * res.data.results.length)];
+    const mp4Url = randomGif.media?.[0]?.mp4?.url;
 
-  if (!mp4Url) return null;
+    if (!mp4Url) return null;
 
-  const videoRes = await axios.get(mp4Url, { responseType: 'arraybuffer', timeout: 15000 });
-  return Buffer.from(videoRes.data);
+    const videoRes = await axios.get(mp4Url, { responseType: 'arraybuffer', timeout: 15000 });
+    return Buffer.from(videoRes.data);
+  } catch (error) {
+    console.error("[Tenor API Error]:", error.message);
+    return null;
+  }
 }
 
 export default {
   command: allCommands,
   category: 'anime',
-  desc: 'Reacciones animadas con GIFs.',
+  desc: 'Reacciones animadas con GIFs de Pinkie Pie y Equestria Girls.',
   run: async (client, m, args, usedPrefix, command) => {
     const currentCommand = Object.keys(alias).find(key => alias[key].includes(command)) || command;
     if (!captions[currentCommand]) return;
