@@ -31,8 +31,8 @@ export default {
                 type: 'quote',
                 format: 'png',
                 backgroundColor: '#1b1429',
-                width: 1800,
-                height: 200,
+                width: 512,
+                height: 512,
                 scale: 2,
                 messages: [{
                     entities: [],
