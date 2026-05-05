@@ -210,6 +210,7 @@ export default {
         // Enviar como GIF animado (reproducible en WhatsApp)
         await client.sendMessage(m.chat, {
           video: videoBuffer,
+          mimetype: 'video/mp4',
           gifPlayback: true,
           caption,
           mentions: [who, m.sender]
