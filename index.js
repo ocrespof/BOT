@@ -21,7 +21,6 @@ import chalk from "chalk";
 import fs from "fs";
 import path from "path";
 import readlineSync from "readline-sync";
-import os from "os";
 import NodeCache from "node-cache";
 import { smsg } from "./core/message.js";
 import db from "./core/system/database.js";

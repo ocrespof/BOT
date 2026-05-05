@@ -1,4 +1,4 @@
-import ws from 'ws';
+
 import moment from 'moment';
 import chalk from 'chalk';
 import fs from 'fs';
@@ -8,7 +8,7 @@ import seeCommands from './core/system/commandLoader.js';
 import initDB from './core/system/initDB.js';
 import config from './config.js';
 import antilink from './cmds/antilink.js';
-import level from './cmds/level.js';
+import level from './utils/levelHook.js';
 import { getGroupAdmins } from './core/message.js';
 import Logger from './utils/logger.js';
 import NodeCache from 'node-cache';
@@ -20,7 +20,7 @@ global.groupMetaCache = groupMetaCache;
 seeCommands();
 
 export default async (client, m) => {
-  console.log(chalk.yellow("[DEBUG] Mensaje recibido:"), m.text, " | Sender:", m.sender);
+
   const sender = m.sender;
   if (m.isBot) return
   initDB(m, client)
@@ -37,7 +37,10 @@ export default async (client, m) => {
   const chat = global.db.data.chats[m.chat] || {}
   const settings = global.db.data.settings[botJid] || {}
   const user = global.db.data.users[sender] ||= {}
-  const users = chat.users?.[sender] || {}
+  // Garantizar que chat.users[sender] exista en la DB (no como objeto temporal)
+  if (!chat.users) chat.users = {};
+  if (!chat.users[sender]) chat.users[sender] = {};
+  const users = chat.users[sender];
   const pushname = m.pushName || 'Sin nombre';
 
   let groupMetadata = null
@@ -156,7 +159,9 @@ export default async (client, m) => {
 
   if (!users.stats) users.stats = {};
   if (!users.stats[today]) users.stats[today] = { msgs: 0, cmds: 0 };
-  if (m.isGroup && chat.adminonly && !isAdmins && !isOwners) return;
+  if (m.isGroup && chat.adminonly && !isAdmins && !isOwners) {
+    return client.reply(m.chat, `⚠️ *MODO ADMIN ACTIVO*\nEl grupo está en modo *Solo Administradores*. No puedes usar comandos en este momento.`, m);
+  }
   const cmdData = global.comandos.get(command);
   if (!cmdData) {
     if (settings.prefix === true) return;
