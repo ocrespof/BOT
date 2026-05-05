@@ -1,5 +1,6 @@
 import { resolveLidToRealJid } from "../../core/utils.js"
 import axios from 'axios'
+import https from 'https'
 
 
 // ── Captions ──
@@ -154,9 +155,11 @@ const allCommands = Object.values(alias).flat();
 async function fetchGifBuffer(query) {
   try {
     const tenorKey = 'LIVDSRZULELA';
+    const agent = new https.Agent({ rejectUnauthorized: false });
     const res = await axios.get(`https://api.tenor.com/v1/search`, {
       params: { key: tenorKey, q: `the amazing digital circus ${query}`, limit: 20 },
-      timeout: 10000
+      timeout: 10000,
+      httpsAgent: agent
     });
 
     if (!res.data?.results?.length) return null;
@@ -168,7 +171,11 @@ async function fetchGifBuffer(query) {
 
     if (!mp4Url) return null;
 
-    const videoRes = await axios.get(mp4Url, { responseType: 'arraybuffer', timeout: 15000 });
+    const videoRes = await axios.get(mp4Url, { 
+      responseType: 'arraybuffer', 
+      timeout: 15000,
+      httpsAgent: agent 
+    });
     return Buffer.from(videoRes.data);
   } catch (error) {
     console.error("[Tenor API Error]:", error.message);
