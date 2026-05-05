@@ -23,6 +23,21 @@ const lugares = [
   { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Sagrada_Familia_01.jpg/1200px-Sagrada_Familia_01.jpg', pais: 'ESPANA', nombre: 'SAGRADA FAMILIA' }
 ];
 
+import axios from 'axios';
+import https from 'https';
+
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+async function fetchImageBuffer(url) {
+  try {
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000, httpsAgent: agent });
+    return Buffer.from(res.data);
+  } catch (error) {
+    return null;
+  }
+}
+
 export default {
   command: ['cazatesoro', 'geoguessr'],
   category: 'juegos',
@@ -32,6 +47,9 @@ export default {
     if (gameEngine.has(m.chat, 'cazatesoro')) return m.reply('🗺️ Ya hay una Caza del Tesoro activa en este chat.');
 
     const lugarSeleccionado = lugares[Math.floor(Math.random() * lugares.length)];
+    const buffer = await fetchImageBuffer(lugarSeleccionado.url);
+
+    if (!buffer) return m.reply('❌ Error de red al obtener la imagen. Inténtalo de nuevo.');
 
     gameEngine.start(m.chat, 'cazatesoro', m.sender, {
       pais: lugarSeleccionado.pais,
@@ -45,8 +63,8 @@ export default {
       }
     });
 
-    const caption = `🗺️ *CAZA DEL TESORO* 🗺️\n\n¿En qué *país* o qué *lugar* es este? Responde en este chat para adivinar.\n\n⏳ Tienes 60 segundos.\n💰 Premio: 250 XP`;
-    await client.sendMessage(m.chat, { image: { url: lugarSeleccionado.url }, caption }, { quoted: m });
+    const caption = `🗺️ *CAZA DEL TESORO* 🗺️\n\n¿En qué *país* o qué *lugar* es este? Responde en este chat para adivinar.\n\n⏳ Tienes 60 segundos.\n💰 Premio: 300 XP`;
+    await client.sendMessage(m.chat, { image: buffer, caption }, { quoted: m });
   }
 };
 
