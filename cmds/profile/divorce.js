@@ -8,7 +8,13 @@ export default {
     const partnerId = db.users[userId]?.marry
     if (!partnerId) return m.reply(' Tú no estás casado con nadie.')
     db.users[userId].marry = ''
-    db.users[partnerId].marry = ''
-    return m.reply(`*${db.users[userId]?.name || userId.split('@')[0]}* te has divorciado de *${db.users[partnerId]?.name || partnerId.split('@')[0]}*.`)
+    
+    // Si la pareja es un usuario real, también le quitamos el estado
+    if (partnerId.includes('@') && db.users[partnerId]) {
+      db.users[partnerId].marry = ''
+    }
+    
+    const partnerName = partnerId.includes('@') ? (db.users[partnerId]?.name || partnerId.split('@')[0]) : partnerId;
+    return m.reply(`*${db.users[userId]?.name || userId.split('@')[0]}* te has divorciado de *${partnerName}*.`)
   },
 };

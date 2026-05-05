@@ -21,7 +21,7 @@ export default {
     const birth = user2.birth || 'Sin especificar'
     const genero = user2.genre || 'Oculto'
     const comandos = user2.usedcommands || '0'
-    const pareja = user2.marry ? `${globalUsers[user2.marry]?.name || 'Desconocido'}` : 'Nadie'
+    const pareja = user2.marry ? (user2.marry.includes('@') ? `${globalUsers[user2.marry]?.name || 'Desconocido'}` : user2.marry) : 'Nadie'
     const estadoCivil = genero === 'Mujer' ? 'Casada con' : genero === 'Hombre' ? 'Casado con' : 'Casadx con'
     const desc = user2.description ? `\n${user2.description}` : ''
     const pasatiempo = user2.pasatiempo ? `${user2.pasatiempo}` : 'No definido'
