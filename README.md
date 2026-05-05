@@ -7,7 +7,7 @@
 [![Baileys](https://img.shields.io/badge/Powered_by-Baileys-25D366?style=for-the-badge&logo=whatsapp)](https://github.com/WhiskeySockets/Baileys)
 [![NodeJS](https://img.shields.io/badge/Node.js-Ready-43853D?style=for-the-badge&logo=node.js)](https://nodejs.org/)
 
-<img src="https://iili.io/qpPn1K7.gif" alt="YukiBot MD" width="120px">
+<img src="https://iili.io/qpPn1K7.gif" alt="Bot MD" width="120px">
 
 *Un bot multifuncional diseñado para ofrecer una experiencia RPG profunda, minijuegos visuales y herramientas hiper-rápidas, todo corriendo fluidamente en entornos de bajos recursos como Termux.*
 
@@ -17,7 +17,7 @@
 
 ## ⚡ ¿Por qué Bot MD?
 
-A diferencia de los bots tradicionales que dependen de respuestas de texto aburridas, YukiBot ha sido reescrito con un enfoque en **Interacciones Visuales** y **Mecánicas RPG Complejas**. Todo esto mientras mantiene un rendimiento brutal y una recolección de basura agresiva para evitar bloqueos.
+A diferencia de los bots tradicionales que dependen de respuestas de texto aburridas, Bot MD ha sido reescrito con un enfoque en **Interacciones Visuales** y **Mecánicas RPG Complejas**. Todo esto mientras mantiene un rendimiento brutal y una recolección de basura agresiva para evitar bloqueos.
 
 > [!TIP]
 > **Rendimiento Puro:** Cuenta con lectura inteligente de base de datos, auto-limpieza de caché en plugins, y un `gameEngine` centralizado que evita fugas de memoria.
@@ -68,13 +68,13 @@ A diferencia de los bots tradicionales que dependen de respuestas de texto aburr
 
 ## ⚙️ Mantenimiento 24/7 (PM2)
 
-Para mantener a Bot vivo en el fondo mientras usas tu teléfono:
+Para mantener a BOT vivo en el fondo mientras usas tu teléfono:
 
 ```bash
 # Evitar que Termux se duerma
 termux-wake-lock
 npm i -g pm2
-pm2 start index.js --name "YukiBot"
+pm2 start index.js --name "BOT"
 pm2 save
 pm2 logs
 ```
@@ -82,9 +82,9 @@ pm2 logs
 <details>
 <summary><strong>🎛️ Comandos Útiles de PM2</strong></summary>
 
-- `pm2 stop YukiBot` : Pausar el bot temporalmente.
-- `pm2 restart YukiBot` : Reiniciar el proceso.
-- `pm2 logs YukiBot` : Ver los registros de la consola en tiempo real.
+- `pm2 stop BOT` : Pausar el bot temporalmente.
+- `pm2 restart BOT` : Reiniciar el proceso.
+- `pm2 logs BOT` : Ver los registros de la consola en tiempo real.
 </details>
 
 ---
