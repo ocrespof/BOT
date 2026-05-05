@@ -3,6 +3,9 @@ import axios from 'axios'
 import https from 'https'
 
 
+// Ignorar errores de certificados SSL a nivel global para Termux
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 // ── Captions ──
 const captions = {
   peek: (from, to, g) => from === to ? 'está espiando detrás de una puerta por diversión.' : `está espiando a`,
@@ -166,17 +169,9 @@ async function fetchGifBuffer(query) {
 
     const randomGif = res.data.results[Math.floor(Math.random() * res.data.results.length)];
     const media = randomGif.media?.[0];
-    // Cadena de fallback: mp4 (mejor) → tinymp4 (ligero) → nanogif (último recurso)
     const mp4Url = media?.mp4?.url || media?.tinymp4?.url || media?.nanogif?.url;
 
-    if (!mp4Url) return null;
-
-    const videoRes = await axios.get(mp4Url, { 
-      responseType: 'arraybuffer', 
-      timeout: 15000,
-      httpsAgent: agent 
-    });
-    return Buffer.from(videoRes.data);
+    return mp4Url || null;
   } catch (error) {
     console.error("[Tenor API Error]:", error.message);
     return null;
@@ -204,12 +199,12 @@ export default {
 
     try {
       // Buscar animación de The Amazing Digital Circus en Tenor (formato MP4 válido para WhatsApp)
-      let videoBuffer = await fetchGifBuffer(currentCommand);
+      let videoUrl = await fetchGifBuffer(currentCommand);
 
-      if (videoBuffer) {
+      if (videoUrl) {
         // Enviar como GIF animado (reproducible en WhatsApp)
         await client.sendMessage(m.chat, {
-          video: videoBuffer,
+          video: { url: videoUrl },
           mimetype: 'video/mp4',
           gifPlayback: true,
           caption,
