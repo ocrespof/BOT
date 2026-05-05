@@ -56,28 +56,24 @@ export default {
       else if (user2.title === 'title_miner') activeBuff = "+20% Monedas en Minería";
       else if (user2.title === 'title_tycoon') activeBuff = "+20% Monedas en Cobros";
 
-      const profileText = `╭━━━「 *PERFIL DE USUARIO* 」━━━╮
-┃ 👤 *Nombre:* ${name}
-┃ 🎂 *Cumpleaños:* ${birth}
-┃ 🎭 *Pasatiempo:* ${pasatiempo}
-┃ 👫 *Estado Civil:* ${estadoCivil} ${pareja}
-╰━━━━━━━━━━━━━━━━━━━━━━━━╯
+      const profileText = `✦ ───「 *TU PERFIL* 」─── ✦
+👤 *Nombre:* ${name}
+🎂 *Cumple:* ${birth}
+🎭 *Hobbie:* ${pasatiempo}
+👫 *Estado:* ${estadoCivil} ${pareja}
 
-╭━━━「 *ESTADÍSTICAS* 」━━━━━━╮
-┃ 📊 *Nivel:* ${nivel}  |  *Rango:* #${rank}
-┃ ✨ *Experiencia:* ${exp.toLocaleString()}
-┃ 📈 *Progreso:* ${progreso} / ${xp} (${porcentaje}%)
-┃ ❤️ *Salud:* ${health} / 100
-┃ 💰 *Capital Total:* ¥${totalCoins.toLocaleString()} ${currency}
-┃ 🕹️ *Juegos (V/D):* ${gameWins} / ${gameLosses}
-┃ 🏆 *Logros:* ${achievementCount}
-┃ ⚙️ *Comandos Usados:* ${comandos.toLocaleString()}
-╰━━━━━━━━━━━━━━━━━━━━━━━━╯
+✦ ───「 *ESTADÍSTICAS* 」─── ✦
+📊 *Nivel:* ${nivel} | *Rank:* #${rank}
+✨ *XP:* ${exp.toLocaleString()} (${porcentaje}%)
+❤️ *Salud:* ${health} / 100
+💰 *Monedas:* ¥${totalCoins.toLocaleString()} ${currency}
+🕹️ *Juegos (V/D):* ${gameWins} / ${gameLosses}
+🏆 *Logros:* ${achievementCount}
+⚙️ *Cmds:* ${comandos.toLocaleString()}
 
-╭━━━「 *HABILIDADES PASIVAS* 」━━╮
-┃ 🎖️ *Título:* ${user2.title ? (TITLE_NAMES[user2.title] || user2.title) : 'Ninguno'}
-┃ 🪄 *Efecto Activo:* ${activeBuff}
-╰━━━━━━━━━━━━━━━━━━━━━━━━╯`
+✦ ───「 *HABILIDADES* 」─── ✦
+🎖️ *Título:* ${user2.title ? (TITLE_NAMES[user2.title] || user2.title) : 'Ninguno'}
+🪄 *Buff:* ${activeBuff}`
       await client.sendMessage(m.chat, { image: { url: perfil }, caption: profileText }, { quoted: m })
     } catch (e) {
       return m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n[Error: *${e.message}*]`)
