@@ -1,6 +1,6 @@
 <div align="center">
 
-# ✧ YukiBot MD ✧
+# ✧ BOT MD ✧
 **El Bot de WhatsApp Más Completo, Estético y Optimizado**
 
 [![Termux Ready](https://img.shields.io/badge/Optimized_for-Termux-7e57c2?style=for-the-badge&logo=android)](https://termux.com/)
@@ -15,7 +15,7 @@
 
 ---
 
-## ⚡ ¿Por qué YukiBot MD?
+## ⚡ ¿Por qué Bot MD?
 
 A diferencia de los bots tradicionales que dependen de respuestas de texto aburridas, YukiBot ha sido reescrito con un enfoque en **Interacciones Visuales** y **Mecánicas RPG Complejas**. Todo esto mientras mantiene un rendimiento brutal y una recolección de basura agresiva para evitar bloqueos.
 
@@ -68,7 +68,7 @@ A diferencia de los bots tradicionales que dependen de respuestas de texto aburr
 
 ## ⚙️ Mantenimiento 24/7 (PM2)
 
-Para mantener a YukiBot vivo en el fondo mientras usas tu teléfono:
+Para mantener a Bot vivo en el fondo mientras usas tu teléfono:
 
 ```bash
 # Evitar que Termux se duerma
