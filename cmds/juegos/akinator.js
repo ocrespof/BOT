@@ -1,6 +1,8 @@
 import { gameEngine } from '../../utils/gameEngine.js';
 import { Aki } from 'aki-api';
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const translateAnswer = (text) => {
   const t = text.toLowerCase().trim();
   if (t === 'si' || t === 'sí' || t === 's') return 0;
@@ -42,7 +44,7 @@ export default {
 
     } catch (e) {
       console.error("Error iniciando Akinator:", e);
-      return m.reply('❌ Hubo un error al conectar con los servidores de Akinator. Inténtalo más tarde.');
+      return m.reply(`❌ Hubo un error al conectar con los servidores de Akinator.\n\n[Error: ${e.message}]`);
     }
   }
 };
