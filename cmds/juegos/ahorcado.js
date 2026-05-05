@@ -1,6 +1,5 @@
 import { gameEngine } from '../../utils/gameEngine.js';
 import axios from 'axios';
-import Jimp from 'jimp';
 
 const hangmanImages = [
   'https://upload.wikimedia.org/wikipedia/commons/8/8b/Hangman-0.png',
@@ -11,31 +10,6 @@ const hangmanImages = [
   'https://upload.wikimedia.org/wikipedia/commons/6/6b/Hangman-5.png',
   'https://upload.wikimedia.org/wikipedia/commons/d/d6/Hangman-6.png'
 ];
-
-async function generarImagenAhorcado(intentos, progreso, letrasUsadas) {
-  try {
-    const imgUrl = hangmanImages[Math.min(intentos, 6)];
-    const image = await Jimp.read(imgUrl);
-    
-    // Resize para tener espacio si es necesario o dibujar directo
-    image.resize(400, 400);
-    const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
-    const fontSmall = await Jimp.loadFont(Jimp.FONT_SANS_16_BLACK);
-
-    // Dibujar el progreso de la palabra en el centro abajo
-    image.print(font, 20, 320, progreso.join(' '));
-    
-    // Dibujar letras usadas arriba
-    if (letrasUsadas.length > 0) {
-      image.print(fontSmall, 20, 20, `Usadas: ${letrasUsadas.join(', ')}`);
-    }
-
-    return await image.getBufferAsync(Jimp.MIME_PNG);
-  } catch (error) {
-    console.error("Error generando imagen de ahorcado con Jimp:", error);
-    return null; // Fallback
-  }
-}
 
 async function obtenerPalabra() {
   try {
@@ -75,14 +49,8 @@ export default {
       onTimeout: () => client.sendMessage(m.chat, { text: `⏰ Tiempo agotado. La palabra era: *${palabraSecreta}*` }),
     });
 
-    const buffer = await generarImagenAhorcado(0, progreso, []);
-    const caption = `🎮 *EL AHORCADO PRO* 🎮\n\nPalabra de *${palabraSecreta.length}* letras.\n💰 Apuesta: ${bet} XP\n\n*Envía una letra* o *la palabra completa* para adivinar.`;
-    
-    if (buffer) {
-      await client.sendMessage(m.chat, { image: buffer, caption }, { quoted: m });
-    } else {
-      await client.sendMessage(m.chat, { text: caption }, { quoted: m });
-    }
+    const caption = `🎮 *EL AHORCADO PRO* 🎮\n\nPalabra: \`${progreso.join(' ')}\`\n💰 Apuesta: ${bet} XP\n\n*Envía una letra* o *la palabra completa* para adivinar.`;
+    await client.sendMessage(m.chat, { image: { url: hangmanImages[0] }, caption }, { quoted: m });
   }
 };
 
@@ -127,10 +95,8 @@ export const before = async (client, m) => {
   if (game.intentos >= game.maxIntentos) {
     gameEngine.end(m.chat, 'ahorcado');
     gameEngine.loss(m.sender);
-    const buffer = await generarImagenAhorcado(game.maxIntentos, game.palabra.split(''), game.letrasUsadas);
     const caption = `💀 *¡ESTÁS AHORCADO!* 💀\n\nPerdiste la apuesta. La palabra secreta era: *${game.palabra}*`;
-    if (buffer) await client.sendMessage(m.chat, { image: buffer, caption }, { quoted: m });
-    else await client.sendMessage(m.chat, { text: caption }, { quoted: m });
+    await client.sendMessage(m.chat, { image: { url: hangmanImages[6] }, caption }, { quoted: m });
     return true;
   }
 
@@ -144,13 +110,8 @@ export const before = async (client, m) => {
   }
 
   // Continuar juego enviando progreso
-  const buffer = await generarImagenAhorcado(game.intentos, game.progreso, game.letrasUsadas);
-  const caption = `🎮 *Progreso* 🎮\n\nIntentos restantes: ${game.maxIntentos - game.intentos}`;
-  if (buffer) {
-    await client.sendMessage(m.chat, { image: buffer, caption });
-  } else {
-    await client.sendMessage(m.chat, { text: `Palabra: ${game.progreso.join(' ')}\nUsadas: ${game.letrasUsadas.join(', ')}\nFallas: ${game.intentos}/${game.maxIntentos}` });
-  }
+  const caption = `🎮 *PROGRESO* 🎮\n\nPalabra: \`${game.progreso.join(' ')}\`\nUsadas: *${game.letrasUsadas.join(', ')}*\nFallos: ${game.intentos}/${game.maxIntentos}`;
+  await client.sendMessage(m.chat, { image: { url: hangmanImages[game.intentos] }, caption });
   
   return true;
 };

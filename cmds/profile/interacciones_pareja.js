@@ -1,7 +1,32 @@
+import axios from 'axios';
+import https from 'https';
+
+// Ignorar errores de certificados SSL a nivel global para Termux
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+async function fetchGifUrl(query) {
+  try {
+    const tenorKey = 'LIVDSRZULELA';
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const res = await axios.get(`https://api.tenor.com/v1/search`, {
+      params: { key: tenorKey, q: query, limit: 10 },
+      timeout: 10000,
+      httpsAgent: agent
+    });
+
+    if (!res.data?.results?.length) return null;
+    const randomGif = res.data.results[Math.floor(Math.random() * res.data.results.length)];
+    const media = randomGif.media?.[0];
+    return media?.mp4?.url || media?.tinymp4?.url || null;
+  } catch (error) {
+    return null;
+  }
+}
+
 export default {
-  command: ['cita', 'date', 'mimos', 'celos', 'pelearpareja'],
+  command: ['cita', 'date', 'mimos', 'celos', 'pelearpareja', 'regalo', 'desayuno', 'haceramor', 'abrazarpareja', 'besarpareja'],
   category: 'profile',
-  desc: 'Interacciones y comandos exclusivos para usuarios casados.',
+  desc: 'Interacciones románticas y divertidas exclusivas para parejas.',
   cooldown: 10,
   run: async (client, m, args, usedPrefix, command) => {
     const db = global.db.data;
@@ -13,69 +38,86 @@ export default {
     const isRealUser = spouseId.includes('@');
     const spouseName = isRealUser ? (db.users[spouseId]?.name || spouseId.split('@')[0]) : spouseId;
     const mentions = isRealUser ? [m.sender, spouseId] : [m.sender];
+    const fromName = user.name || m.sender.split('@')[0];
+
+    let caption = '';
+    let gifQuery = '';
 
     if (['cita', 'date'].includes(command)) {
-      // Cooldown exclusivo para citas (1 hora)
       const lastDate = user.lastDate || 0;
       if (Date.now() - lastDate < 3600000) {
         const timeLeft = Math.ceil((3600000 - (Date.now() - lastDate)) / 60000);
-        return m.reply(`⏳ Debes esperar ${timeLeft} minutos antes de tener otra cita romántica.`);
+        return m.reply(`⏳ Debes esperar ${timeLeft} minutos antes de tener otra cita.`);
       }
 
       const escenarios = [
-        "Fueron a cenar a un restaurante elegante a la luz de las velas 🕯️🍷",
-        "Fueron al cine a ver una película de terror y se abrazaron toda la noche 🍿🎬",
-        "Fueron al parque de diversiones y ganaron un peluche gigante 🎢🎡",
-        "Tuvieron un picnic bajo las estrellas 🌌🍱",
-        "Se quedaron en casa jugando videojuegos y pidiendo pizza 🍕🎮",
-        "Fueron a la playa a ver el atardecer juntos 🏖️🌅",
-        "Visitaron un acuario y se tomaron fotos con los pingüinos 🐧📸",
-        "Tuvieron una pequeña discusión por qué lugar visitar, pero se reconciliaron con un helado 🍦❤️"
+        "Fueron a cenar a la luz de las velas 🕯️", "Caminaron por la playa al atardecer 🏖️",
+        "Vieron una película abrazados 🍿", "Tuvieron un picnic bajo las estrellas 🌌"
       ];
-      
       const randomScenario = escenarios[Math.floor(Math.random() * escenarios.length)];
       const gainedXp = Math.floor(Math.random() * 500) + 200;
-      const gainedCoins = Math.floor(Math.random() * 200) + 50;
-      
       user.exp = (user.exp || 0) + gainedXp;
-      user.coins = (user.coins || 0) + gainedCoins;
       user.lastDate = Date.now();
-      
-      if (isRealUser && db.users[spouseId]) {
-          db.users[spouseId].exp = (db.users[spouseId].exp || 0) + gainedXp;
-          db.users[spouseId].coins = (db.users[spouseId].coins || 0) + gainedCoins;
-          db.users[spouseId].lastDate = Date.now();
-      }
-      
-      const recompensaTxt = isRealUser 
-        ? `Ambos han ganado *${gainedXp} XP* y *${gainedCoins} Monedas* por fortalecer su relación.` 
-        : `Has ganado *${gainedXp} XP* y *${gainedCoins} Monedas* por la hermosa velada.`;
-      
-      const msg = `💖 *¡CITA ROMÁNTICA!* 💖\n\n@${m.sender.split('@')[0]} y *${spouseName}* han tenido una cita.\n\n${randomScenario}\n\n🎁 ${recompensaTxt}`;
-      return client.sendMessage(m.chat, { text: msg, mentions }, { quoted: m });
+      if (isRealUser && db.users[spouseId]) db.users[spouseId].exp = (db.users[spouseId].exp || 0) + gainedXp;
+
+      caption = `💖 *¡CITA ROMÁNTICA!* 💖\n\n@${m.sender.split('@')[0]} y *${spouseName}* ${randomScenario}.\n🎁 Ambos ganaron *${gainedXp} XP*.`;
+      gifQuery = "anime couple date";
     }
 
-    if (command === 'mimos') {
-      const msg = `🥰 @${m.sender.split('@')[0]} se acurrucó con *${spouseName}* y le dio muchos mimos y besitos. ¡Qué tiernos! 💕`;
-      return client.sendMessage(m.chat, { text: msg, mentions }, { quoted: m });
+    else if (command === 'mimos') {
+      caption = `🥰 *${fromName}* está dándole muchos mimos y cariñitos a *${spouseName}*. ¡Qué viva el amor! 💕`;
+      gifQuery = "anime couple sweet";
     }
 
-    if (command === 'celos') {
-      const msg = `😤 @${m.sender.split('@')[0]} le hizo una escena de celos a *${spouseName}* porque alguien más le dio like a su foto. ¡Tóxicos pero felices! 🚩❤️`;
-      return client.sendMessage(m.chat, { text: msg, mentions }, { quoted: m });
+    else if (command === 'celos') {
+      caption = `😤 *${fromName}* se puso celos@ de *${spouseName}*... ¡Alguien necesita atención! 🚩❤️`;
+      gifQuery = "anime couple jealous";
     }
 
-    if (command === 'pelearpareja') {
-      const escenariosPelea = [
-        "por no lavar los platos de anoche 🍽️😠",
-        "porque uno se comió el último trozo de pizza 🍕🤬",
-        "por culpa de un malentendido con un mensaje de texto 📱🙄",
-        "porque alguien no bajó la tapa del inodoro 🚽🤦‍♂️",
-        "por decidir qué serie ver en Netflix 📺🥊"
-      ];
-      const motivo = escenariosPelea[Math.floor(Math.random() * escenariosPelea.length)];
-      const msg = `🥊 *¡PROBLEMAS EN EL PARAÍSO!* 🥊\n\n@${m.sender.split('@')[0]} y *${spouseName}* están peleando ${motivo}.\n\n_(Seguro se reconcilian en 5 minutos...)_`;
-      return client.sendMessage(m.chat, { text: msg, mentions }, { quoted: m });
+    else if (command === 'pelearpareja') {
+      caption = `🥊 *${fromName}* y *${spouseName}* están teniendo una pelea de casados... ¡Seguro se reconcilian pronto! 😠❤️`;
+      gifQuery = "anime couple fight funny";
+    }
+
+    else if (command === 'regalo') {
+      const regalos = ["un ramo de rosas 🌹", "un collar de diamantes 💎", "una caja de chocolates 🍫", "un peluche gigante 🧸"];
+      const regalo = regalos[Math.floor(Math.random() * regalos.length)];
+      caption = `🎁 *${fromName}* le ha regalado ${regalo} a *${spouseName}*. ¡Qué detalle tan lindo! ✨`;
+      gifQuery = "anime give gift";
+    }
+
+    else if (command === 'desayuno') {
+      caption = `🍳 *${fromName}* le preparó un delicioso desayuno en la cama a *${spouseName}*. ☕🥞`;
+      gifQuery = "anime cooking couple";
+    }
+
+    else if (command === 'haceramor') {
+      caption = `🔥 *${fromName}* y *${spouseName}* están compartiendo un momento de pasión e intimidad... 🌹🕯️`;
+      gifQuery = "anime couple hot kiss";
+    }
+
+    else if (command === 'abrazarpareja') {
+      caption = `🫂 *${fromName}* abraza fuertemente a su pareja *${spouseName}*. Sintiéndose segur@s juntos.`;
+      gifQuery = "anime couple hug";
+    }
+
+    else if (command === 'besarpareja') {
+      caption = `💋 Un beso apasionado entre *${fromName}* y *${spouseName}*. El tiempo se detiene...`;
+      gifQuery = "anime couple kiss";
+    }
+
+    // Enviar con GIF si es posible
+    const gifUrl = await fetchGifUrl(gifQuery);
+    if (gifUrl) {
+      return client.sendMessage(m.chat, { 
+        video: { url: gifUrl }, 
+        gifPlayback: true, 
+        caption, 
+        mentions,
+        mimetype: 'video/mp4' 
+      }, { quoted: m });
+    } else {
+      return client.sendMessage(m.chat, { text: caption, mentions }, { quoted: m });
     }
   }
 };

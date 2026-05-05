@@ -94,9 +94,11 @@ export default {
 > 👤  *P E R F I L   Y   N I V E L*
 > _Cuenta y Rangos_
  ⊳ *${prefix}profile* ➭ Mi perfil
- ⊳ *${prefix}setdesc* / *${prefix}setgenre* / *${prefix}setbirth* ➭ Configurar
+ ⊳ *${prefix}setdesc* / *${prefix}setgenre* / *${prefix}sethobby* ➭ Configurar
+ ⊳ *${prefix}setbirth* ➭ Fecha de nacimiento
  ⊳ *${prefix}marry* / *${prefix}divorce* ➭ Matrimonio
- ⊳ *${prefix}cita* / *${prefix}mimos* ➭ Interacciones de pareja
+ ⊳ *${prefix}cita* / *${prefix}mimos* / *${prefix}regalo* ➭ Parejas
+ ⊳ *${prefix}desayuno* / *${prefix}celos* / *${prefix}haceramor* ➭ Parejas
  ⊳ *${prefix}afk* ➭ Modo inactivo
  ⊳ *${prefix}lboard* / *${prefix}level* ➭ Niveles
 
