@@ -96,6 +96,7 @@ export default {
  ⊳ *${prefix}profile* ➭ Mi perfil
  ⊳ *${prefix}setdesc* / *${prefix}setgenre* / *${prefix}setbirth* ➭ Configurar
  ⊳ *${prefix}marry* / *${prefix}divorce* ➭ Matrimonio
+ ⊳ *${prefix}cita* / *${prefix}mimos* ➭ Interacciones de pareja
  ⊳ *${prefix}afk* ➭ Modo inactivo
  ⊳ *${prefix}lboard* / *${prefix}level* ➭ Niveles
 
