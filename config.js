@@ -20,16 +20,16 @@ export default {
         botAdmin: ' Este comando solo puede ser ejecutado si el Socket es Administrador del Grupo.'
     },
     APIs: {
-        axi: { url: "https://apiaxi.i11.eu", key: null },
-        vreden: { url: "https://api.vreden.web.id", key: null },
-        nekolabs: { url: "https://api.nekolabs.web.id", key: null },
-        siputzx: { url: "https://api.siputzx.my.id", key: null },
-        delirius: { url: "https://api.delirius.store", key: null },
-        ootaizumi: { url: "https://api.ootaizumi.web.id", key: null },
+        // Primary — most reliable
         stellar: { url: "https://api.yuki-wabot.my.id", key: "YukiBot-MD" },
+        vreden: { url: "https://api.vreden.web.id", key: null },
+        siputzx: { url: "https://api.siputzx.my.id", key: null },
+        // Secondary fallbacks — used by downloader.js
+        ootaizumi: { url: "https://api.ootaizumi.web.id", key: null },
+        delirius: { url: "https://api.delirius.store", key: null },
+        nekolabs: { url: "https://api.nekolabs.web.id", key: null },
+        axi: { url: "https://apiaxi.i11.eu", key: null },
         apifaa: { url: "https://api-faa.my.id", key: null },
         xyro: { url: "https://api.xyro.site", key: null },
-        yupra: { url: "https://api.yupra.my.id", key: null },
-        sylphy: { url: "https://api.sylphy.co.id", key: "Admin" }
     }
 };

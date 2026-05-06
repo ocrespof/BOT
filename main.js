@@ -3,7 +3,6 @@ import moment from 'moment';
 import chalk from 'chalk';
 import fs from 'fs';
 import path from 'path';
-import gradient from 'gradient-string';
 import seeCommands from './core/system/commandLoader.js';
 import initDB from './core/system/initDB.js';
 import config from './config.js';
@@ -16,6 +15,17 @@ import NodeCache from 'node-cache';
 // Caché de metadata de grupo — TTL 5 min, evita llamadas de red en cada mensaje
 const groupMetaCache = new NodeCache({ stdTTL: 300, checkperiod: 60, useClones: false });
 global.groupMetaCache = groupMetaCache;
+
+// Set estático — se crea una sola vez, no en cada mensaje
+const ALLOWED_IN_PRIVATE = new Set([
+  'play', 'mp3', 'play2', 'mp4', 'facebook', 'fb', 'tiktok', 'tt', 'instagram', 'ig', 'pinterest', 'pin', 'imagen', 'img',
+  'chatgpt', 'ia', 'humanizar', 'hd', 'remini', 'read', 'readviewonce', 'ocr', 'texto', 'ssweb', 'ss', 'inspect', 'get', 'fetch', 'apa', 'citar',
+  'tts', 'audio', 'decir', 'clima', 'weather', 'tiny', 'shorturl', 'acortar', 'recordar', 'remind', 'trad', 'traducir', 'tr', 'qr', 'qrcode', 'yts', 'ytsr',
+  'wiki', 'wikipedia', 'math', 'calcular', 'resumir', 'resumen', 'pomodoro', 'estudio', 'trivia', 'preguntados', 'frase', 'motivacion', 'quote',
+  'corregir', 'ortografia', 'parafrasear', 'reescribir', 'def', 'significado', 'diccionario', 'ruleta', 'sorteo', 'asignar',
+  'menu', 'help', 'allmenu', 'ping', 'p', 'status', 'botstats', 'stats', 'estado',
+  'balance', 'bal', 'saldo', 'profile', 'perfil', 'inv', 'inventory', 'inventario'
+]);
 
 seeCommands();
 
@@ -131,88 +141,109 @@ export default async (client, m) => {
   let text = args.join(' ');
   if (!command) return;
   
+  // ═══════════════════════════════════════════════
+  //  MIDDLEWARE PIPELINE
+  // ═══════════════════════════════════════════════
+
+  // MW 1: Console logging (dev only, no user impact)
   if (m.message) {
-    console.log(chalk.bold.blue(`╭────────────────────────────···\n│ ${chalk.cyan('Bot')}: ${gradient('lime', 'green')(botJid)}\n│ ${chalk.bold.yellow('Fecha')}: ${gradient('orange', 'yellow')(moment().format('DD/MM/YY HH:mm:ss'))}\n│ ${chalk.bold.blueBright('Usuario')}: ${gradient('cyan', 'blue')(pushname)}\n│ ${chalk.bold.magentaBright('Remitente')}: ${gradient('deepskyblue', 'darkorchid')(sender)}\n${m.isGroup ? '│' + chalk.bold.green(' Grupo') + ': ' + gradient('green', 'lime')(groupName) : '│' + chalk.bold.green(' Privado') + ': ' + gradient('pink', 'magenta')('Chat Privado')}\n${'│' + chalk.bold.magenta(' ID') + ': ' + gradient('violet', 'midnightblue')(m.isGroup ? from : 'Chat Privado')}\n│ ${chalk.bold.cyanBright('Comando usado')}: ${chalk.gray(command ? command : 'No Command')}\n╰────────────────────────────···\n`));
+    console.log(chalk.bold.blue(
+      `╭──── CMD ────···\n` +
+      `│ 📅 ${moment().format('DD/MM HH:mm:ss')}\n` +
+      `│ 👤 ${pushname} (${sender.split('@')[0]})\n` +
+      `│ ${m.isGroup ? '👥 ' + groupName : '💬 Privado'}\n` +
+      `│ ⌨️ ${command}\n` +
+      `╰────────────···`
+    ));
   }
 
-  const hasPrefix = settings.prefix === true ? true : (Array.isArray(settings.prefix) ? settings.prefix : typeof settings.prefix === 'string' ? [settings.prefix] : []).some(p => m.text?.startsWith(p));
+  // MW 2: Self mode — solo dueños pueden usar
   if (!isOwners && settings.self) return;
-  if (m.chat && !m.chat.endsWith('g.us')) {
-    const allowedInPrivateForUsers = [
-      'play', 'mp3', 'play2', 'mp4', 'facebook', 'fb', 'tiktok', 'tt', 'instagram', 'ig', 'pinterest', 'pin', 'imagen', 'img',
-      'chatgpt', 'ia', 'humanizar', 'hd', 'remini', 'read', 'readviewonce', 'ocr', 'texto', 'ssweb', 'ss', 'inspect', 'get', 'fetch', 'apa', 'citar',
-      'tts', 'audio', 'decir', 'clima', 'weather', 'tiny', 'shorturl', 'acortar', 'recordar', 'remind', 'trad', 'traducir', 'tr', 'qr', 'qrcode', 'yts', 'ytsr',
-      'wiki', 'wikipedia', 'math', 'calcular', 'resumir', 'resumen', 'pomodoro', 'estudio', 'trivia', 'preguntados', 'frase', 'motivacion', 'quote',
-      'corregir', 'ortografia', 'parafrasear', 'reescribir', 'def', 'significado', 'diccionario', 'ruleta', 'sorteo', 'asignar',
-      'menu', 'help', 'allmenu', 'ping', 'p', 'status'
-    ];
-    if (!isOwners && !allowedInPrivateForUsers.includes(command)) return;
-  }
-  if (chat?.isBanned && !(command === 'bot' && text === 'on') && !isOwners) {
-    await m.reply(`El bot *${settings.botname}* está desactivado en este grupo.\n\nUn *administrador* puede activarlo con el comando:\n*${usedPrefix}bot on*`);
-    return;
-  }
-  if (m.text && user.banned && !isOwners) {
-    await m.reply(`Estas ${user.genre === 'Mujer' ? 'baneada' : user.genre === 'Hombre' ? 'baneado' : 'baneado/a'}, no puedes usar comandos en este bot!\n\n● *Razón ›* ${user.bannedReason || 'Sin especificar'}\n\n● Si este Bot es cuenta oficial y tienes evidencia que respalde que este mensaje es un error, puedes exponer tu caso con un moderador.`);
-    return;
+
+  // MW 3: Private chat filter
+  if (m.chat && !m.chat.endsWith('g.us') && !isOwners) {
+    if (!ALLOWED_IN_PRIVATE.has(command)) return;
   }
 
-  if (!users.stats) users.stats = {};
-  if (!users.stats[today]) users.stats[today] = { msgs: 0, cmds: 0 };
-  if (m.isGroup && chat.adminonly && !isAdmins && !isOwners) {
-    return client.reply(m.chat, `⚠️ *MODO ADMIN ACTIVO*\nEl grupo está en modo *Solo Administradores*. No puedes usar comandos en este momento.`, m);
+  // MW 4: Group ban check
+  if (chat?.isBanned && !(command === 'bot' && text === 'on') && !isOwners) {
+    return m.reply(`El bot *${settings.botname}* está desactivado en este grupo.\n\nUn *administrador* puede activarlo con:\n*${usedPrefix}bot on*`);
   }
+
+  // MW 5: User ban check
+  if (m.text && user.banned && !isOwners) {
+    return m.reply(`Estás baneado/a, no puedes usar comandos.\n\n● *Razón ›* ${user.bannedReason || 'Sin especificar'}`);
+  }
+
+  // MW 6: Admin-only mode
+  if (m.isGroup && chat.adminonly && !isAdmins && !isOwners) {
+    return client.reply(m.chat, `⚠️ *MODO ADMIN ACTIVO*\nSolo administradores pueden usar comandos en este momento.`, m);
+  }
+
+  // MW 7: Command resolution
   const cmdData = global.comandos.get(command);
   if (!cmdData) {
     if (settings.prefix === true) return;
     await client.readMessages([m.key]);
-    return m.reply(`ꕤ El comando *${command}* no existe.\nUsa *${usedPrefix}help* para ver la lista de comandos disponibles.`);
+    return m.reply(`ꕤ El comando *${command}* no existe.\nUsa *${usedPrefix}help* para ver los comandos.`);
   }
+
+  // MW 8: Role checks
   if (cmdData.isOwner && !isOwners) {
     if (settings.prefix === true) return;
-    return m.reply(`ꕤ El comando *${command}* no existe.\nUsa *${usedPrefix}help* para ver la lista de comandos disponibles.`);
+    return m.reply(`ꕤ El comando *${command}* no existe.\nUsa *${usedPrefix}help* para ver los comandos.`);
   }
   if (cmdData.isAdmin && !isAdmins) return client.reply(m.chat, mess.admin, m);
   if (cmdData.botAdmin && !isBotAdmins) return client.reply(m.chat, mess.botAdmin, m);
 
-  // --- Economy Guard Middleware ---
+  // MW 9: Economy guard
   if (cmdData.economy) {
-    const chatEco = global.db.data.chats[m.chat] || {}
-    if (chatEco.adminonly || !chatEco.economy) {
-      return m.reply(`Los comandos de *Economía* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n*${usedPrefix}economy on*`);
+    const chatEco = global.db.data.chats[m.chat] || {};
+    if (!chatEco.economy) {
+      return m.reply(`Los comandos de *Economía* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con:\n*${usedPrefix}economy on*`);
     }
   }
 
-  // --- Anti-Spam Global ---
+  // MW 10: Anti-spam
   const now = Date.now();
-  const globalSpamDelay = 1500; // 1.5 seconds
   if (!user.lastMessageTime) user.lastMessageTime = 0;
-  if (now - user.lastMessageTime < globalSpamDelay && !isOwners) {
+  if (now - user.lastMessageTime < 1500 && !isOwners) {
     if (!user.warnedSpam) {
       user.warnedSpam = true;
       user.lastMessageTime = now + 3000;
-      return m.reply(`*¡No hagas spam!* Espera un momento antes de enviar otro comando.`);
+      return m.reply(`*¡No hagas spam!* Espera un momento.`);
     }
     return;
   }
   user.warnedSpam = false;
   user.lastMessageTime = now;
 
-  // --- Cooldown por Comando ---
+  // MW 11: Per-command cooldown (respects cooldownSkip from shop)
   const cmdCooldown = (cmdData.cooldown || 0) * 1000;
   if (cmdCooldown > 0 && !isOwners) {
-    if (!user.cooldowns) user.cooldowns = {};
-    if (user.cooldowns[command] && now < user.cooldowns[command]) {
-      if (!user.warnedCooldowns) user.warnedCooldowns = {};
-      if (!user.warnedCooldowns[command] || now > user.warnedCooldowns[command]) {
-        const timeLeft = Math.ceil((user.cooldowns[command] - now) / 1000);
-        user.warnedCooldowns[command] = now + 5000;
-        return m.reply(`⏳ *Cooldown activo.*\nDebes esperar *${timeLeft}s* para volver a usar *${command}*.`);
+    // Check if user has a cooldownSkip item active
+    if (user.cooldownSkip) {
+      user.cooldownSkip = false; // Consume the skip
+    } else {
+      if (!user.cooldowns) user.cooldowns = {};
+      if (user.cooldowns[command] && now < user.cooldowns[command]) {
+        if (!user.warnedCooldowns) user.warnedCooldowns = {};
+        if (!user.warnedCooldowns[command] || now > user.warnedCooldowns[command]) {
+          const timeLeft = Math.ceil((user.cooldowns[command] - now) / 1000);
+          user.warnedCooldowns[command] = now + 5000;
+          return m.reply(`⏳ Cooldown: espera *${timeLeft}s* para usar *${command}* de nuevo.`);
+        }
+        return;
       }
-      return;
+      user.cooldowns[command] = now + cmdCooldown;
     }
-    user.cooldowns[command] = now + cmdCooldown;
   }
+
+  // ═══════════════════════════════════════════════
+  //  COMMAND EXECUTION
+  // ═══════════════════════════════════════════════
+  if (!users.stats) users.stats = {};
+  if (!users.stats[today]) users.stats[today] = { msgs: 0, cmds: 0 };
 
   try {
     await client.readMessages([m.key]);
@@ -220,13 +251,23 @@ export default async (client, m) => {
     settings.commandsejecut = (settings.commandsejecut || 0) + 1;
     users.usedTime = new Date();
     users.lastCmd = Date.now();
-    user.exp = (user.exp || 0) + Math.floor(Math.random() * 16) + 5;
+    
+    // XP gain — apply xpBoost multiplier if active
+    let xpGain = Math.floor(Math.random() * 16) + 5;
+    if (user.xpBoost && user.xpBoost.expiresAt > now) {
+      xpGain = Math.floor(xpGain * user.xpBoost.multiplier);
+    }
+    // Apply fortuneBuff (+10% to all rewards)
+    if (user.fortuneBuff && user.fortuneBuff.expiresAt > now) {
+      xpGain = Math.floor(xpGain * (1 + user.fortuneBuff.value));
+    }
+    user.exp = (user.exp || 0) + xpGain;
     user.name = m.pushName;
     users.stats[today].cmds++;
     await cmdData.run(client, m, args, usedPrefix, command, text);
   } catch (error) {
-    Logger.error(`Error al ejecutar el comando ${command}:`, error);
-    await client.sendMessage(m.chat, { text: ` Error al ejecutar el comando\n${error}` }, { quoted: m });
+    Logger.error(`Error al ejecutar ${command}:`, error);
+    await client.sendMessage(m.chat, { text: `❌ Error al ejecutar el comando\n[${error.message}]` }, { quoted: m });
   } finally {
     if (global.queueSaveDatabase) global.queueSaveDatabase();
   }

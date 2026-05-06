@@ -1,3 +1,6 @@
+// Global TLS bypass for Termux environments (must be FIRST)
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 import config from "./config.js";
 
 // Bridge for legacy plugin globals
