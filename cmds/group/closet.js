@@ -1,4 +1,4 @@
-import { getGroupMeta, msParser, clockString } from '../../utils/tools.js';
+import { getGroupMeta, msParser, clockStringHuman } from '../../utils/tools.js';
 
 export default {
   command: ['closet', 'close', 'cerrar'],
@@ -21,7 +21,7 @@ export default {
         return client.reply(m.chat, `✅ El grupo ha sido cerrado.`, m)
       }
       if (timeout > 0) {
-        await client.reply(m.chat, `El grupo se cerrará en ${clockString(timeout)}.`, m)
+        await client.reply(m.chat, `El grupo se cerrará en ${clockStringHuman(timeout)}.`, m)
         setTimeout(async () => {
           try {
             const md = await getGroupMeta(client, m.chat)
