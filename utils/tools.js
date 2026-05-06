@@ -287,7 +287,7 @@ export function msParser(str) {
  * Convert milliseconds to a human-readable clock string.
  * e.g. 3661000 → "1 hora 1 minuto 1 segundo"
  */
-export function clockString(ms) {
+export function clockStringHuman(ms) {
   const d = Math.floor(ms / 86400000);
   const h = Math.floor(ms / 3600000) % 24;
   const m = Math.floor(ms / 60000) % 60;
