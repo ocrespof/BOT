@@ -1,118 +1,157 @@
 <div align="center">
 
-# ✧ BOT MD ✧
-**El Bot de WhatsApp Más Completo, Estético y Optimizado**
+# ✧ Bot MD ✧
+
+**Bot de WhatsApp Optimizado para Termux · Baileys Multi-Device**
 
 [![Termux Ready](https://img.shields.io/badge/Optimized_for-Termux-7e57c2?style=for-the-badge&logo=android)](https://termux.com/)
 [![Baileys](https://img.shields.io/badge/Powered_by-Baileys-25D366?style=for-the-badge&logo=whatsapp)](https://github.com/WhiskeySockets/Baileys)
-[![NodeJS](https://img.shields.io/badge/Node.js-Ready-43853D?style=for-the-badge&logo=node.js)](https://nodejs.org/)
+[![NodeJS](https://img.shields.io/badge/Node.js-v21+-43853D?style=for-the-badge&logo=node.js)](https://nodejs.org/)
+[![ESM](https://img.shields.io/badge/Pure-ESM-blue?style=for-the-badge)](https://nodejs.org/api/esm.html)
 
-<img src="https://iili.io/qpPn1K7.gif" alt="Bot MD" width="120px">
-
-*Un bot multifuncional diseñado para ofrecer una experiencia RPG profunda, minijuegos visuales y herramientas hiper-rápidas, todo corriendo fluidamente en entornos de bajos recursos como Termux.*
+*Bot multifuncional con economía RPG, suite académica con IA, descargador multimedia multi-plataforma y 60+ reacciones animadas. Diseñado para rendimiento en entornos de bajos recursos.*
 
 </div>
 
 ---
 
-## ⚡ ¿Por qué Bot MD?
+## ⚡ Arquitectura
 
-A diferencia de los bots tradicionales que dependen de respuestas de texto aburridas, Bot MD ha sido reescrito con un enfoque en **Interacciones Visuales** y **Mecánicas RPG Complejas**. Todo esto mientras mantiene un rendimiento brutal y una recolección de basura agresiva para evitar bloqueos.
-
-> [!TIP]
-> **Rendimiento Puro:** Cuenta con lectura inteligente de base de datos, auto-limpieza de caché en plugins, y un `gameEngine` centralizado que evita fugas de memoria.
-
----
-
-### ✨ Características Destacadas
-
-| Categoría | Capacidades |
-| :--- | :--- |
-| **🎮 Juegos Visuales** | **Ahorcado Pro** (Dibujado en tiempo real con `Jimp`), **Akinator Grupal**, **Adivina Disney**, y **Caza del Tesoro (Geoguessr)**. ¡Olvida el texto aburrido! |
-| **👑 Sistema RPG** | Economía profunda con **Títulos** (Leyenda, Estrella, Neko, etc.) que otorgan *buffs reales* (ej: +20% en pesca, inmunidad a robos). Minas, mazmorras y crímenes. |
-| **🎓 IA y Utilidades** | Escáner de plagio, análisis visual con IA, traductor nativo, humanizador de textos, y un potente solver matemático paso a paso. |
-| **📥 Descargas** | Motor de descargas con APIs múltiples (Fallback) para obtener contenido en máxima calidad de TikTok, IG, FB, Pinterest y YouTube. |
-| **🛡️ Control de Grupo** | Modo "Solo Admins" que bloquea comandos, anti-enlaces estricto, gestión de alertas y bienvenidas configurables. |
-
----
-
-## 🚀 Guía Rápida de Instalación
-
-> [!IMPORTANT]  
-> Asegúrate de tener una conexión estable durante la primera instalación, ya que el bot compilará dependencias clave como `Jimp` y `Aki-API`.
-
-### 📱 Instalación en Termux (Android)
-
-1. **Preparar el entorno:**
-   ```bash
-   termux-setup-storage
-   apt update && apt upgrade -y
-   pkg install -y git nodejs ffmpeg imagemagick yarn
-   ```
-
-2. **Clonar e Instalar:**
-   ```bash
-   git clone https://github.com/ocrespof/BOT.git
-   cd BOT
-   yarn install
-   npm install
-   ```
-
-3. **Iniciar el Bot:**
-   ```bash
-   npm start
-   ```
-   *(Escanea el código QR que aparecerá en tu pantalla con tu WhatsApp vinculado)*.
-
----
-
-## ⚙️ Mantenimiento 24/7 (PM2)
-
-Para mantener a BOT vivo en el fondo mientras usas tu teléfono:
-
-```bash
-# Evitar que Termux se duerma
-termux-wake-lock
-npm i -g pm2
-pm2 start index.js --name "BOT"
-pm2 save
-pm2 logs
+```
+bot/
+├── index.js              # Boot + conexión Baileys + anti-crash
+├── main.js               # Hot path: middleware pipeline + routing
+├── config.js             # APIs, owner, prefixes
+├── core/
+│   ├── message.js        # Message shimming (m.reply, m.quoted.download)
+│   ├── exif.js           # Sticker metadata (EXIF/WebP)
+│   └── system/
+│       ├── commandLoader.js   # Auto-discovery de plugins
+│       ├── database.js        # JSON DB con guardado debounced
+│       └── initDB.js          # Schema de usuario/chat/settings
+├── cmds/
+│   ├── downloads/        # FB, IG, TT, YT, Pinterest, Scribd, GDrive, Mediafire
+│   ├── academia/         # IA académica: solve, resumir, humanizar, plagio, detIA
+│   ├── economia/         # RPG: daily, work, mine, hunt, casino, shop, trade
+│   ├── juegos/           # Ahorcado, TicTacToe, Connect4, Blackjack, Wordle
+│   ├── stickers/         # Sticker, brat, getpack, emojimix
+│   ├── group/            # Admin: kick, warn, open/close, setgpbanner
+│   ├── profile/          # Perfil, nivel, leaderboard
+│   ├── Reactions/        # 60+ reacciones animadas con GIFs de Tenor
+│   └── utils/            # IA general, OCR, TTS, clima, QR, inspect
+└── utils/
+    ├── ai.js             # Cliente IA centralizado con fallback chain
+    ├── extractUrl.js     # Quote-to-download utility
+    ├── tools.js          # Funciones compartidas (formateo, XP, grupo)
+    ├── downloader.js     # Motor de descargas con fallback APIs
+    └── gameEngine.js     # Motor de juegos concurrentes
 ```
 
-<details>
-<summary><strong>🎛️ Comandos Útiles de PM2</strong></summary>
+---
 
-- `pm2 stop BOT` : Pausar el bot temporalmente.
-- `pm2 restart BOT` : Reiniciar el proceso.
-- `pm2 logs BOT` : Ver los registros de la consola en tiempo real.
-</details>
+## 🔧 Optimizaciones de Rendimiento
+
+| Optimización | Impacto |
+|:---|:---|
+| **Hot-path cacheado** | `today` string con TTL 60s, prefix comparison directa (sin JSON.stringify) |
+| **Group metadata cacheado** | NodeCache con TTL 5 min, evita llamadas de red por mensaje |
+| **Antilink condicional** | Solo se ejecuta en grupos, no en chats privados |
+| **DB guardado debounced** | Escritura diferida, no síncrona por comando |
+| **Purga de dependencias** | Eliminadas: jimp, human-readable, qrcode, lodash, moment (core), aki-api, gradient-string, pdfkit, yargs, node-schedule |
+| **tools.js limpio** | De 302 a 160 LOC: eliminadas 15 funciones muertas |
+| **ESM puro** | Zero `require()` shims, tree-shakeable |
+| **Message buffer limitado** | Máximo 25 chats × 50 msgs, con eviction automática |
+
+---
+
+## ✨ Características
+
+### 📥 Descargas (Quote-to-Download)
+
+Todos los comandos soportan **citar un mensaje con enlace** en lugar de escribir la URL:
+
+- **YouTube**: `.p` (audio) / `.play2` (video) con metadata (título, canal, duración)
+- **Facebook**: `.fb` con título, resolución y duración
+- **TikTok/Instagram/Pinterest**: `.tt` / `.ig` / `.pin`
+- **Twitter/X**: `.twitter`
+- **Documentos**: `.scribd` / `.grive` / `.mf` / `.studocu`
+
+### 🎓 Academia (IA Modo Absoluto)
+
+Prompts de alta fidelidad: sin emojis, sin relleno, solo información verificada.
+
+- **Solver**: Resolución paso a paso con verificación algebraica
+- **Resumir**: Extracción quirúrgica (tesis + ideas + datos clave)
+- **Humanizar**: Técnicas de burstiness + inversión sintáctica
+- **Detector IA/Plagio**: Análisis forense de perplejidad y patrones
+- **Diccionario**: Entrada lexicográfica RAE con etimología
+- **ChatPDF**: Análisis basado exclusivamente en evidencia del documento
+
+### 💰 Economía RPG
+
+Sistema completo con daily/weekly/monthly, trabajo, minería, caza, casino, slots, ruleta, robos, mazmorras, aventuras, tienda con lootboxes, títulos con buffs reales, e intercambio de items.
+
+### 🎮 Juegos
+
+Ahorcado visual, TicTacToe, Connect4, Blackjack, Wordle, Trivia, Piedra-papel-tijeras, Adivinanzas. Todos con apuestas de economía.
+
+### 🎭 60+ Reacciones
+
+GIFs animados de Tenor: hug, kiss, pat, slap, dance, cry, blush, cuddle, y muchas más.
+
+---
+
+## 🚀 Instalación
+
+### Termux (Android)
+
+```bash
+# 1. Preparar entorno
+termux-setup-storage
+apt update && apt upgrade -y
+pkg install -y git nodejs ffmpeg
+
+# 2. Clonar e instalar
+git clone https://github.com/ocrespof/BOT.git
+cd BOT
+npm install
+
+# 3. Iniciar
+npm start
+```
+
+> Escanea el código QR o usa la opción de código de 8 dígitos.
+
+### PM2 (24/7)
+
+```bash
+termux-wake-lock
+npm i -g pm2
+pm2 start index.js --name "Bot" --max-memory-restart 512M
+pm2 save
+```
+
+| Comando | Descripción |
+|:---|:---|
+| `pm2 stop Bot` | Pausar |
+| `pm2 restart Bot` | Reiniciar |
+| `pm2 logs Bot` | Ver logs en tiempo real |
 
 ---
 
 ## 🛠️ Solución de Problemas
 
-**¿Bot desconectado o terminal en blanco?**
-Si tu teléfono se reinicia o Termux se cierra de golpe:
-```bash
-cd ~/BOT && npm start
-```
-
-**¿Necesitas vincular un nuevo número?**
-Si quieres borrar la sesión actual y escanear un QR nuevo:
-```bash
-cd ~/BOT
-rm -rf Sessions/Owner
-npm start
-```
+| Problema | Solución |
+|:---|:---|
+| Bot desconectado | `cd ~/BOT && npm start` |
+| Vincular nuevo número | `rm -rf Sessions/Owner && npm start` |
+| Error de memoria | Agregar `--max-old-space-size=512` al script start |
+| Dependencia faltante | `npm install` dentro de la carpeta BOT |
 
 ---
 
 <div align="center">
 
-### 💖 Agradecimientos y APIs
-
-Agradecimientos especiales a las APIs públicas que hacen posible este proyecto:
-`CoinGecko`, `Random-Word-API`, y el increíble trabajo de `Aki-API`.
-
 *Hecho con dedicación para la comunidad de creadores de bots de WhatsApp.*
+
 </div>

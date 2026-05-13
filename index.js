@@ -68,7 +68,6 @@ say('Made with love by Destroy', {
 })
 
 if (!fs.existsSync('./tmp')) fs.mkdirSync('./tmp', { recursive: true });
-global.conns = global.conns || [];
 const reconnecting = new Set();
 const msgRetryCounterCache = new NodeCache();
 

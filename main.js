@@ -1,5 +1,4 @@
 
-import moment from 'moment';
 import chalk from 'chalk';
 import fs from 'fs';
 import path from 'path';
@@ -29,20 +28,35 @@ const ALLOWED_IN_PRIVATE = new Set([
 
 seeCommands();
 
+// Cached 'today' string — recalculated every 60s instead of per-message
+let _cachedToday = '';
+let _todayExpiry = 0;
+function getToday() {
+  const now = Date.now();
+  if (now > _todayExpiry) {
+    _cachedToday = new Date().toLocaleDateString('es-CO', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-');
+    _todayExpiry = now + 60000;
+  }
+  return _cachedToday;
+}
+
 export default async (client, m) => {
 
   const sender = m.sender;
   if (m.isBot) return
   initDB(m, client)
-  antilink(client, m);
+
+  // antilink solo en grupos (evita overhead en chats privados)
+  if (m.isGroup) antilink(client, m);
 
   // Buffer de mensajes globales para comandos que necesiten contexto (ej. .q N)
   global.msgBuffer = global.msgBuffer || {};
   global.msgBuffer[m.chat] = global.msgBuffer[m.chat] || [];
   global.msgBuffer[m.chat].push(m);
   if (global.msgBuffer[m.chat].length > 50) global.msgBuffer[m.chat].shift();
-
-  const from = m.key.remoteJid;
+  // Evict oldest chats from buffer to prevent unbounded memory growth
+  const bufKeys = Object.keys(global.msgBuffer);
+  if (bufKeys.length > 25) delete global.msgBuffer[bufKeys[0]];
   const botJid = client.user.id.split(':')[0] + '@s.whatsapp.net' || client.user.lid;
   const chat = global.db.data.chats[m.chat] || {}
   const settings = global.db.data.settings[botJid] || {}
@@ -80,12 +94,15 @@ export default async (client, m) => {
     }
   }
 
-  const today = new Date().toLocaleDateString('es-CO', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-');
+  const today = getToday();
   if (!users.stats) users.stats = {};
   if (!users.stats[today]) users.stats[today] = { msgs: 0, cmds: 0 };
   users.stats[today].msgs++;
 
-  if (!settings._prefixCache || !(settings._prefixCache.regex instanceof RegExp) || settings._prefixCache.namebot !== settings.namebot || settings._prefixCache.type !== settings.type || JSON.stringify(settings._prefixCache.prefixSettings) !== JSON.stringify(settings.prefix)) {
+  // Prefix cache — invalidate only when settings actually change (direct comparison, no JSON.stringify)
+  const _pc = settings._prefixCache;
+  const prefixChanged = !_pc || !(_pc.regex instanceof RegExp) || _pc.namebot !== settings.namebot || _pc.type !== settings.type || _pc.prefixSettings !== settings.prefix;
+  if (prefixChanged) {
     const rawBotname = settings.namebot || 'Yuki';
     const cleanBotname = rawBotname.replace(/[^a-zA-Z0-9\s]/g, '')
     const namebot = cleanBotname || 'Yuki';
@@ -147,9 +164,10 @@ export default async (client, m) => {
 
   // MW 1: Console logging (dev only, no user impact)
   if (m.message) {
+    const ts = new Date().toLocaleString('es-CO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false, timeZone:'America/Bogota' });
     console.log(chalk.bold.blue(
       `╭──── CMD ────···\n` +
-      `│ 📅 ${moment().format('DD/MM HH:mm:ss')}\n` +
+      `│ 📅 ${ts}\n` +
       `│ 👤 ${pushname} (${sender.split('@')[0]})\n` +
       `│ ${m.isGroup ? '👥 ' + groupName : '💬 Privado'}\n` +
       `│ ⌨️ ${command}\n` +
@@ -184,7 +202,6 @@ export default async (client, m) => {
   const cmdData = global.comandos.get(command);
   if (!cmdData) {
     if (settings.prefix === true) return;
-    await client.readMessages([m.key]);
     return m.reply(`ꕤ El comando *${command}* no existe.\nUsa *${usedPrefix}help* para ver los comandos.`);
   }
 
@@ -242,9 +259,6 @@ export default async (client, m) => {
   // ═══════════════════════════════════════════════
   //  COMMAND EXECUTION
   // ═══════════════════════════════════════════════
-  if (!users.stats) users.stats = {};
-  if (!users.stats[today]) users.stats[today] = { msgs: 0, cmds: 0 };
-
   try {
     await client.readMessages([m.key]);
     user.usedcommands = (user.usedcommands || 0) + 1;
