@@ -1,75 +1,60 @@
-import { getBotSettings } from '../../utils/tools.js';
-import axios from 'axios';
 import FormData from 'form-data';
-
-function generateUniqueFilename(mime) {
-  const ext = mime.split("/")[1] || "bin"
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-  let id = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("")
-  return `${id}.${ext}`
-}
-
-async function uploadCatbox(buffer, mime) {
-  const form = new FormData()
-  form.append("reqtype", "fileupload")
-  form.append("userhash", "c9bc208e83a7dbc7c7cc68aff")
-  form.append("fileToUpload", buffer, { filename: generateUniqueFilename(mime) })
-  const res = await axios.post("https://catbox.moe/user/api.php", form, { headers: form.getHeaders(), maxContentLength: Infinity, maxBodyLength: Infinity })
-  if (typeof res.data !== "string" || !res.data.startsWith("https://")) {
-    throw new Error("Respuesta inválida de Catbox")
-  }
-  return res.data
-}
+import { getBotSettings, getBotId } from '../../utils/tools.js';
+import axios from 'axios';
 
 export default {
-  command: ['setbotbanner', 'setmenubanner', 'setbotpic'],
+  command: ['setbanner', 'setbotbanner', 'setmenubanner'],
   category: 'owner',
-  desc: 'Cambiar la imagen que aparece en el menú (.help).',
+  desc: 'Cambiar el banner que aparece en el menú.',
   isOwner: true,
   run: async (client, m, args, usedPrefix, command) => {
-    const q = m.quoted ? m.quoted : m
+    const config = getBotSettings(client);
+    
+    const value = args.join(' ').trim()
+    if (!value && !m.quoted && !m.message?.imageMessage && !m.message?.videoMessage)
+      return m.reply('✎ Debes enviar o citar una imagen para cambiar el banner del bot.')
+      
+    if (value.startsWith('http')) {
+      config.icon = value;
+      return m.reply(`✿ Se ha actualizado el banner de *${config.botname || 'YukiBot'}*!`)
+    }
+    
+    const q = m.quoted ? m.quoted : m.message?.imageMessage ? m : m
     const mime = (q.msg || q).mimetype || q.mediaType || ''
     
-    // Check if the user passed a URL directly
-    if (args[0] && args[0].startsWith('http')) {
-      const botSettings = getBotSettings(client);
-      botSettings.icon = args[0];
-      return m.reply('✅ La imagen del menú se actualizó con éxito (URL).');
-    }
-
-    if (!/image/.test(mime))
-      return m.reply('❌ Envía o cita una imagen, o pasa una URL directa para cambiar la portada del menú.')
-    
+    if (!/image\/(png|jpe?g|gif)|video\/mp4/.test(mime))
+      return m.reply('✎ Responde a una imagen válida.')
+      
     try {
       await m.reply('⏳ *Subiendo imagen, espera un momento...*');
-      let img
-      if (m.quoted && typeof m.quoted.download === 'function') {
-        img = await m.quoted.download()
-      } else if (typeof m.download === 'function') {
-        img = await m.download()
-      }
       
-      if (!img || !Buffer.isBuffer(img)) {
+      let buffer;
+      if (typeof q.download === 'function') {
+        buffer = await q.download()
+      } else {
         const { downloadContentFromMessage } = await import('@whiskeysockets/baileys')
         const msgContent = q.msg || q
-        const type = 'image'
+        const type = mime.split('/')[0]
         const stream = await downloadContentFromMessage(msgContent, type)
         const chunks = []
         for await (const chunk of stream) chunks.push(chunk)
-        img = Buffer.concat(chunks)
+        buffer = Buffer.concat(chunks)
       }
       
-      if (!img || !Buffer.isBuffer(img) || img.length < 1000) 
-        return m.reply('❌ No se pudo descargar la imagen. Intenta enviarla de nuevo directamente.')
+      if (!buffer) return m.reply('No se pudo descargar la imagen.')
       
-      const url = await uploadCatbox(img, mime);
-      
-      const botSettings = getBotSettings(client);
-      botSettings.icon = url;
-      
-      m.reply(`✅ La imagen del menú se actualizó con éxito a:\n${url}`);
+      const url = await uploadImage(buffer, mime)
+      config.icon = url
+      return m.reply(`✅ Se ha actualizado el banner de *${config.botname || 'YukiBot'}*!`)
     } catch (e) {
-      return m.reply(`❌ Error al actualizar la portada.\n[Error: *${e.message}*]`)
+      return m.reply(`❌ Error al actualizar el banner: ${e.message}`)
     }
   },
 };
+
+async function uploadImage(buffer, mime) {
+  const body = new FormData()
+  body.append('files[]', buffer, `file.${mime.split('/')[1]}`)
+  const res = await axios.post('https://uguu.se/upload.php', body, { headers: body.getHeaders() })
+  return res.data.files?.[0]?.url
+}

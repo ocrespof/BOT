@@ -7,42 +7,35 @@ export default {
   run: async (client, m, args, usedPrefix, command) => {
     const q = m.quoted ? m.quoted : m
     const mime = (q.msg || q).mimetype || q.mediaType || ''
+    
     if (!/image/.test(mime))
-      return m.reply('❌ Envía o cita una imagen para cambiar la portada del grupo.')
-    try {
-      let img
-      // Use the shimmed download function from message.js (handles all message types)
-      if (m.quoted && typeof m.quoted.download === 'function') {
-        img = await m.quoted.download()
-      } else if (typeof m.download === 'function') {
-        img = await m.download()
-      }
+      return m.reply('《✧》 Te faltó la imagen para cambiar el perfil del grupo.')
       
-      // Fallback: direct download from msg content
-      if (!img || !Buffer.isBuffer(img)) {
+    try {
+      let img;
+      if (typeof q.download === 'function') {
+        img = await q.download()
+      } else {
         const { downloadContentFromMessage } = await import('@whiskeysockets/baileys')
         const msgContent = q.msg || q
-        const type = /image/.test(mime) ? 'image' : /video/.test(mime) ? 'video' : 'document'
-        const stream = await downloadContentFromMessage(msgContent, type)
+        const stream = await downloadContentFromMessage(msgContent, 'image')
         const chunks = []
         for await (const chunk of stream) chunks.push(chunk)
         img = Buffer.concat(chunks)
       }
       
-      if (!img || !Buffer.isBuffer(img) || img.length < 1000) 
-        return m.reply('❌ No se pudo descargar la imagen. Intenta enviarla de nuevo directamente (no reenviada).')
+      if (!img) return m.reply('《✧》 No se pudo descargar la imagen.')
       
       await client.updateProfilePicture(m.chat, img)
-      m.reply('✅ La imagen del grupo se actualizó con éxito.')
+      m.reply('✿ La imagen del grupo se actualizó con éxito.')
     } catch (e) {
-      const msg = e.message || ''
-      if (msg.includes('not-authorized')) {
-        return m.reply('❌ El bot no tiene permisos de administrador para cambiar la portada.')
+      if (e.message.includes('No image processing library available')) {
+         return m.reply('❌ *ERROR CRÍTICO:* Falta la librería para procesar imágenes.\nPor favor apaga el bot y ejecuta en la terminal:\n\n`npm install jimp@0.16.1`')
       }
-      if (msg.includes('media-too-large') || msg.includes('too large')) {
-        return m.reply('❌ La imagen es demasiado grande. Intenta con una imagen más pequeña.')
+      if (e.message.includes('not-authorized')) {
+        return m.reply('❌ El bot no tiene permisos de administrador reales para cambiar la portada (aunque WhatsApp diga que sí).')
       }
-      return m.reply(`❌ Error al actualizar la portada.\n[Error: *${msg}*]\n\n_Tip: Envía la imagen directamente (no como archivo/documento)._`)
+      return m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: *${e.message}*]`)
     }
   },
 };
