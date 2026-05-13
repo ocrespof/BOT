@@ -210,7 +210,7 @@ export default async (client, m) => {
     if (settings.prefix === true) return;
     return m.reply(`ꕤ El comando *${command}* no existe.\nUsa *${usedPrefix}help* para ver los comandos.`);
   }
-  if (cmdData.isAdmin && !isAdmins) return client.reply(m.chat, mess.admin, m);
+  if (cmdData.isAdmin && !isAdmins && !isOwners) return client.reply(m.chat, mess.admin, m);
   if (cmdData.botAdmin && !isBotAdmins) return client.reply(m.chat, mess.botAdmin, m);
 
   // MW 9: Economy guard
