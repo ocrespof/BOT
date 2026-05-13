@@ -151,10 +151,15 @@ export default {
  ⊳ *${prefix}ping* ➭ Velocidad de respuesta
 `.trim();
 
-      await client.sendMessage(m.chat, {
-        text: menu,
-        contextInfo: { mentionedJid: [m.sender] }
-      }, { quoted: m });
+      const pp = botSettings.icon || "https://cdn.yuki-wabot.my.id/files/6n81.jpeg";
+      const redes = botSettings.link || "https://whatsapp.com/channel/0029ValxG7Z8F2pAh5n1lq1W";
+
+      await client.sendContextInfoIndex(m.chat, menu, {}, m, false, [m.sender], {
+        banner: pp,
+        title: namebot,
+        body: 'Menú de Comandos',
+        redes: redes
+      });
     } catch (e) {
       await m.reply(`> Error al cargar el menú.\n[Error: *${e.message}*]`);
     }

@@ -1,5 +1,6 @@
 import { getMedia } from '../../utils/downloader.js';
 import { extractUrl } from '../../utils/extractUrl.js';
+import yts from 'yt-search';
 
 export default {
   command: ['play2', 'mp4', 'ytv', 'video'],
@@ -7,10 +8,16 @@ export default {
   desc: 'Descarga videos de YouTube. Puedes citar un mensaje con enlace.',
   run: async (client, m, args, usedPrefix, command) => {
     try {
-      const text = args.join(' ');
-      const url = extractUrl(m, text) || text;
+      const text = args.join(' ').trim();
+      let url = extractUrl(m, text);
+      if (!url && text) {
+        const search = await yts(text);
+        if (search && search.videos.length > 0) {
+          url = search.videos[0].url;
+        }
+      }
       if (!url) {
-        return m.reply(`> 🎬 *Proporciona un enlace o cita un mensaje con un enlace.*\n\n*📌 Ejemplo:* \`${usedPrefix + command} https://youtu.be/xxxx\`\no responde a un mensaje con un enlace.`);
+        return m.reply(`> 🎬 *Proporciona un enlace, cita un mensaje o escribe una búsqueda.*\n\n*📌 Ejemplo:* \`${usedPrefix + command} alan walker\` o \`${usedPrefix + command} https://youtu.be/xxxx\``);
       }
 
       await m.reply('> ⏳ *Obteniendo el video, por favor espera un momento...*');

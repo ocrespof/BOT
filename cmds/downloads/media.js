@@ -71,7 +71,7 @@ const handlers = {
 
   instagram: async (client, m, text) => {
     const url = extractUrl(m, text);
-    if (!url || !/instagram\.com\/(p|reel|share|tv|stories)\//.test(url)) throw new Error('Enlace de Instagram inválido. Envía un enlace o cita un mensaje que contenga uno.');
+    if (!url || !/instagram\.com\/(p|reel|reels|share|tv|stories)\//.test(url)) throw new Error('Enlace de Instagram inválido. Envía un enlace o cita un mensaje que contenga uno.');
     const data = await getMedia('instagram', url);
     if (!data?.urls?.length) throw new Error('No se pudo obtener el contenido de Instagram.');
 
