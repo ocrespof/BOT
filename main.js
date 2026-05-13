@@ -57,7 +57,7 @@ export default async (client, m) => {
   // Evict oldest chats from buffer to prevent unbounded memory growth
   const bufKeys = Object.keys(global.msgBuffer);
   if (bufKeys.length > 25) delete global.msgBuffer[bufKeys[0]];
-  const botJid = client.user.id.split(':')[0] + '@s.whatsapp.net' || client.user.lid;
+  const botJid = (client?.user?.id?.split(':')[0] || '') + '@s.whatsapp.net';
   const chat = global.db.data.chats[m.chat] || {}
   const settings = global.db.data.settings[botJid] || {}
   const user = global.db.data.users[sender] ||= {}
