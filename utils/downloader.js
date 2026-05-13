@@ -153,9 +153,30 @@ export async function getInstagramMedia(url) {
         const urls = res.result.media.filter(m => m.url).map(m => ({ type: m.isVideo ? 'video' : 'image', url: m.url }));
         return urls.length ? { isCarousel: urls.length > 1, urls, title: res.result.metadata?.author || null, caption: null } : null;
       }
+    },
+    {
+      endpoint: `https://api.ryzendesu.vip/api/downloader/igdl?url=${encodeURIComponent(url)}`,
+      extractor: res => {
+        if (!res.success && !res.data) return null;
+        const data = res.data || res;
+        if (!Array.isArray(data)) return null;
+        const urls = data.map(m => ({ type: m.url.includes('.mp4') || m.type === 'video' ? 'video' : 'image', url: m.url }));
+        return urls.length ? { isCarousel: urls.length > 1, urls, title: null, caption: null } : null;
+      }
+    },
+    {
+      endpoint: `https://api.siputzx.my.id/api/d/igdl?url=${encodeURIComponent(url)}`,
+      extractor: res => {
+        if (!res.status || !res.data) return null;
+        const data = Array.isArray(res.data) ? res.data : [res.data];
+        const urls = data.map(m => ({ type: m.url?.includes('.mp4') || m.type === 'video' ? 'video' : 'image', url: m.url || m }));
+        return urls.length ? { isCarousel: urls.length > 1, urls, title: null, caption: null } : null;
+      }
     }
   ];
-  return executeWithFallback('instagram', url, apis);
+  // axios config to disable SSL verification for Ryzendesu API
+  const customOptions = { skipCache: false };
+  return executeWithFallback('instagram', url, apis, customOptions);
 }
 
 export async function getTikTokData(input, isUrl) {
