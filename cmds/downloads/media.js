@@ -1,5 +1,6 @@
 import { getMedia } from '../../utils/downloader.js';
 import { extractUrl } from '../../utils/extractUrl.js';
+import axios from 'axios';
 
 // --- Constantes ---
 const DELAY_MS = 800;
@@ -13,8 +14,20 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // --- Helpers de Envío ---
 const sendMediaItem = async (client, chatId, url, type, caption, quoted, fileName = '') => {
-  if (type === 'video' || url.includes('.mp4')) {
-    await client.sendMessage(chatId, { video: { url }, caption, mimetype: 'video/mp4', fileName }, { quoted });
+  let isVideo = type === 'video' || url.includes('.mp4');
+  
+  // Si la extensión no es clara y no está marcado explícitamente como video, verificar la cabecera real
+  if (!isVideo && !url.includes('.jpg') && !url.includes('.png') && !url.includes('.webp')) {
+    try {
+      const { headers } = await axios.head(url);
+      if (headers['content-type']?.startsWith('video/')) {
+        isVideo = true;
+      }
+    } catch (e) {}
+  }
+
+  if (isVideo) {
+    await client.sendMessage(chatId, { video: { url }, caption, mimetype: 'video/mp4', fileName: fileName || 'video.mp4' }, { quoted });
   } else {
     await client.sendMessage(chatId, { image: { url }, caption }, { quoted });
   }
