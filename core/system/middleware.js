@@ -132,6 +132,7 @@ export async function dbInitMiddleware(ctx, next) {
   ctx.user = user;
   ctx.users = users;
   ctx.pushname = pushname;
+  ctx.sender = m.sender;
   ctx.groupMetadata = groupMetadata;
   ctx.groupAdmins = groupAdmins;
   ctx.groupName = groupName;
