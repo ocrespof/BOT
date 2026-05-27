@@ -1,6 +1,7 @@
 // utils/ai.js
 import config from '../config.js';
 import axios from 'axios';
+import https from 'https';
 import { isApiOnline, setApiOffline } from './healthChecker.js';
 
 /**
@@ -9,6 +10,9 @@ import { isApiOnline, setApiOffline } from './healthChecker.js';
  */
 
 const AI_TIMEOUT = 12000;
+
+// Agente HTTPS para ignorar certificados autofirmados (ej. Ryzen)
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 export async function getAIResponse({ text, content, prompt, user }) {
   const query = text || content;
@@ -19,11 +23,14 @@ export async function getAIResponse({ text, content, prompt, user }) {
   const totalLength = query.length + logic.length;
 
   const apis = [
-    // 1. Ryzendesu (GPT-4) - GET
+    // 1. Ryzendesu (GPT-4) - GET (Usa agente HTTPS para certificados autofirmados)
     {
       name: 'Ryzen',
       skip: totalLength > 4000 || !isApiOnline('ryzen'),
-      call: () => axios.get(`https://api.ryzendesu.vip/api/ai/chatgpt?text=${encodeURIComponent(query)}&prompt=${encodeURIComponent(logic)}`, { timeout: AI_TIMEOUT }),
+      call: () => axios.get(`https://api.ryzendesu.vip/api/ai/chatgpt?text=${encodeURIComponent(query)}&prompt=${encodeURIComponent(logic)}`, { 
+        timeout: AI_TIMEOUT,
+        httpsAgent
+      }),
       extract: res => res.data?.response
     },
     // 2. Siputzx (Luminai — POST) - POST
@@ -54,7 +61,16 @@ export async function getAIResponse({ text, content, prompt, user }) {
     try {
       const res = await api.call();
       const response = api.extract(res);
-      if (response && typeof response === 'string' && response.length > 5) return response;
+      
+      if (response && typeof response === 'string' && response.length > 5) {
+        // Filtrar respuestas de error del proveedor (ej: "Error: No WIZ data")
+        const lowerResponse = response.toLowerCase().trim();
+        if (lowerResponse.startsWith('error:') || lowerResponse.includes('no wiz data') || lowerResponse.includes('error al procesar')) {
+          console.warn(`[AI Client] Proveedor ${api.name} retornó un error de texto en su respuesta. Saltando al fallback...`);
+          continue;
+        }
+        return response;
+      }
     } catch (err) {
       // Mark as offline if network/timeout error
       const isNetworkError = !err.response || err.response.status >= 500 || err.code === 'ECONNABORTED';
@@ -66,4 +82,3 @@ export async function getAIResponse({ text, content, prompt, user }) {
 
   throw new Error("No se pudo obtener una respuesta de la IA en ninguno de los proveedores.");
 }
-
