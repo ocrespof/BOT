@@ -9,7 +9,7 @@ export default {
     run: async (client, m, args, usedPrefix, command) => {
         let numMsgs = 1;
         let text = '';
-        
+
         // Determinar si el usuario pasó un número (ej: .q 2) o un texto (ej: .q hola)
         if (args.length > 0) {
             if (!isNaN(args[0]) && args.length === 1 && m.quoted) {
@@ -25,7 +25,7 @@ export default {
             const buffer = global.msgBuffer?.[m.chat] || [];
             // Buscar el índice del mensaje al que se respondió
             const startIdx = buffer.findIndex(msg => msg.key.id === m.quoted.id);
-            
+
             if (startIdx !== -1) {
                 // Tomamos desde el mensaje respondido hasta N mensajes adelante
                 const slice = buffer.slice(startIdx, startIdx + numMsgs);
@@ -36,9 +36,9 @@ export default {
                 }));
             } else {
                 // Fallback si el mensaje no está en buffer (por ej. reinicio del bot)
-                messagesToQuote = [{ 
-                    sender: m.quoted.sender, 
-                    pushName: m.quoted.pushName || global.db.data.users[m.quoted.sender]?.name || 'Usuario', 
+                messagesToQuote = [{
+                    sender: m.quoted.sender,
+                    pushName: m.quoted.pushName || global.db.data.users[m.quoted.sender]?.name || 'Usuario',
                     text: m.quoted.text || m.quoted.caption || 'Mensaje multimedia'
                 }];
                 if (numMsgs > 1) {
@@ -52,10 +52,10 @@ export default {
                 if (!q) return m.reply('📝 Por favor, proporciona un texto o responde a un mensaje.\n\nEjemplos:\n* .q <texto>\n* Responde a un mensaje con .q\n* Responde a un mensaje con .q 2 (para capturar 2 mensajes)');
                 text = q.text || q.caption || (q.message?.imageMessage ? '📷 Imagen' : (q.message?.videoMessage ? '🎥 Video' : (q.message?.stickerMessage ? '🧩 Sticker' : 'Mensaje multimedia')));
             }
-            
+
             const who = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : (m.quoted ? m.quoted.sender : m.sender);
             const userName = (m.quoted ? (m.quoted.pushName || global.db.data.users[who]?.name || 'Usuario') : m.pushName) || 'Usuario';
-            
+
             messagesToQuote = [{
                 sender: who,
                 pushName: userName,
@@ -70,7 +70,7 @@ export default {
             try {
                 return await client.profilePictureUrl(jid, 'image');
             } catch {
-                return 'https://i.ibb.co/9HY4wjz/a4c0b1af253197d4837ff6760d5b81c0.jpg'; // Imagen por defecto
+                return 'https://cdn.yuki-wabot.my.id/files/2PVh.jpeg'; // Imagen por defecto
             }
         };
 
@@ -81,7 +81,7 @@ export default {
             const name = msg.pushName || global.db.data.users[jid]?.name || 'Usuario';
             const msgText = msg.text || 'Mensaje';
             const pfp = await getPfp(jid);
-            
+
             apiMessages.push({
                 entities: [],
                 avatar: true,
