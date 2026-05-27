@@ -6,43 +6,90 @@ import Logger from "../../utils/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-global.comandos = new Map();
-global.plugins = {};
-const pluginCache = new Map();
 const commandsFolder = path.join(__dirname, "../../cmds");
 
-// Shared registration logic — used by both initial load and hot-reload
-function registerPlugin(imported, pluginName) {
-  const comando = imported.default;
-  const pluginObj = { ...imported };
-  Object.defineProperty(pluginObj, 'priority', {
-    value: imported.priority || comando?.priority || 0,
-    writable: true, enumerable: true, configurable: true
-  });
-  global.plugins[pluginName] = pluginObj;
-  
-  if (!comando?.command || typeof comando.run !== 'function') return;
-  
-  const cmds = Array.isArray(comando.command) ? comando.command : [comando.command];
-  for (const cmd of cmds) {
-    if (cmd) global.comandos.set(cmd.toLowerCase(), {
-      pluginName,
-      run: comando.run,
-      category: comando.category || 'uncategorized',
-      isOwner: comando.isOwner || false,
-      isAdmin: comando.isAdmin || false,
-      botAdmin: comando.botAdmin || false,
-      isPrivate: comando.isPrivate || false,
-      economy: comando.economy || false,
-      desc: comando.desc || comando.description || '',
-      usage: comando.usage || '',
-      cooldown: comando.cooldown || 0,
-      before: imported.before || null,
-      after: imported.after || null,
-      info: comando.info || {}
+class CommandRegistry {
+  constructor() {
+    this.comandos = new Map();
+    this.plugins = {};
+    this.pluginCache = new Map();
+    
+    // Bind legacy globals for backwards compatibility
+    global.comandos = this.comandos;
+    global.plugins = this.plugins;
+  }
+
+  registerPlugin(imported, pluginName) {
+    const comando = imported.default;
+    const pluginObj = { ...imported };
+    Object.defineProperty(pluginObj, 'priority', {
+      value: imported.priority || comando?.priority || 0,
+      writable: true, enumerable: true, configurable: true
     });
+    this.plugins[pluginName] = pluginObj;
+    
+    if (!comando?.command || typeof comando.run !== 'function') return;
+    
+    const cmds = Array.isArray(comando.command) ? comando.command : [comando.command];
+    for (const cmd of cmds) {
+      if (cmd) {
+        this.comandos.set(cmd.toLowerCase(), {
+          pluginName,
+          run: comando.run,
+          category: comando.category || 'uncategorized',
+          isOwner: comando.isOwner || false,
+          isAdmin: comando.isAdmin || false,
+          botAdmin: comando.botAdmin || false,
+          isPrivate: comando.isPrivate || false,
+          economy: comando.economy || false,
+          desc: comando.desc || comando.description || '',
+          usage: comando.usage || '',
+          cooldown: comando.cooldown || 0,
+          before: imported.before || null,
+          after: imported.after || null,
+          info: comando.info || {}
+        });
+      }
+    }
+  }
+
+  deregisterPlugin(pluginName) {
+    for (const [cmd, data] of this.comandos.entries()) {
+      if (data.pluginName === pluginName) {
+        this.comandos.delete(cmd);
+      }
+    }
+    delete this.plugins[pluginName];
+  }
+
+  getCommand(cmd) {
+    return this.comandos.get(cmd.toLowerCase());
+  }
+
+  getPlugins() {
+    return this.plugins;
+  }
+
+  async loadPluginFile(fullPath, pluginName) {
+    try {
+      const mtime = fs.statSync(fullPath).mtimeMs;
+      const cached = this.pluginCache.get(fullPath);
+      let imported;
+      if (cached && cached.mtime === mtime) {
+        imported = cached.imported;
+      } else {
+        const modulePath = `${pathToFileURL(path.resolve(fullPath)).href}?update=${Date.now()}`;
+        imported = await import(modulePath);
+        this.pluginCache.set(fullPath, { mtime, imported });
+      }
+      this.registerPlugin(imported, pluginName);
+    } catch (e) {
+      Logger.error(`Error loading plugin ${pluginName} (${fullPath}):`, e);
+    }
   }
 }
+
+const registry = new CommandRegistry();
 
 async function seeCommands(dir = commandsFolder) {
   const items = fs.readdirSync(dir);
@@ -53,25 +100,12 @@ async function seeCommands(dir = commandsFolder) {
       continue;
     }
     if (!fileOrFolder.endsWith(".js")) continue;
-    try {
-      const mtime = fs.statSync(fullPath).mtimeMs;
-      const cached = pluginCache.get(fullPath);
-      let imported;
-      if (cached && cached.mtime === mtime) {
-        imported = cached.imported;
-      } else {
-        const modulePath = `${pathToFileURL(path.resolve(fullPath)).href}?update=${Date.now()}`;
-        imported = await import(modulePath);
-        pluginCache.set(fullPath, { mtime, imported });
-      }
-      const pluginName = fileOrFolder.replace(".js", "");
-      registerPlugin(imported, pluginName);
-    } catch (e) {
-      Logger.error(`Error en el plugin ${fileOrFolder}`, e);
-    }
+    
+    const pluginName = fileOrFolder.replace(".js", "");
+    await registry.loadPluginFile(fullPath, pluginName);
   }
   if (dir === commandsFolder) {
-    console.log(chalk.cyanBright(`[ ℹ ] Total de comandos registrados: ${global.comandos.size}`));
+    console.log(chalk.cyanBright(`[ ℹ ] Total de comandos registrados: ${registry.comandos.size}`));
   }
 }
 
@@ -82,32 +116,15 @@ global.reload = async (_ev, fullPath) => {
   debounceMap.set(fullPath, setTimeout(async () => {
     debounceMap.delete(fullPath);
     const filename = path.basename(fullPath);
+    const pluginName = filename.replace(".js", "");
     if (!fs.existsSync(fullPath)) {
       Logger.warn(`Plugin eliminado: ${filename}`);
-      pluginCache.delete(fullPath);
-      const pluginName = filename.replace(".js", "");
-      for (const [cmd, data] of global.comandos.entries()) {
-        if (data.pluginName === pluginName) global.comandos.delete(cmd);
-      }
-      delete global.plugins[pluginName];
+      registry.pluginCache.delete(fullPath);
+      registry.deregisterPlugin(pluginName);
       return;
     }
     try {
-      const mtime = fs.statSync(fullPath).mtimeMs;
-      const cached = pluginCache.get(fullPath);
-      if (cached && cached.mtime === mtime) {
-        // Logger.debug(`Sin cambios: ${filename}`);
-        return;
-      }
-      const modulePath = `${pathToFileURL(path.resolve(fullPath)).href}?update=${Date.now()}`;
-      const imported = await import(modulePath);
-      pluginCache.set(fullPath, { mtime, imported });
-      const pluginName = filename.replace(".js", "");
-      // Remove old commands for this plugin
-      for (const [cmd, data] of global.comandos.entries()) {
-        if (data.pluginName === pluginName) global.comandos.delete(cmd);
-      }
-      registerPlugin(imported, pluginName);
+      await registry.loadPluginFile(fullPath, pluginName);
       Logger.success(`Plugin recargado: ${filename}`);
     } catch (e) {
       Logger.error(`Error al recargar ${filename}`, e);
@@ -138,7 +155,7 @@ startWatcher();
 
 // Auto-limpieza para carpetas eliminadas
 setInterval(async () => {
-  for (const fullPath of pluginCache.keys()) {
+  for (const fullPath of registry.pluginCache.keys()) {
     try {
       await fs.promises.access(fullPath);
     } catch {
@@ -148,3 +165,4 @@ setInterval(async () => {
 }, 10000);
 
 export default seeCommands;
+export { registry };

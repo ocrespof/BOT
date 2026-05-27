@@ -37,7 +37,7 @@ const partitions = {
 // Legacy monolithic file — used for migration only
 const legacyFile = path.join(dbDir, 'database.json')
 
-global.db = {
+export const db = {
   data: {
     users: {},
     chats: {},
@@ -45,78 +45,175 @@ global.db = {
     stickerspack: {}
   },
   READ: false,
-  _snapshots: { users: '{}', chats: '{}', settings: '{}' }
+  _snapshots: { users: '{}', chats: '{}', settings: '{}' },
+  isDirty: false,
+  dirtyPartitions: { users: true, chats: true, settings: true }
 }
-global.DATABASE = global.db
+global.db = db
+global.DATABASE = db
 
-global.loadDatabase = function loadDatabase() {
+export function markPartitionDirty(partition) {
+  if (global.db && global.db.dirtyPartitions) {
+    global.db.dirtyPartitions[partition] = true;
+    global.db.isDirty = true;
+  }
+}
+global.markPartitionDirty = markPartitionDirty;
+
+export function loadDatabase() {
   if (global.db.READ) return global.db.data
   global.db.READ = true
 
-  // 1. Try loading from partitioned files first
-  let loaded = false
+  // Try loading from partitioned files first
   for (const [key, filePath] of Object.entries(partitions)) {
     if (fs.existsSync(filePath)) {
       try {
-        global.db.data[key] = JSON.parse(fs.readFileSync(filePath, 'utf8'))
-        loaded = true
-      } catch {}
+        const fileContent = fs.readFileSync(filePath, 'utf8').trim()
+        if (!fileContent) throw new Error('Empty database file')
+        global.db.data[key] = JSON.parse(fileContent)
+      } catch (err) {
+        Logger.error(`[DB] Archivo corrupto detectado en: ${filePath}. Error: ${err.message}`)
+        
+        // Intentar cargar desde respaldo (.bak)
+        const backupPath = filePath + '.bak'
+        if (fs.existsSync(backupPath)) {
+          try {
+            Logger.warn(`[DB] Intentando restaurar desde el respaldo: ${backupPath}`)
+            const backupContent = fs.readFileSync(backupPath, 'utf8').trim()
+            if (!backupContent) throw new Error('Empty backup file')
+            global.db.data[key] = JSON.parse(backupContent)
+            
+            // Si funciona, restauramos el archivo principal con el respaldo
+            fs.copyFileSync(backupPath, filePath)
+            Logger.info(`[DB] Restauración exitosa. Se recuperaron los datos de la partición '${key}'.`)
+            continue
+          } catch (bakErr) {
+            Logger.error(`[DB] El archivo de respaldo también está corrupto o vacío: ${backupPath}`)
+          }
+        }
+        
+        // Si no hay respaldo o falló, renombramos el corrupto para preservarlo y lanzamos error fatal
+        const corruptPath = filePath + '.corrupt'
+        try {
+          fs.renameSync(filePath, corruptPath)
+          Logger.warn(`[DB] Archivo corrupto renombrado a: ${corruptPath}`)
+        } catch {}
+        
+        Logger.error(`[DB] ERROR FATAL: No se pudo cargar ni recuperar la partición de base de datos '${key}'. El bot se detendrá para proteger tus datos.`)
+        process.exit(1)
+      }
     }
   }
 
-  // 2. Fallback: migrate from legacy monolithic database.json
-  if (!loaded && fs.existsSync(legacyFile)) {
+  // Fallback: migrate from legacy monolithic database.json
+  const partitionsExist = Object.values(partitions).some(fp => fs.existsSync(fp))
+  if (!partitionsExist && fs.existsSync(legacyFile)) {
     try {
       const parsed = JSON.parse(fs.readFileSync(legacyFile, 'utf8'))
       global.db.data = Object.assign(global.db.data, parsed)
       Logger.info('[DB] Migrated from legacy database.json to partitioned files.')
-    } catch {}
+      global.db.isDirty = true
+    } catch (err) {
+      Logger.error('[DB] Error al migrar desde database.json legacy:', err)
+    }
   }
 
   global.db.READ = false
   
   // Take initial snapshots
   for (const key of Object.keys(partitions)) {
-    global.db._snapshots[key] = JSON.stringify(global.db.data[key])
+    global.db._snapshots[key] = JSON.stringify(global.db.data[key] || {})
+    global.db.dirtyPartitions[key] = false
   }
+  global.db.isDirty = false
   return global.db.data
 }
+global.loadDatabase = loadDatabase
 
 let isSaving = false
-global.saveDatabaseAsync = async function saveDatabaseAsync() {
+export async function saveDatabaseAsync() {
   if (isSaving) return
+  if (!global.db.isDirty) return // Skip completely if not dirty
   isSaving = true
   try {
     for (const [key, filePath] of Object.entries(partitions)) {
+      if (!global.db.dirtyPartitions[key]) continue // Skip unchanged partitions
       const dataStr = JSON.stringify(global.db.data[key])
-      if (global.db._snapshots[key] === dataStr) continue // Skip unchanged partitions
+      if (global.db._snapshots[key] === dataStr) {
+        global.db.dirtyPartitions[key] = false
+        continue // Skip if snapshot matches
+      }
       const tmpFile = filePath + '.tmp'
       await fs.promises.writeFile(tmpFile, dataStr)
+      // Save a backup .bak before replacing the main file
+      if (fs.existsSync(filePath)) {
+        await fs.promises.copyFile(filePath, filePath + '.bak').catch(() => {});
+      }
       await fs.promises.rename(tmpFile, filePath)
       global.db._snapshots[key] = dataStr
+      global.db.dirtyPartitions[key] = false
     }
+    global.db.isDirty = Object.values(global.db.dirtyPartitions).some(Boolean)
   } catch (error) {
     Logger.error("Error al guardar particiones de BD", error)
   } finally {
     isSaving = false
   }
 }
+global.saveDatabaseAsync = saveDatabaseAsync
 
-global.saveDatabase = function saveDatabase() {
+export function saveDatabase() {
+  if (!global.db.isDirty) return // Skip completely if not dirty
   for (const [key, filePath] of Object.entries(partitions)) {
+    if (!global.db.dirtyPartitions[key]) continue // Skip unchanged partitions
     const dataStr = JSON.stringify(global.db.data[key])
-    if (global.db._snapshots[key] === dataStr) continue
+    if (global.db._snapshots[key] === dataStr) {
+      global.db.dirtyPartitions[key] = false
+      continue
+    }
     const tmpFile = filePath + '.tmp'
     fs.writeFileSync(tmpFile, dataStr)
+    // Save a backup .bak before replacing the main file
+    if (fs.existsSync(filePath)) {
+      try { fs.copyFileSync(filePath, filePath + '.bak'); } catch {}
+    }
     fs.renameSync(tmpFile, filePath)
     global.db._snapshots[key] = dataStr
+    global.db.dirtyPartitions[key] = false
   }
+  global.db.isDirty = Object.values(global.db.dirtyPartitions).some(Boolean)
 }
+global.saveDatabase = saveDatabase
 
 // Queue save function triggered by main.js — debounced to reduce writes
-global.queueSaveDatabase = debounce(async () => {
-  await global.saveDatabaseAsync()
+export const queueSaveDatabase = debounce(async () => {
+  await saveDatabaseAsync()
 }, 10000, { maxWait: 60000 })
+global.queueSaveDatabase = queueSaveDatabase
+
+function limpiarRolls() {
+  try {
+    const chats = global.db.data.chats
+    const now = Date.now()
+    for (const chatId of Object.keys(chats)) {
+      const chat = chats[chatId]
+      if (!chat.rolls || typeof chat.rolls !== 'object') {
+        chat.rolls = {}
+        continue
+      }
+      for (const msgId of Object.keys(chat.rolls)) {
+        const roll = chat.rolls[msgId]
+        const expirado = roll.expiresAt && now > roll.expiresAt
+        const reclamado = roll.claimed === true
+        if (expirado || reclamado) {
+          delete chat.rolls[msgId]
+        }
+      }
+    }
+  } catch (e) {
+    Logger.error('[DB] Error limpiando rolls', e)
+  }
+}
 
 // Garbage collection — runs once on startup, removes stale data
 function garbageCollect() {
@@ -134,9 +231,12 @@ function garbageCollect() {
   }
   
   if (cleaned > 0) Logger.info(`[GC] Cleaned ${cleaned} inactive user records.`)
+  limpiarRolls()
 }
 
 // Run GC 30 seconds after startup
 setTimeout(garbageCollect, 30000)
+// Run roll cleaner every 30 minutes
+setInterval(limpiarRolls, 30 * 60 * 1000)
 
-export default global.db
+export default db

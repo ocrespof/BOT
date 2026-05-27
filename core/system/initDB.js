@@ -6,7 +6,11 @@ function initDB(m, client) {
   if (!client?.user?.id) return; // Bail early if connection not ready
   const jid = client.user.id.split(':')[0] + '@s.whatsapp.net'
 
-  const settings = global.db.data.settings[jid] ||= {}
+  if (!global.db.data.settings[jid]) {
+    global.db.data.settings[jid] = {};
+    global.markPartitionDirty('settings');
+  }
+  const settings = global.db.data.settings[jid]
   settings.self ??= false
   settings.prefix ??= ['/', '!', '.', '#']
   settings.commandsejecut ??= isNumber(settings.commandsejecut) ? settings.commandsejecut : 0
@@ -21,7 +25,11 @@ function initDB(m, client) {
   settings.owner ??= ''
 
   // ── Usuario Global (XP, nivel, economía, perfil) ──
-  const user = global.db.data.users[m.sender] ||= {}
+  if (!global.db.data.users[m.sender]) {
+    global.db.data.users[m.sender] = {};
+    global.markPartitionDirty('users');
+  }
+  const user = global.db.data.users[m.sender]
   user.name ??= m.pushName
   user.usedcommands = isNumber(user.usedcommands) ? user.usedcommands : 0
   // Economía global
@@ -59,7 +67,11 @@ function initDB(m, client) {
   user.lastMonthlyGlobal ??= 0
 
   // ── Chat/Grupo ──
-  const chat = global.db.data.chats[m.chat] ||= {}
+  if (!global.db.data.chats[m.chat]) {
+    global.db.data.chats[m.chat] = {};
+    global.markPartitionDirty('chats');
+  }
+  const chat = global.db.data.chats[m.chat]
   chat.users ||= {}
   chat.isBanned ??= false
   chat.alerts ??= true
@@ -68,7 +80,10 @@ function initDB(m, client) {
   chat.antilinks ??= true
   chat.economy ??= true
 
-  chat.users[m.sender] ||= {}
+  if (!chat.users[m.sender]) {
+    chat.users[m.sender] = {};
+    global.markPartitionDirty('chats');
+  }
   chat.users[m.sender].stats ||= {}
   chat.users[m.sender].usedTime ??= null
   chat.users[m.sender].lastCmd = isNumber(chat.users[m.sender].lastCmd) ? chat.users[m.sender].lastCmd : 0
