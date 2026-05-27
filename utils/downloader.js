@@ -65,7 +65,7 @@ async function executeWithFallback(platform, identifier, apis, customOptions = {
     try {
       const isPost = api.method === 'POST';
       const options = {
-        timeout: customOptions.timeout || 5000, // Reduced from 10000 to 5000
+        timeout: customOptions.timeout || 12000, // Safe default timeout for scraping
         headers: api.headers || {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
