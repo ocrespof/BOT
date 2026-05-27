@@ -1,5 +1,4 @@
-import { httpGet, httpPost, httpAxios as axios } from '../../utils/http.js';
-import { translate } from '../../utils/translate.js';
+import { httpGet, httpPost, httpAxios as axios, translate } from '../../utils/tools.js';
 
 export default {
   command: ['frase', 'motivacion'],

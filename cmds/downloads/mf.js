@@ -2,9 +2,8 @@ import axios from 'axios'
 import path from 'path'
 import { lookup } from 'mime-types'
 import { getBuffer } from '../../core/message.js'
-import { getBotSettings } from '../../utils/tools.js'
+import { getBotSettings, extractUrl } from '../../utils/tools.js'
 import cheerio from 'cheerio'
-import { extractUrl } from '../../utils/extractUrl.js'
 
 export default {
   command: ['mediafire', 'mf'],

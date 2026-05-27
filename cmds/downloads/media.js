@@ -1,5 +1,5 @@
 import { getMedia } from '../../utils/downloader.js';
-import { extractUrl } from '../../utils/extractUrl.js';
+import { extractUrl } from '../../utils/tools.js';
 import axios from 'axios';
 
 // --- Constantes ---
@@ -187,6 +187,7 @@ export default {
   help: ['fb', 'ig', 'tiktok', 'tiktoksearch', 'pinterest', 'studocu'],
   command: Object.keys(aliasMap),
   category: 'downloads',
+  heavy: true,
   cooldown: 5,
   desc: 'Descarga contenido de múltiples plataformas (FB, IG, TikTok, Pinterest, Studocu). Puedes citar un mensaje con enlace.',
   run: async (client, m, args, usedPrefix, command) => {

@@ -1,10 +1,11 @@
 import { getMedia } from '../../utils/downloader.js';
-import { extractUrl } from '../../utils/extractUrl.js';
+import { extractUrl } from '../../utils/tools.js';
 import yts from 'yt-search';
 
 export default {
   command: ['play', 'mp3', 'p3', 'ytaudio'],
   category: 'downloads',
+  heavy: true,
   desc: 'Descarga audios de YouTube. Puedes citar un mensaje con enlace.',
   run: async (client, m, args, usedPrefix, command) => {
     try {

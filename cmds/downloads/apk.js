@@ -4,6 +4,7 @@ import { getBuffer } from "../../core/message.js"
 export default {
   command: ['apk', 'aptoide', 'apkdl'],
   category: 'downloads',
+  heavy: true,
   desc: 'Descargar APKs.',
   run: async (client, m, args, usedPrefix, command) => {
     if (!args || !args.length) {

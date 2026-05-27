@@ -1,10 +1,11 @@
 import { getMedia } from '../../utils/downloader.js';
-import { extractUrl } from '../../utils/extractUrl.js';
+import { extractUrl } from '../../utils/tools.js';
 import yts from 'yt-search';
 
 export default {
   command: ['play2', 'mp4', 'ytv', 'video'],
   category: 'downloads',
+  heavy: true,
   desc: 'Descarga videos de YouTube. Puedes citar un mensaje con enlace.',
   run: async (client, m, args, usedPrefix, command) => {
     try {

@@ -1,4 +1,4 @@
-import { extractUrl } from '../../utils/extractUrl.js';
+import { extractUrl } from '../../utils/tools.js';
 
 export default {
   command: ['twitter', 'x', 'xdl'],

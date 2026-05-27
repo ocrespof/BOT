@@ -1,5 +1,5 @@
 import { getMedia } from '../../utils/downloader.js';
-import { extractUrl } from '../../utils/extractUrl.js';
+import { extractUrl } from '../../utils/tools.js';
 
 export default {
   command: ['scribd'],
