@@ -14,8 +14,75 @@ import { isApiOnline, setApiOffline } from './healthChecker.js';
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
+// TTL por plataforma (milisegundos). Las descargas directas se cachean 5 min,
+// las búsquedas 2 min porque los resultados cambian más frecuentemente.
+const CACHE_TTL = {
+  download: 5 * 60 * 1000,   // 5 min
+  search:   2 * 60 * 1000,   // 2 min
+};
+
+// Límites de tamaño de archivo para proteger al bot en dispositivos limitados
+const MAX_FILE_SIZE = {
+  video: 100 * 1024 * 1024,  // 100 MB
+  image:  30 * 1024 * 1024,  //  30 MB
+  document: 50 * 1024 * 1024 //  50 MB
+};
+
 function cacheKey(platform, identifier) {
   return `downloader|${platform}|${identifier}`;
+}
+
+/**
+ * Validates a media URL by performing a HEAD request.
+ * Returns { valid, contentType, size } or { valid: false, reason }.
+ */
+export async function validateMediaUrl(url, expectedType = 'video') {
+  const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  try {
+    const { headers } = await axios.head(url, { 
+      timeout: 6000, 
+      headers: { 'User-Agent': userAgent } 
+    });
+    const contentType = headers['content-type'] || '';
+    const size = parseInt(headers['content-length'] || '0', 10);
+    const limit = MAX_FILE_SIZE[expectedType] || MAX_FILE_SIZE.video;
+
+    if (size > limit) {
+      return { valid: false, reason: `Archivo demasiado grande (${(size / 1024 / 1024).toFixed(1)} MB, máx ${(limit / 1024 / 1024).toFixed(0)} MB)`, contentType, size };
+    }
+    return { valid: true, contentType, size };
+  } catch (e) {
+    // Fallback: algunos CDNs bloquean HEAD (retornan 403 o 405). Intentamos un GET parcial con Range.
+    try {
+      const { headers } = await axios.get(url, {
+        timeout: 6000,
+        headers: {
+          'Range': 'bytes=0-0',
+          'User-Agent': userAgent
+        }
+      });
+      const contentType = headers['content-type'] || '';
+      
+      let size = 0;
+      const contentRange = headers['content-range'] || '';
+      if (contentRange) {
+        const match = contentRange.match(/\/(\d+)$/);
+        if (match) size = parseInt(match[1], 10);
+      }
+      if (!size) {
+        size = parseInt(headers['content-length'] || '0', 10);
+      }
+
+      const limit = MAX_FILE_SIZE[expectedType] || MAX_FILE_SIZE.video;
+      if (size > limit) {
+        return { valid: false, reason: `Archivo demasiado grande (${(size / 1024 / 1024).toFixed(1)} MB, máx ${(limit / 1024 / 1024).toFixed(0)} MB)`, contentType, size };
+      }
+      return { valid: true, contentType, size };
+    } catch {
+      // Si ambos fallan, dejamos pasar por seguridad
+      return { valid: true, contentType: null, size: 0 };
+    }
+  }
 }
 
 /**
@@ -51,6 +118,9 @@ function getApiName(url) {
  */
 async function executeWithFallback(platform, identifier, apis, customOptions = {}) {
   const key = cacheKey(platform, identifier);
+  const isSearch = identifier.includes('|search');
+  const ttl = customOptions.ttl || (isSearch ? CACHE_TTL.search : CACHE_TTL.download);
+
   if (!customOptions.skipCache) {
     const cached = cache.get(key);
     if (cached) return cached;
@@ -89,15 +159,16 @@ async function executeWithFallback(platform, identifier, apis, customOptions = {
         }
 
         if (!customOptions.skipCache) {
-          cache.set(key, result);
+          cache.set(key, result, ttl);
         }
         return result;
       }
     } catch (e) {
       // Mark as offline if network/timeout error
-      const isNetworkError = !e.response || e.response.status >= 500 || e.code === 'ECONNABORTED';
+      const isNetworkError = !e.response || e.response?.status >= 500 || e.code === 'ECONNABORTED';
       if (apiName && isNetworkError) {
         setApiOffline(apiName);
+        console.warn(`[Downloader] API ${apiName} marcada offline para ${platform} (${e.code || e.message})`);
       }
     }
     await delay(500);
