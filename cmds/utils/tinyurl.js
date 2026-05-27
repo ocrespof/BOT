@@ -1,4 +1,4 @@
-import { httpGet, httpPost, httpAxios as axios } from '../../utils/http.js';
+import { httpGet, httpPost, httpAxios as axios } from '../../utils/tools.js';
 
 export default {
   command: ['tiny', 'shorturl', 'acortar'],

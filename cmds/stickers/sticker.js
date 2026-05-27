@@ -1,13 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
-import { httpGet, httpPost, httpAxios as axios } from '../../utils/http.js';
+import { httpGet, httpPost, httpAxios as axios } from '../../utils/tools.js';
 import exif from '../../core/exif.js';
 const { writeExif } = exif;
 
 export default {
   command: ['sticker', 's'],
   category: 'stickers',
+  heavy: true,
   desc: 'Crear sticker.',
   run: async (client, m, args, usedPrefix, command) => {
     try {

@@ -27,6 +27,7 @@ export default {
 > _Multimedia y Documentos_
  ⊳ *${prefix}p* ➭ Audio/Video de YouTube
  ⊳ *${prefix}fb* ➭ Videos de Facebook
+ ⊳ *${prefix}fbsearch* ➭ Buscar videos/fotos en FB
  ⊳ *${prefix}tt* ➭ Videos de TikTok
  ⊳ *${prefix}ig* ➭ Reels de Instagram
  ⊳ *${prefix}pin* ➭ Imágenes de Pinterest
