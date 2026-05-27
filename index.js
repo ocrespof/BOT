@@ -15,7 +15,7 @@ global.mess = config.mess;
 global.APIs = config.APIs;
 global.config = config;
 import main from './main.js';
-import events from './cmds/events.js';
+import events from './core/system/events.js';
 import { Browsers, makeWASocket, makeCacheableSignalKeyStore, useMultiFileAuthState, fetchLatestBaileysVersion, jidDecode, DisconnectReason } from "@whiskeysockets/baileys";
 import cfonts from 'cfonts';
 import pino from "pino";
@@ -25,7 +25,7 @@ import fs from "fs";
 import path from "path";
 import readlineSync from "readline-sync";
 import NodeCache from "node-cache";
-import { smsg } from "./core/message.js";
+import { smsg, decorateClient } from "./core/message.js";
 import db from "./core/system/database.js";
 import { exec } from "child_process";
 
@@ -128,20 +128,16 @@ async function cleanCache() {
     console.error(chalk.red('Error en cleanCache: '), e);
   }
 }
-let opcion;
+let opcion = "2";
 if (methodCodeQR) {
   opcion = "1";
-} else if (methodCode) {
-  opcion = "2";
 } else if (!fs.existsSync("./Sessions/Owner/creds.json")) {
-  opcion = readlineSync.question(chalk.bold.white("\nSeleccione una opción:\n") + chalk.blueBright("1. Con código QR\n") + chalk.cyan("2. Con código de texto de 8 dígitos\n--> "));
-  while (!/^[1-2]$/.test(opcion)) {
-    console.log(chalk.bold.redBright(`No se permiten numeros que no sean 1 o 2, tampoco letras o símbolos especiales.`));
-    opcion = readlineSync.question("--> ");
-  }
-  if (opcion === "2") {
-    console.log(chalk.bold.redBright(`\nPor favor, Ingrese el número de WhatsApp.\n${chalk.bold.yellowBright("Ejemplo: +57301******")}\n${chalk.bold.magentaBright('---> ')}`));
-    phoneInput = readlineSync.question("");
+  console.log(chalk.bold.cyan(`\nPor favor, ingrese el número de WhatsApp para vincular por código de texto:\n${chalk.bold.yellow("Ejemplo: +57301******")}`));
+  phoneInput = readlineSync.question(chalk.bold.magenta('---> '));
+  phoneNumber = normalizePhoneForPairing(phoneInput);
+  while (!phoneNumber) {
+    console.log(chalk.bold.redBright("Número no válido. Ingrese nuevamente:"));
+    phoneInput = readlineSync.question(chalk.bold.magenta('---> '));
     phoneNumber = normalizePhoneForPairing(phoneInput);
   }
 }
@@ -171,6 +167,7 @@ async function startBot() {
   });
   global.client = sock;
   sock.isInit = false;
+  decorateClient(sock, null);
   sock.ev.on("creds.update", saveCreds);
 
   if (opcion === "2" && !fs.existsSync("./Sessions/Owner/creds.json")) {

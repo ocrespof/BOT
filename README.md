@@ -41,7 +41,6 @@ bot/
 │   └── utils/            # IA general, OCR, TTS, clima, QR, inspect
 └── utils/
     ├── ai.js             # Cliente IA centralizado con fallback chain
-    ├── extractUrl.js     # Quote-to-download utility
     ├── tools.js          # Funciones compartidas (formateo, XP, grupo)
     ├── downloader.js     # Motor de descargas con fallback APIs
     └── gameEngine.js     # Motor de juegos concurrentes
