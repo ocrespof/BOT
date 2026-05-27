@@ -60,6 +60,20 @@ export function decorateClient(client, store) {
   if (client.isDecorated) return;
   client.isDecorated = true;
 
+  client.sentMessageIds = new Set();
+  const originalSendMessage = client.sendMessage.bind(client);
+  client.sendMessage = async (...args) => {
+    const result = await originalSendMessage(...args);
+    if (result && result.key && result.key.id) {
+      client.sentMessageIds.add(result.key.id);
+      if (client.sentMessageIds.size > 200) {
+        const firstValue = client.sentMessageIds.values().next().value;
+        client.sentMessageIds.delete(firstValue);
+      }
+    }
+    return result;
+  };
+
   client.downloadMediaMessage = downloadMediaMessage;
   client.getFile = getFile;
 
@@ -269,7 +283,7 @@ export async function smsg(client, m, store) {
     m.id = m.key.id;
     m.chat = m.key.remoteJid;
     m.fromMe = m.key.fromMe;
-    m.isBot = ['HSK', 'BAE', 'B1E', '3EB0', 'B24E', 'WA'].some((a) => m.id.startsWith(a) && [12, 16, 20, 22, 40].includes(m.id.length)) || /(.)\1{5,}|[^a-zA-Z0-9]|[^0-9A-F]/.test(m.id) || false;
+    m.isBot = (client.sentMessageIds && client.sentMessageIds.has(m.id)) || ['HSK', 'BAE', 'B1E', 'B24E', 'WA'].some((a) => m.id.startsWith(a) && [12, 16, 20, 22, 40].includes(m.id.length)) || /(.)\1{5,}|[^a-zA-Z0-9]|[^0-9A-F]/.test(m.id) || false;
     m.isGroup = m.chat.endsWith('@g.us');
     if (!m.isGroup && m.chat.endsWith('@lid')) {
       if (typeof client.findJidByLid === 'function') {
@@ -327,7 +341,7 @@ export async function smsg(client, m, store) {
       m.quoted.id = m.msg.contextInfo.stanzaId;
       m.quoted.device = getDevice(m.quoted.id);
       m.quoted.chat = m.msg.contextInfo.remoteJid || m.chat;
-      m.quoted.isBot = m.quoted.id ? ['HSK', 'BAE', 'B1E', '3EB0', 'B24E', 'WA'].some((a) => m.quoted.id.startsWith(a) && [12, 16, 20, 22, 40].includes(m.quoted.id.length)) || /(.)\1{5,}|[^a-zA-Z0-9]|[^0-9A-F]/.test(m.quoted.id) : false;
+      m.quoted.isBot = m.quoted.id ? (client.sentMessageIds && client.sentMessageIds.has(m.quoted.id)) || ['HSK', 'BAE', 'B1E', 'B24E', 'WA'].some((a) => m.quoted.id.startsWith(a) && [12, 16, 20, 22, 40].includes(m.quoted.id.length)) || /(.)\1{5,}|[^a-zA-Z0-9]|[^0-9A-F]/.test(m.quoted.id) : false;
       if (m.msg?.contextInfo?.participant?.endsWith('@lid'))
         m.msg.contextInfo.participant = m?.metadata?.participants?.find((a) => a.lid === m.msg.contextInfo.participant)?.id || m.msg.contextInfo.participant;
       m.quoted.sender = await fixLid2(client, m);
