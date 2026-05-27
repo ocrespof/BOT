@@ -1,4 +1,5 @@
 import axios from 'axios';
+import NodeCache from 'node-cache';
 
 // ── Network ──
 
@@ -130,9 +131,19 @@ export function findLevel(xp, multiplier = global.multiplier || 2) {
   if (xp === Infinity) return Infinity;
   if (isNaN(xp)) return NaN;
   if (xp <= 0) return -1;
-  let level = 0;
-  do { level++; } while (xpRange(level, multiplier).min <= xp);
-  return --level;
+
+  const XP_GROWTH = Math.pow(Math.PI / Math.E, 1.618) * Math.E * 0.75;
+  let approx = Math.floor(Math.pow((xp - 1) / multiplier, 1 / XP_GROWTH));
+  if (approx < 0) approx = 0;
+
+  let level = approx;
+  while (xpRange(level + 1, multiplier).min <= xp) {
+    level++;
+  }
+  while (level > 0 && xpRange(level, multiplier).min > xp) {
+    level--;
+  }
+  return level;
 }
 
 export function canLevelUp(level, xp, multiplier = global.multiplier || 2) {
@@ -167,4 +178,68 @@ export function msParser(str) {
   const unit = match[2].toLowerCase();
   const multipliers = { s: 1000, m: 60000, h: 3600000, d: 86400000 };
   return num * (multipliers[unit] || 0);
+}
+
+// ── HTTP Wrappers (Consolidated) ──
+export async function httpGet(url, options = {}) {
+  const response = await axios.get(url, options);
+  return response.data;
+}
+
+export async function httpPost(url, body, options = {}) {
+  const response = await axios.post(url, body, options);
+  return response.data;
+}
+
+export const httpAxios = axios;
+
+// ── Cache Manager (Consolidated) ──
+class Cache {
+  constructor() {
+    this.store = new NodeCache({ stdTTL: 300, checkperiod: 60, useClones: false });
+  }
+  static key(...parts) {
+    return parts.map(p => typeof p === 'object' ? JSON.stringify(p) : String(p)).join('|');
+  }
+  get(key) {
+    return this.store.get(key);
+  }
+  set(key, value, ttlMs = 5 * 60 * 1000) { 
+    const ttlSeconds = Math.ceil(ttlMs / 1000);
+    this.store.set(key, value, ttlSeconds);
+  }
+  clear() {
+    this.store.flushAll();
+  }
+}
+export const cache = new Cache();
+
+// ── Free Translation Helper (Consolidated) ──
+export async function translate(text, to = 'es', from = 'auto') {
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${from}&tl=${to}&dt=t&q=${encodeURIComponent(text)}`;
+    const res = await axios.get(url);
+    if (res.data && res.data[0]) {
+      return res.data[0].map((item) => item[0]).join('');
+    }
+    return text;
+  } catch (err) {
+    console.error('[Tools] Error al traducir texto', err);
+    return text;
+  }
+}
+
+// ── URL Extractor Helper (Consolidated) ──
+const URL_REGEX_EXTRACT = /https?:\/\/[^\s]+/i;
+export function extractUrl(m, text) {
+  if (text) {
+    const match = text.match(URL_REGEX_EXTRACT);
+    if (match) return match[0];
+  }
+  if (m.quoted) {
+    const quotedText = m.quoted.text || m.quoted.body || '';
+    const match = quotedText.match(URL_REGEX_EXTRACT);
+    if (match) return match[0];
+  }
+  return null;
 }

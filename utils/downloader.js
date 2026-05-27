@@ -5,12 +5,44 @@
  */
 import config from '../config.js';
 import axios from 'axios';
-import { cache } from './cache.js';
+import { cache } from './tools.js';
+import { scrapeFacebookVideo, searchFacebook } from './fbscraper.js';
+import { scrapePinterest } from './pinterestScraper.js';
+import { scrapeTikTokVideo, searchTikTokVideos } from './tiktokScraper.js';
+import { scrapeYouTubeAudio, scrapeYouTubeVideo } from './youtubeScraper.js';
+import { isApiOnline, setApiOffline } from './healthChecker.js';
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 function cacheKey(platform, identifier) {
   return `downloader|${platform}|${identifier}`;
+}
+
+/**
+ * Helper to resolve API name from its endpoint URL
+ */
+function getApiName(url) {
+  if (!url) return null;
+  const urlLower = url.toLowerCase();
+  
+  if (urlLower.includes('yuki-wabot.my.id')) return 'stellar';
+  if (urlLower.includes('vreden.web.id')) return 'vreden';
+  if (urlLower.includes('siputzx.my.id')) return 'siputzx';
+  if (urlLower.includes('ootaizumi.web.id')) return 'ootaizumi';
+  if (urlLower.includes('delirius.store')) return 'delirius';
+  if (urlLower.includes('nekolabs.web.id')) return 'nekolabs';
+  if (urlLower.includes('apiaxi.i11.eu')) return 'axi';
+  if (urlLower.includes('api-faa.my.id')) return 'apifaa';
+  if (urlLower.includes('api.xyro.site')) return 'xyro';
+  if (urlLower.includes('ryzendesu.vip')) return 'ryzen';
+  if (urlLower.includes('aemt.me')) return 'aemt';
+  
+  try {
+    const hostname = new URL(url).hostname;
+    return hostname.replace('api.', '').split('.')[0];
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -25,10 +57,15 @@ async function executeWithFallback(platform, identifier, apis, customOptions = {
   }
 
   for (const api of apis) {
+    const apiName = getApiName(api.endpoint);
+    if (apiName && !isApiOnline(apiName)) {
+      continue; // Skip offline APIs
+    }
+
     try {
       const isPost = api.method === 'POST';
       const options = {
-        timeout: customOptions.timeout || 10000,
+        timeout: customOptions.timeout || 5000, // Reduced from 10000 to 5000
         headers: api.headers || {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
@@ -57,12 +94,17 @@ async function executeWithFallback(platform, identifier, apis, customOptions = {
         return result;
       }
     } catch (e) {
-      // Falla silenciosa: el bucle intentará con la siguiente API de respaldo
+      // Mark as offline if network/timeout error
+      const isNetworkError = !e.response || e.response.status >= 500 || e.code === 'ECONNABORTED';
+      if (apiName && isNetworkError) {
+        setApiOffline(apiName);
+      }
     }
     await delay(500);
   }
   return null;
 }
+
 
 export async function getFacebookMedia(url) {
   const apis = [
@@ -99,7 +141,16 @@ export async function getFacebookMedia(url) {
       }
     }
   ];
-  return executeWithFallback('facebook', url, apis);
+  // Intentar con las APIs externas primero
+  const apiResult = await executeWithFallback('facebook', url, apis);
+  if (apiResult) return apiResult;
+  
+  // Fallback final: scraper GraphQL directo de Facebook
+  try {
+    return await scrapeFacebookVideo(url);
+  } catch {
+    return null;
+  }
 }
 
 export async function getInstagramMedia(url) {
@@ -182,30 +233,6 @@ export async function getInstagramMedia(url) {
 export async function getTikTokData(input, isUrl) {
   if (isUrl) {
     const apis = [
-      {
-        method: 'POST',
-        endpoint: 'https://www.tikwm.com/api/',
-        data: new URLSearchParams({ url: input, hd: 1 }),
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-        extractor: res => {
-          if (res && res.code === 0) {
-            const d = res.data;
-            return {
-              status: true,
-              data: {
-                title: d.title || '',
-                duration: d.duration || 0,
-                dl: d.images ? d.images : (d.hdplay || d.play),
-                author: { nickname: d.author?.nickname || '', unique_id: d.author?.unique_id || '' },
-                stats: { likes: d.digg_count || 0, comments: d.comment_count || 0, views: d.play_count || 0, shares: d.share_count || 0 },
-                created_at: new Date(d.create_time * 1000).toLocaleDateString(),
-                type: d.images ? 'image' : 'video'
-              }
-            };
-          }
-          return null;
-        }
-      },
       { endpoint: `${config.APIs.stellar.url}/dl/tiktok?url=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`, extractor: res => res.status ? res : null },
       { endpoint: `https://api.ryzendesu.vip/api/downloader/ttdl?url=${encodeURIComponent(input)}`, extractor: res => {
           if (!res.success && !res.data) return null;
@@ -214,6 +241,12 @@ export async function getTikTokData(input, isUrl) {
         }
       }
     ];
+    
+    // First try the specialized scraper (which uses tikwm)
+    const primaryResult = await scrapeTikTokVideo(input);
+    if (primaryResult) return primaryResult;
+
+    // Then fallback to other APIs
     return executeWithFallback('tiktok', `${input}|url`, apis);
   } else {
     const apis = [
@@ -231,6 +264,12 @@ export async function getTikTokData(input, isUrl) {
         }
       }
     ];
+
+    // First try the specialized scraper search
+    const primaryResult = await searchTikTokVideos(input, 15);
+    if (primaryResult) return primaryResult;
+
+    // Fallback to other APIs
     return executeWithFallback('tiktok', `${input}|search`, apis);
   }
 }
@@ -276,7 +315,20 @@ export async function getPinterestData(input, isUrl) {
         return (result && result.length > 0 && result.some(r => r.image)) ? result : null;
       }
     }));
-    return executeWithFallback('pinterest', `${input}|search`, apis);
+    
+    // Intentar APIs primero
+    const apiResult = await executeWithFallback('pinterest', `${input}|search`, apis);
+    if (apiResult) return apiResult;
+
+    // Fallback final: Direct Scraper de Pinterest
+    try {
+      const scraped = await scrapePinterest(input, 15);
+      if (scraped && scraped.length > 0) return scraped;
+    } catch {
+      return null;
+    }
+    
+    return null;
   }
 }
 
@@ -292,7 +344,14 @@ export async function getStudocuData(url) {
 }
 
 export async function getYouTubeAudioData(url) {
+  // 1. Try the robust proxy scraper first
+  const primaryResult = await scrapeYouTubeAudio(url);
+  if (primaryResult) return primaryResult;
+
+  // 2. Fallback to external APIs
   const apis = [
+    { endpoint: `https://api.ryzendesu.vip/api/downloader/ytmp3?url=${encodeURIComponent(url)}`, extractor: res => res.url || res.data?.url || res.download ? { url: res.url || res.data?.url || res.download, api: 'RyzenDesu' } : null },
+    { endpoint: `https://api.siputzx.my.id/api/d/ytmp3?url=${encodeURIComponent(url)}`, extractor: res => res.data?.dl ? { url: res.data.dl, api: 'Siputzx' } : null },
     { endpoint: `${config.APIs.axi.url}/down/ytaudio?url=${encodeURIComponent(url)}`, extractor: res => res?.resultado?.url_dl ? { url: res.resultado.url_dl, api: 'Axi' } : null },
     { endpoint: `${config.APIs.ootaizumi.url}/downloader/youtube/play?query=${encodeURIComponent(url)}`, extractor: res => res.result?.download ? { url: res.result.download, api: 'Ootaizumi' } : null },
     { endpoint: `${config.APIs.vreden.url}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=256`, extractor: res => res.result?.download?.url ? { url: res.result.download.url, api: 'Vreden' } : null },
@@ -305,7 +364,13 @@ export async function getYouTubeAudioData(url) {
 }
 
 export async function getYouTubeVideoData(url) {
+  // 1. Try the robust proxy scraper first
+  const primaryResult = await scrapeYouTubeVideo(url);
+  if (primaryResult) return primaryResult;
+
+  // 2. Fallback to external APIs
   const apis = [
+    { endpoint: `https://api.ryzendesu.vip/api/downloader/ytmp4?url=${encodeURIComponent(url)}`, extractor: res => res.url || res.data?.url || res.download ? { url: res.url || res.data?.url || res.download, api: 'RyzenDesu' } : null },
     { endpoint: `${config.APIs.vreden.url}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=720`, extractor: res => res.result?.download?.url ? { url: res.result.download.url, api: 'Vreden' } : null },
     { endpoint: `${config.APIs.stellar.url}/dl/ytdl?url=${encodeURIComponent(url)}&format=mp4&key=${config.APIs.stellar.key}`, extractor: res => res.result?.download ? { url: res.result.download, api: 'Stellar' } : null },
     { endpoint: `${config.APIs.ootaizumi.url}/downloader/youtube?url=${encodeURIComponent(url)}&format=mp4`, extractor: res => res.result?.download ? { url: res.result.download, api: 'Ootaizumi' } : null },
@@ -349,6 +414,7 @@ export async function isImageUrl(url) {
 export async function getMedia(platform, url, options = {}) {
   switch (platform) {
     case 'facebook': return await getFacebookMedia(url);
+    case 'facebook_search': return await searchFacebook(url, options.limit || 10);
     case 'instagram': return await getInstagramMedia(url);
     case 'tiktok': return await getTikTokData(url, options.isUrl);
     case 'pinterest': return await getPinterestData(url, options.isUrl);
