@@ -26,23 +26,22 @@ bot/
 │   ├── message.js        # Message shimming (m.reply, m.quoted.download)
 │   ├── exif.js           # Sticker metadata (EXIF/WebP)
 │   └── system/
-│       ├── commandLoader.js   # Auto-discovery de plugins
+│       ├── commandLoader.js   # Auto-discovery de plugins (soporte ESM)
 │       ├── database.js        # JSON DB con guardado debounced
 │       └── initDB.js          # Schema de usuario/chat/settings
 ├── cmds/
-│   ├── downloads/        # FB, IG, TT, YT, Pinterest, Scribd, GDrive, Mediafire
-│   ├── academia/         # IA académica: solve, resumir, humanizar, plagio, detIA
-│   ├── economia/         # RPG: daily, work, mine, hunt, casino, shop, trade
-│   ├── juegos/           # Ahorcado, TicTacToe, Connect4, Blackjack, Wordle
+│   ├── downloads/        # Descargas unificadas
+│   ├── academia/         # Academia IA simplificada 
+│   ├── economia/         # RPG unificado en 5 áreas
+│   ├── juegos/           # Juegos unificados
 │   ├── stickers/         # Sticker, brat, getpack, emojimix
-│   ├── group/            # Admin: kick, warn, open/close, setgpbanner
+│   ├── group/            # Admin unificado
 │   ├── profile/          # Perfil, nivel, leaderboard
 │   ├── Reactions/        # 60+ reacciones animadas con GIFs de Tenor
-│   └── utils/            # IA general, OCR, TTS, clima, QR, inspect
+│   └── utils/            # Utilidades consolidadas
 └── utils/
     ├── ai.js             # Cliente IA centralizado con fallback chain
     ├── tools.js          # Funciones compartidas (formateo, XP, grupo)
-    ├── downloader.js     # Motor de descargas con fallback APIs
     └── gameEngine.js     # Motor de juegos concurrentes
 ```
 
@@ -58,8 +57,10 @@ bot/
 | **DB guardado debounced** | Escritura diferida, no síncrona por comando |
 | **Purga de dependencias** | Eliminadas: jimp, human-readable, qrcode, lodash, moment (core), aki-api, gradient-string, pdfkit, yargs, node-schedule |
 | **tools.js limpio** | De 302 a 160 LOC: eliminadas 15 funciones muertas |
-| **ESM puro** | Zero `require()` shims, tree-shakeable |
+| **ESM puro** | Zero `require()` shims, tree-shakeable con alias de importación nativos |
 | **Message buffer limitado** | Máximo 25 chats × 50 msgs, con eviction automática |
+| **Álbumes nativos de WhatsApp** | Agrupa búsquedas múltiples (Pinterest, TikTok) en un solo álbum visual, reduciendo el tráfico de red y el spam de burbujas en el chat |
+| **Heurística dinámica de CDNs** | Evasión de bloqueos HTTP (403 Forbidden) en CDNs de Meta (Instagram/Facebook) mediante análisis de patrones de URL y fallbacks automáticos de tipo |
 
 ---
 
@@ -69,11 +70,11 @@ bot/
 
 Todos los comandos soportan **citar un mensaje con enlace** en lugar de escribir la URL:
 
-- **YouTube**: `.p` (audio) / `.play2` (video) con metadata (título, canal, duración)
-- **Facebook**: `.fb` con título, resolución y duración
-- **TikTok/Instagram/Pinterest**: `.tt` / `.ig` / `.pin`
+- **YouTube**: `.p` (audio) / `.play2` (video) con metadata y fallback de alto rendimiento usando APIs dedicadas de Opik (conversión con carátula) y Ryze (video en calidades).
+- **Facebook**: `.fb` con título, resolución y duración, optimizado con un scraper directo de páginas web de reels y fallbacks de GraphQL.
+- **TikTok/Instagram/Pinterest**: `.tt` / `.ig` / `.pin` con evasión inteligente de bloqueos de CDN de Meta y soporte de álbumes.
 - **Twitter/X**: `.twitter`
-- **Documentos**: `.scribd` / `.grive` / `.mf` / `.studocu`
+- **Documentos**: `.scribd` / `.grive` / `.mf` / `.studocu` con verificación de tamaño en cascada.
 
 ### 🎓 Academia (IA Modo Absoluto)
 

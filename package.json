@@ -1,9 +1,15 @@
 {
-  "name": "yukiwabot",
+  "name": "bot",
   "version": "3.0",
   "description": "BOTDEPRUEBA: WhatsApp Bot ultra optimizado para Termux basado en Baileys.",
   "main": "index.js",
   "type": "module",
+  "imports": {
+    "#serialize": "./core/message.js",
+    "#system/*": "./core/system/*.js",
+    "#utils/*": "./utils/*.js",
+    "#config": "./config.js"
+  },
   "scripts": {
     "format": "prettier --write .",
     "start": "node index.js"

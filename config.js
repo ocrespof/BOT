@@ -31,5 +31,6 @@ export default {
         axi: { url: "https://apiaxi.i11.eu", key: null },
         apifaa: { url: "https://api-faa.my.id", key: null },
         xyro: { url: "https://api.xyro.site", key: null },
+        zenzxz: { url: "https://api.zenzxz.my.id", key: null },
     }
 };
