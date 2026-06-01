@@ -1,15 +1,20 @@
-import initDB from './initDB.js';
-import antilink from './antilink.js';
-import config from '../../config.js';
-import NodeCache from 'node-cache';
-import chalk from 'chalk';
-import Logger from '../../utils/logger.js';
-import level from '../../utils/levelHook.js';
-import { registry } from './commandLoader.js';
-import { enqueueTask } from '../../utils/mediaQueue.js';
+import initDB from "./initDB.js";
+import antilink from "./antilink.js";
+import config from "../../config.js";
+import NodeCache from "node-cache";
+import chalk from "chalk";
+import Logger from "../../utils/logger.js";
+import level from "../../utils/levelHook.js";
+import { registry } from "./commandLoader.js";
+import { enqueueTask } from "../../utils/mediaQueue.js";
+import { gameEngine } from "../../utils/gameEngine.js";
 
 // Cache for group metadata
-const groupMetaCache = new NodeCache({ stdTTL: 300, checkperiod: 60, useClones: false });
+const groupMetaCache = new NodeCache({
+  stdTTL: 300,
+  checkperiod: 60,
+  useClones: false,
+});
 global.groupMetaCache = groupMetaCache;
 
 // Cache for spam and cooldowns
@@ -18,41 +23,136 @@ const cooldownCache = new Map();
 const cooldownWarnCache = new Map();
 
 // Intervals for cleaning caches to prevent memory leaks
-setInterval(() => {
-  const now = Date.now();
-  for (const [sender, state] of spamCache.entries()) {
-    if (now - state.lastMessageTime > 600000) spamCache.delete(sender);
-  }
-}, 60 * 60 * 1000);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [sender, state] of spamCache.entries()) {
+      if (now - state.lastMessageTime > 600000) spamCache.delete(sender);
+    }
+  },
+  60 * 60 * 1000,
+);
 
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, expiresAt] of cooldownCache.entries()) {
-    if (now > expiresAt) cooldownCache.delete(key);
-  }
-  for (const [key, warnedAt] of cooldownWarnCache.entries()) {
-    if (now > warnedAt) cooldownWarnCache.delete(key);
-  }
-}, 60 * 60 * 1000);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, expiresAt] of cooldownCache.entries()) {
+      if (now > expiresAt) cooldownCache.delete(key);
+    }
+    for (const [key, warnedAt] of cooldownWarnCache.entries()) {
+      if (now > warnedAt) cooldownWarnCache.delete(key);
+    }
+  },
+  60 * 60 * 1000,
+);
 
 // Set of commands allowed in private chats
 const ALLOWED_IN_PRIVATE = new Set([
-  'play', 'mp3', 'play2', 'mp4', 'facebook', 'fb', 'tiktok', 'tt', 'instagram', 'ig', 'pinterest', 'pin', 'imagen', 'img',
-  'chatgpt', 'ia', 'humanizar', 'hd', 'remini', 'read', 'readviewonce', 'ocr', 'texto', 'ssweb', 'ss', 'inspect', 'get', 'fetch', 'apa', 'citar',
-  'tts', 'audio', 'decir', 'clima', 'weather', 'tiny', 'shorturl', 'acortar', 'recordar', 'remind', 'trad', 'traducir', 'tr', 'qr', 'qrcode', 'yts', 'ytsr',
-  'wiki', 'wikipedia', 'math', 'calcular', 'resumir', 'resumen', 'pomodoro', 'estudio', 'trivia', 'preguntados', 'frase', 'motivacion', 'quote',
-  'corregir', 'ortografia', 'parafrasear', 'reescribir', 'def', 'significado', 'diccionario', 'ruleta', 'sorteo', 'asignar',
-  'menu', 'help', 'allmenu', 'ping', 'p', 'status', 'botstats', 'stats', 'estado',
-  'balance', 'bal', 'saldo', 'profile', 'perfil', 'inv', 'inventory', 'inventario'
+  "play",
+  "mp3",
+  "play2",
+  "mp4",
+  "facebook",
+  "fb",
+  "tiktok",
+  "tt",
+  "instagram",
+  "ig",
+  "pinterest",
+  "pin",
+  "imagen",
+  "img",
+  "chatgpt",
+  "ia",
+  "humanizar",
+  "hd",
+  "remini",
+  "read",
+  "readviewonce",
+  "ocr",
+  "texto",
+  "ssweb",
+  "ss",
+  "inspect",
+  "get",
+  "fetch",
+  "apa",
+  "citar",
+  "tts",
+  "audio",
+  "decir",
+  "clima",
+  "weather",
+  "tiny",
+  "shorturl",
+  "acortar",
+  "recordar",
+  "remind",
+  "trad",
+  "traducir",
+  "tr",
+  "qr",
+  "qrcode",
+  "yts",
+  "ytsr",
+  "wiki",
+  "wikipedia",
+  "math",
+  "calcular",
+  "resumir",
+  "resumen",
+  "pomodoro",
+  "estudio",
+  "trivia",
+  "preguntados",
+  "frase",
+  "motivacion",
+  "quote",
+  "corregir",
+  "ortografia",
+  "parafrasear",
+  "reescribir",
+  "def",
+  "significado",
+  "diccionario",
+  "ruleta",
+  "sorteo",
+  "asignar",
+  "menu",
+  "help",
+  "allmenu",
+  "ping",
+  "p",
+  "status",
+  "botstats",
+  "stats",
+  "estado",
+  "balance",
+  "bal",
+  "saldo",
+  "profile",
+  "perfil",
+  "inv",
+  "inventory",
+  "inventario",
 ]);
 
 // Recalculates Colombia today date string
-let _cachedToday = '';
+let _cachedToday = "";
 let _todayExpiry = 0;
 function getToday() {
   const now = Date.now();
   if (now > _todayExpiry) {
-    _cachedToday = new Date().toLocaleDateString('es-CO', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-');
+    _cachedToday = new Date()
+      .toLocaleDateString("es-CO", {
+        timeZone: "America/Bogota",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      })
+      .split("/")
+      .reverse()
+      .join("-");
     _todayExpiry = now + 60000;
   }
   return _cachedToday;
@@ -64,7 +164,7 @@ function getToday() {
 export async function runPipeline(ctx, middlewares) {
   let index = -1;
   async function dispatch(i) {
-    if (i <= index) throw new Error('next() called multiple times');
+    if (i <= index) throw new Error("next() called multiple times");
     index = i;
     const fn = middlewares[i];
     if (fn) {
@@ -94,37 +194,60 @@ export async function dbInitMiddleware(ctx, next) {
   global.msgBuffer[m.chat] = global.msgBuffer[m.chat] || [];
   global.msgBuffer[m.chat].push(m);
   if (global.msgBuffer[m.chat].length > 50) global.msgBuffer[m.chat].shift();
-  
+
   const bufKeys = Object.keys(global.msgBuffer);
   if (bufKeys.length > 25) delete global.msgBuffer[bufKeys[0]];
 
-  const botJid = (client?.user?.id?.split(':')[0] || '') + '@s.whatsapp.net';
+  const botJid = (client?.user?.id?.split(":")[0] || "") + "@s.whatsapp.net";
   const chat = global.db.data.chats[m.chat] || {};
   const settings = global.db.data.settings[botJid] || {};
-  const user = global.db.data.users[m.sender] ||= {};
-  
+  const user = (global.db.data.users[m.sender] ||= {});
+
   if (!chat.users) chat.users = {};
   if (!chat.users[m.sender]) chat.users[m.sender] = {};
   const users = chat.users[m.sender];
-  const pushname = m.pushName || 'Sin nombre';
+  const pushname = m.pushName || "Sin nombre";
 
   let groupMetadata = null;
   let groupAdmins = [];
-  let groupName = '';
-  
+  let groupName = "";
+
   if (m.isGroup) {
     groupMetadata = groupMetaCache.get(m.chat);
     if (!groupMetadata) {
       groupMetadata = await client.groupMetadata(m.chat).catch(() => null);
       if (groupMetadata) groupMetaCache.set(m.chat, groupMetadata);
     }
-    groupName = groupMetadata?.subject || '';
-    groupAdmins = groupMetadata?.participants.filter(p => (p.admin === 'admin' || p.admin === 'superadmin')) || [];
+    groupName = groupMetadata?.subject || "";
+    groupAdmins =
+      groupMetadata?.participants.filter(
+        (p) => p.admin === "admin" || p.admin === "superadmin",
+      ) || [];
   }
 
-  const isBotAdmins = m.isGroup ? groupAdmins.some(p => p.phoneNumber === botJid || p.jid === botJid || p.id === botJid || p.lid === botJid) : false;
-  const isAdmins = m.isGroup ? groupAdmins.some(p => p.phoneNumber === m.sender || p.jid === m.sender || p.id === m.sender || p.lid === m.sender) : false;
-  const isOwners = [botJid, ...(settings.owner ? [settings.owner] : []), ...config.owner.map(num => num + '@s.whatsapp.net')].includes(m.sender);
+  const isBotAdmins = m.isGroup
+    ? groupAdmins.some(
+        (p) =>
+          p.phoneNumber === botJid ||
+          p.jid === botJid ||
+          p.id === botJid ||
+          p.lid === botJid,
+      )
+    : false;
+  const isAdmins = m.isGroup
+    ? groupAdmins.some(
+        (p) =>
+          p.phoneNumber === m.sender ||
+          p.jid === m.sender ||
+          p.id === m.sender ||
+          p.lid === m.sender,
+      )
+    : false;
+  const isOwners = [
+    botJid,
+    ...(settings.owner ? [settings.owner] : []),
+    ...config.owner.map((num) => num + "@s.whatsapp.net"),
+  ].includes(m.sender);
 
   ctx.botJid = botJid;
   ctx.chat = chat;
@@ -161,38 +284,76 @@ export async function prefixResolverMiddleware(ctx, next) {
   if (!users.stats) users.stats = {};
   if (!users.stats[today]) users.stats[today] = { msgs: 0, cmds: 0 };
   users.stats[today].msgs++;
-  global.markPartitionDirty('chats');
+  global.markPartitionDirty("chats");
   ctx.today = today;
 
   const _pc = settings._prefixCache;
-  const prefixChanged = !_pc || !(_pc.regex instanceof RegExp) || _pc.namebot !== settings.namebot || _pc.type !== settings.type || _pc.prefixSettings !== settings.prefix;
+  const prefixChanged =
+    !_pc ||
+    !(_pc.regex instanceof RegExp) ||
+    _pc.namebot !== settings.namebot ||
+    _pc.type !== settings.type ||
+    _pc.prefixSettings !== settings.prefix;
   if (prefixChanged) {
-    const rawBotname = settings.namebot || 'Yuki';
-    const cleanBotname = rawBotname.replace(/[^a-zA-Z0-9\s]/g, '');
-    const namebot = cleanBotname || 'Yuki';
-    const shortForms = [namebot.charAt(0), namebot.split(" ")[0], namebot.split(" ")[0].slice(0, 2), namebot.split(" ")[0].slice(0, 3)];
-    const prefixes = shortForms.map(name => `${name}`);
+    const rawBotname = settings.namebot || "Yuki";
+    const cleanBotname = rawBotname.replace(/[^a-zA-Z0-9\s]/g, "");
+    const namebot = cleanBotname || "Yuki";
+    const shortForms = [
+      namebot.charAt(0),
+      namebot.split(" ")[0],
+      namebot.split(" ")[0].slice(0, 2),
+      namebot.split(" ")[0].slice(0, 3),
+    ];
+    const prefixes = shortForms.map((name) => `${name}`);
     prefixes.unshift(namebot);
     let prefixReg;
-    if (Array.isArray(settings.prefix) || typeof settings.prefix === 'string') {
-      const prefixArray = Array.isArray(settings.prefix) ? settings.prefix : [settings.prefix];
-      prefixReg = new RegExp('^(' + prefixes.join('|') + ')?(' + prefixArray.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'i');
+    if (Array.isArray(settings.prefix) || typeof settings.prefix === "string") {
+      const prefixArray = Array.isArray(settings.prefix)
+        ? settings.prefix
+        : [settings.prefix];
+      prefixReg = new RegExp(
+        "^(" +
+          prefixes.join("|") +
+          ")?(" +
+          prefixArray
+            .map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+            .join("|") +
+          ")",
+        "i",
+      );
     } else if (settings.prefix === true) {
-      prefixReg = new RegExp('^', 'i');
+      prefixReg = new RegExp("^", "i");
     } else {
-      prefixReg = new RegExp('^(' + prefixes.join('|') + ')?', 'i');
+      prefixReg = new RegExp("^(" + prefixes.join("|") + ")?", "i");
     }
-    settings._prefixCache = { namebot: settings.namebot, type: settings.type, prefixSettings: settings.prefix, regex: prefixReg };
+    settings._prefixCache = {
+      namebot: settings.namebot,
+      type: settings.type,
+      prefixSettings: settings.prefix,
+      regex: prefixReg,
+    };
   }
 
   let prefix = settings._prefixCache.regex;
-  const strRegex = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+  const strRegex = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&");
   let pluginPrefix = client.prefix ? client.prefix : prefix;
-  let matchs = pluginPrefix instanceof RegExp ? [[pluginPrefix.exec(m.text), pluginPrefix]] : Array.isArray(pluginPrefix) ? pluginPrefix.map(p => {
-    let regex = p instanceof RegExp ? p : new RegExp(strRegex(p));
-    return [regex.exec(m.text), regex];
-  }) : typeof pluginPrefix === 'string' ? [[new RegExp(strRegex(pluginPrefix)).exec(m.text), new RegExp(strRegex(pluginPrefix))]] : [[null, null]];
-  let match = matchs.find(p => p[0]);
+  let matchs =
+    pluginPrefix instanceof RegExp
+      ? [[pluginPrefix.exec(m.text), pluginPrefix]]
+      : Array.isArray(pluginPrefix)
+        ? pluginPrefix.map((p) => {
+            let regex = p instanceof RegExp ? p : new RegExp(strRegex(p));
+            return [regex.exec(m.text), regex];
+          })
+        : typeof pluginPrefix === "string"
+          ? [
+              [
+                new RegExp(strRegex(pluginPrefix)).exec(m.text),
+                new RegExp(strRegex(pluginPrefix)),
+              ],
+            ]
+          : [[null, null]];
+  let match = matchs.find((p) => p[0]);
 
   if (!match) {
     if (global.queueSaveDatabase) global.queueSaveDatabase();
@@ -205,6 +366,14 @@ export async function prefixResolverMiddleware(ctx, next) {
 
 export async function pluginInterceptorMiddleware(ctx, next) {
   const { client, m } = ctx;
+  const hasActiveGames = gameEngine.activeSessions > 0;
+  if (hasActiveGames) {
+    console.log(
+      chalk.yellow(
+        `[🎮 GameEngine] Mensaje recibido en chat con juegos activos. Texto: "${m.text || ""}"`,
+      ),
+    );
+  }
   let intercepted = false;
   for (const name in global.plugins) {
     const plugin = global.plugins[name];
@@ -212,12 +381,24 @@ export async function pluginInterceptorMiddleware(ctx, next) {
     if (plugin.disabled) continue;
     if (typeof plugin.before === "function") {
       try {
-        if (await plugin.before(client, m)) {
+        if (hasActiveGames) {
+          console.log(
+            chalk.gray(`  -> Evaluando interceptor 'before' de: ${name}`),
+          );
+        }
+        const res = await plugin.before(client, m);
+        if (hasActiveGames) {
+          console.log(chalk.gray(`  <- Interceptor ${name} retornó: ${res}`));
+        }
+        if (res) {
           intercepted = true;
           break;
         }
       } catch (err) {
-        console.error(`Error en plugin.before -> ${name}`, err);
+        console.error(
+          chalk.red(`[❌ Error] Error en plugin.before -> ${name}:`),
+          err,
+        );
       }
     }
   }
@@ -228,18 +409,23 @@ export async function pluginInterceptorMiddleware(ctx, next) {
 
 export async function commandParserMiddleware(ctx, next) {
   const { m, match, settings } = ctx;
-  
-  let usedPrefix = (match[0] || [])[0] || '';
+
+  let usedPrefix = (match[0] || [])[0] || "";
   let args = m.text.slice(usedPrefix.length).trim().split(" ");
-  let command = (args.shift() || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  let text = args.join(' ');
-  
+  let command = (args.shift() || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  let text = args.join(" ");
+
   if (!command) return;
 
   const cmdData = registry.getCommand(command);
   if (!cmdData) {
     if (settings.prefix === true) return;
-    return m.reply(`ꕤ El comando *${command}* no existe.\nUsa *${usedPrefix}help* para ver los comandos.`);
+    return m.reply(
+      `ꕤ El comando *${command}* no existe.\nUsa *${usedPrefix}help* para ver los comandos.`,
+    );
   }
 
   ctx.usedPrefix = usedPrefix;
@@ -252,37 +438,64 @@ export async function commandParserMiddleware(ctx, next) {
 }
 
 export async function restrictionGuardsMiddleware(ctx, next) {
-  const { client, m, command, usedPrefix, text, isOwners, isAdmins, isBotAdmins, chat, settings, user, cmdData } = ctx;
+  const {
+    client,
+    m,
+    command,
+    usedPrefix,
+    text,
+    isOwners,
+    isAdmins,
+    isBotAdmins,
+    chat,
+    settings,
+    user,
+    cmdData,
+  } = ctx;
 
   if (!isOwners && settings.self) return;
 
-  if (m.chat && !m.chat.endsWith('g.us') && !isOwners) {
+  if (m.chat && !m.chat.endsWith("g.us") && !isOwners) {
     if (!ALLOWED_IN_PRIVATE.has(command)) return;
   }
 
-  if (chat?.isBanned && !(command === 'bot' && text === 'on') && !isOwners) {
-    return m.reply(`El bot *${settings.botname}* está desactivado en este grupo.\n\nUn *administrador* puede activarlo con:\n*${usedPrefix}bot on*`);
+  if (chat?.isBanned && !(command === "bot" && text === "on") && !isOwners) {
+    return m.reply(
+      `El bot *${settings.botname}* está desactivado en este grupo.\n\nUn *administrador* puede activarlo con:\n*${usedPrefix}bot on*`,
+    );
   }
 
   if (m.text && user.banned && !isOwners) {
-    return m.reply(`Estás baneado/a, no puedes usar comandos.\n\n● *Razón ›* ${user.bannedReason || 'Sin especificar'}`);
+    return m.reply(
+      `Estás baneado/a, no puedes usar comandos.\n\n● *Razón ›* ${user.bannedReason || "Sin especificar"}`,
+    );
   }
 
   if (m.isGroup && chat.adminonly && !isAdmins && !isOwners) {
-    return client.reply(m.chat, `⚠️ *MODO ADMIN ACTIVO*\nSolo administradores pueden usar comandos en este momento.`, m);
+    return client.reply(
+      m.chat,
+      `⚠️ *MODO ADMIN ACTIVO*\nSolo administradores pueden usar comandos en este momento.`,
+      m,
+    );
   }
 
   if (cmdData.isOwner && !isOwners) {
     if (settings.prefix === true) return;
-    return m.reply(`ꕤ El comando *${command}* no existe.\nUsa *${usedPrefix}help* para ver los comandos.`);
+    return m.reply(
+      `ꕤ El comando *${command}* no existe.\nUsa *${usedPrefix}help* para ver los comandos.`,
+    );
   }
-  if (cmdData.isAdmin && !isAdmins && !isOwners) return client.reply(m.chat, global.mess.admin, m);
-  if (cmdData.botAdmin && !isBotAdmins) return client.reply(m.chat, global.mess.botAdmin, m);
+  if (cmdData.isAdmin && !isAdmins && !isOwners)
+    return client.reply(m.chat, global.mess.admin, m);
+  if (cmdData.botAdmin && !isBotAdmins)
+    return client.reply(m.chat, global.mess.botAdmin, m);
 
   if (cmdData.economy) {
     const chatEco = global.db.data.chats[m.chat] || {};
     if (!chatEco.economy) {
-      return m.reply(`Los comandos de *Economía* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con:\n*${usedPrefix}economy on*`);
+      return m.reply(
+        `Los comandos de *Economía* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con:\n*${usedPrefix}economy on*`,
+      );
     }
   }
 
@@ -326,7 +539,9 @@ export async function cooldownGuardMiddleware(ctx, next) {
         if (now > warnedAt) {
           const timeLeft = Math.ceil((expiresAt - now) / 1000);
           cooldownWarnCache.set(cdKey, now + 5000);
-          return m.reply(`⏳ Cooldown: espera *${timeLeft}s* para usar *${command}* de nuevo.`);
+          return m.reply(
+            `⏳ Cooldown: espera *${timeLeft}s* para usar *${command}* de nuevo.`,
+          );
         }
         return;
       }
@@ -343,11 +558,18 @@ export async function mediaQueueMiddleware(ctx, next) {
 
   let queueMessage = null;
   const queuePromise = enqueueTask(m, (position) => {
-    client.sendMessage(m.chat, {
-      text: `⏳ *Cola de Procesamiento* ⏳\n\nEl servidor está procesando otras descargas o stickers.\nTu solicitud ha sido encolada en la posición *#${position}*. Por favor espera...`
-    }, { quoted: m }).then(msg => {
-      queueMessage = msg;
-    }).catch(() => {});
+    client
+      .sendMessage(
+        m.chat,
+        {
+          text: `⏳ *Cola de Procesamiento* ⏳\n\nEl servidor está procesando otras descargas o stickers.\nTu solicitud ha sido encolada en la posición *#${position}*. Por favor espera...`,
+        },
+        { quoted: m },
+      )
+      .then((msg) => {
+        queueMessage = msg;
+      })
+      .catch(() => {});
   });
 
   const release = await queuePromise;
@@ -366,20 +588,45 @@ export async function mediaQueueMiddleware(ctx, next) {
 }
 
 export async function executorMiddleware(ctx) {
-  const { client, m, args, usedPrefix, command, text, cmdData, user, settings, users, pushname, groupName, sender, today } = ctx;
+  const {
+    client,
+    m,
+    args,
+    usedPrefix,
+    command,
+    text,
+    cmdData,
+    user,
+    settings,
+    users,
+    pushname,
+    groupName,
+    sender,
+    today,
+  } = ctx;
   const now = Date.now();
 
   // Console logging
   if (m.message) {
-    const ts = new Date().toLocaleString('es-CO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false, timeZone:'America/Bogota' });
-    console.log(chalk.bold.blue(
-      `╭──── CMD ────···\n` +
-      `│ 📅 ${ts}\n` +
-      `│ 👤 ${pushname} (${sender.split('@')[0]})\n` +
-      `│ ${m.isGroup ? '👥 ' + groupName : '💬 Privado'}\n` +
-      `│ ⌨️ ${command}\n` +
-      `╰────────────···`
-    ));
+    const ts = new Date().toLocaleString("es-CO", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "America/Bogota",
+    });
+    console.log(
+      chalk.bold.blue(
+        `╭──── CMD ────···\n` +
+          `│ 📅 ${ts}\n` +
+          `│ 👤 ${pushname} (${sender.split("@")[0]})\n` +
+          `│ ${m.isGroup ? "👥 " + groupName : "💬 Privado"}\n` +
+          `│ ⌨️ ${command}\n` +
+          `╰────────────···`,
+      ),
+    );
   }
 
   try {
@@ -388,7 +635,7 @@ export async function executorMiddleware(ctx) {
     settings.commandsejecut = (settings.commandsejecut || 0) + 1;
     users.usedTime = new Date();
     users.lastCmd = Date.now();
-    
+
     // XP gain
     let xpGain = Math.floor(Math.random() * 16) + 5;
     if (user.xpBoost && user.xpBoost.expiresAt > now) {
@@ -404,11 +651,15 @@ export async function executorMiddleware(ctx) {
     await cmdData.run(client, m, args, usedPrefix, command, text);
   } catch (error) {
     Logger.error(`Error al ejecutar ${command}:`, error);
-    await client.sendMessage(m.chat, { text: `❌ Error al ejecutar el comando\n[${error.message}]` }, { quoted: m });
+    await client.sendMessage(
+      m.chat,
+      { text: `❌ Error al ejecutar el comando\n[${error.message}]` },
+      { quoted: m },
+    );
   } finally {
-    global.markPartitionDirty('users');
-    global.markPartitionDirty('chats');
-    global.markPartitionDirty('settings');
+    global.markPartitionDirty("users");
+    global.markPartitionDirty("chats");
+    global.markPartitionDirty("settings");
     if (global.queueSaveDatabase) global.queueSaveDatabase();
   }
 
