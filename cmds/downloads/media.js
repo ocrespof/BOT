@@ -102,7 +102,15 @@ const handlers = {
       if (!text) throw new Error('Envía un enlace de Facebook o un término de búsqueda.');
       await m.reply('> ⏳ *Buscando en Facebook, espera un momento...*');
 
-      const result = await getMedia('facebook_search', text, { limit: 10 });
+      let result;
+      try {
+        result = await getMedia('facebook_search', text, { limit: 10 });
+      } catch (err) {
+        if (err.message.includes('Cookies')) {
+          throw new Error('La búsqueda de Facebook requiere actualizar las cookies de sesión en `utils/fbscraper.js`. Por favor, descargue directamente ingresando el enlace del video.');
+        }
+        throw err;
+      }
       if (!result || (result.stats.videos === 0 && result.stats.photos === 0)) {
         throw new Error('No se encontraron videos ni fotos para esa búsqueda.');
       }
