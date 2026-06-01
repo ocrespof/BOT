@@ -1,4 +1,4 @@
-import seeCommands from './core/system/commandLoader.js';
+import seeCommands from "./core/system/commandLoader.js";
 import {
   runPipeline,
   dbInitMiddleware,
@@ -9,21 +9,21 @@ import {
   antiSpamGuardMiddleware,
   cooldownGuardMiddleware,
   mediaQueueMiddleware,
-  executorMiddleware
-} from './core/system/middleware.js';
+  executorMiddleware,
+} from "./core/system/middleware.js";
 
 seeCommands();
 
 const middlewares = [
   dbInitMiddleware,
-  prefixResolverMiddleware,
   pluginInterceptorMiddleware,
+  prefixResolverMiddleware,
   commandParserMiddleware,
   restrictionGuardsMiddleware,
   antiSpamGuardMiddleware,
   cooldownGuardMiddleware,
   mediaQueueMiddleware,
-  executorMiddleware
+  executorMiddleware,
 ];
 
 export default async (client, m) => {
