@@ -7,7 +7,10 @@ import axios from 'axios';
 import translate from '@vitalets/google-translate-api';
 import https from 'https';
 
-const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+const normalize = (str) => {
+  if (!str || typeof str !== 'string') return '';
+  return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+};
 
 const getKeywords = (str) => {
   const words = normalize(str).replace(/[^\w\sñ]/gi, '').split(/\s+/);
@@ -107,15 +110,15 @@ const cmdAhorcado = {
     const palabraSecreta = await obtenerPalabra();
     const progreso = Array(palabraSecreta.length).fill('_');
 
+    const caption = `🎮 *EL AHORCADO PRO* 🎮\n\nPalabra: \`${progreso.join(' ')}\`\n💰 Apuesta: ${bet} XP\n\n*Envía una letra* o *la palabra completa* para adivinar.`;
+    await client.sendMessage(m.chat, { image: { url: hangmanImages[0] }, caption }, { quoted: m });
+
     gameEngine.start(m.chat, 'ahorcado', m.sender, {
       palabra: palabraSecreta, progreso, intentos: 0, letrasUsadas: [], maxIntentos: 6, apuesta: bet, jugador: m.sender,
     }, {
       timeout: 180000,
-      onTimeout: () => client.sendMessage(m.chat, { text: `⏰ Tiempo agotado. La palabra era: *${palabraSecreta}*` }),
+      onTimeout: () => client.sendMessage(m.chat, { text: `⏰ Tiempo agotado. La palabra era: *${palabraSecreta}*` }).catch(() => {}),
     });
-
-    const caption = `🎮 *EL AHORCADO PRO* 🎮\n\nPalabra: \`${progreso.join(' ')}\`\n💰 Apuesta: ${bet} XP\n\n*Envía una letra* o *la palabra completa* para adivinar.`;
-    await client.sendMessage(m.chat, { image: { url: hangmanImages[0] }, caption }, { quoted: m });
   }
 };
 
@@ -150,15 +153,6 @@ const cmdAdivinanza = {
 
     const recompensa = 350;
 
-    gameEngine.start(m.chat, 'adivinanza', m.sender, {
-      respuesta: answer
-    }, {
-      timeout: 90000,
-      onTimeout: () => {
-        client.sendMessage(m.chat, { text: `⏰ *TIEMPO AGOTADO*\nNadie pudo resolver la adivinanza.\nLa respuesta era: *${answer}* 😅` });
-      }
-    });
-
     const keywords = getKeywords(answer);
     let hint = "";
     if (keywords.length > 0) {
@@ -167,6 +161,15 @@ const cmdAdivinanza = {
 
     const caption = `🧠 *ACERTIJO PÚBLICO* 🧠\n\n${question}\n\n${hint}\n\n⏳ Tienes 90 segundos.\n💰 Premio: ${recompensa} XP`;
     await client.sendMessage(m.chat, { text: caption });
+
+    gameEngine.start(m.chat, 'adivinanza', m.sender, {
+      respuesta: answer
+    }, {
+      timeout: 90000,
+      onTimeout: () => {
+        client.sendMessage(m.chat, { text: `⏰ *TIEMPO AGOTADO*\nNadie pudo resolver la adivinanza.\nLa respuesta era: *${answer}* 😅` }).catch(() => {});
+      }
+    });
   }
 };
 
@@ -210,19 +213,19 @@ const cmdTrivia = {
       rText = q.r;
     }
 
+    const hint = rText.length > 2 ? `💡 Pista: Empieza por "${rText[0].toUpperCase()}" y tiene ${rText.replace(/\s/g, '').length} letras.` : "";
+
+    await client.sendMessage(m.chat, { text: `┌───「 🧠 *TRIVIA GENERAL* 🧠 」───┐\n│ *Pregunta:* ${pText}\n│\n│ ${hint}\n│ 💰 *Apuesta:* ${bet} XP\n│ ⏳ Tienes *45 segundos* para responder.\n└────────────────────────┘` });
+
     gameEngine.start(m.chat, 'trivia', m.sender, {
       answer: rText,
       apuesta: bet,
     }, {
       timeout: 45000,
       onTimeout: () => {
-        client.sendMessage(m.chat, { text: `┌───「 ⏳ *TIEMPO AGOTADO* ⏳ 」───┐\n│ Nadie respondió a tiempo.\n│ La respuesta correcta era: *${rText}*\n└──────────────────────────┘` });
+        client.sendMessage(m.chat, { text: `┌───「 ⏳ *TIEMPO AGOTADO* ⏳ 」───┐\n│ Nadie respondió a tiempo.\n│ La respuesta correcta era: *${rText}*\n└──────────────────────────┘` }).catch(() => {});
       }
     });
-
-    const hint = rText.length > 2 ? `💡 Pista: Empieza por "${rText[0].toUpperCase()}" y tiene ${rText.replace(/\s/g, '').length} letras.` : "";
-
-    await client.sendMessage(m.chat, { text: `┌───「 🧠 *TRIVIA GENERAL* 🧠 」───┐\n│ *Pregunta:* ${pText}\n│\n│ ${hint}\n│ 💰 *Apuesta:* ${bet} XP\n│ ⏳ Tienes *45 segundos* para responder.\n└────────────────────────┘` });
   }
 };
 
@@ -242,14 +245,14 @@ const cmdWordle = {
 
     const palabra = palabras5[Math.floor(Math.random() * palabras5.length)].toUpperCase();
 
+    await client.sendMessage(m.chat, { text: `🟩🟨⬛ *W O R D L E* ⬛🟨🟩\n\nAdivina la palabra de *5 letras* en *6 intentos*.\n\n🟩 = Letra correcta en su posición\n🟨 = Letra correcta en posición incorrecta\n⬛ = Letra no existe en la palabra\n\n💰 *Apuesta:* ${bet} XP\n⏳ Tienes *5 minutos*.\n\n*Escribe una palabra de 5 letras para empezar.*` });
+
     gameEngine.start(m.chat, 'wordle', m.sender, {
       palabra, intentos: [], maxIntentos: 6, apuesta: bet, jugador: m.sender,
     }, {
       timeout: 300000,
-      onTimeout: () => client.sendMessage(m.chat, { text: `⏰ ¡Tiempo agotado!\nLa palabra era: *${palabra}*` }),
+      onTimeout: () => client.sendMessage(m.chat, { text: `⏰ ¡Tiempo agotado!\nLa palabra era: *${palabra}*` }).catch(() => {}),
     });
-
-    await client.sendMessage(m.chat, { text: `🟩🟨⬛ *W O R D L E* ⬛🟨🟩\n\nAdivina la palabra de *5 letras* en *6 intentos*.\n\n🟩 = Letra correcta en su posición\n🟨 = Letra correcta en posición incorrecta\n⬛ = Letra no existe en la palabra\n\n💰 *Apuesta:* ${bet} XP\n⏳ Tienes *5 minutos*.\n\n*Escribe una palabra de 5 letras para empezar.*` });
   }
 };
 
