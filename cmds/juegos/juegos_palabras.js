@@ -45,7 +45,15 @@ async function obtenerPalabra() {
   } catch (e) {
     console.error("API de palabras falló, usando fallback");
   }
-  const fallback = ["PROGRAMACION", "COMPUTADORA", "INTELIGENCIA", "WHATSAPP", "JAVASCRIPT", "TECLADO", "DESARROLLADOR"];
+  const fallback = [
+    "PROGRAMACION", "COMPUTADORA", "INTELIGENCIA", "WHATSAPP", "JAVASCRIPT", "TECLADO", "DESARROLLADOR",
+    "ESPAÑA", "TELEFONO", "ESCRITORIO", "PANTALLA", "AURICULARES", "VENTANA", "BIBLIOTECA", "DICCIONARIO",
+    "ASTRONOMIA", "GEOGRAFIA", "HISTORIA", "LITERATURA", "CANTANTE", "PELICULA", "UNIVERSO", "GALAXIA",
+    "SISTEMA", "PLANETA", "SATELITE", "GRAVEDAD", "CIENCIA", "TECNOLOGIA", "INGENIERIA", "MATEMATICAS",
+    "QUIMICA", "BIOLOGIA", "FISICA", "MEDICINA", "ARQUITECTURA", "CULTURA", "DEPORTE", "FUTBOL",
+    "BALONCESTO", "ATLETISMO", "NATACION", "GIMNASIA", "AVENTURA", "MISTERIO", "FANTASIA", "LEYENDA",
+    "MITOLOGIA", "HISTORIETA", "DIVERSION", "ENTRETENIMIENTO"
+  ];
   return fallback[Math.floor(Math.random() * fallback.length)];
 }
 
@@ -147,8 +155,23 @@ const cmdAdivinanza = {
       answer = parts[1]?.trim() || data.answer;
     } catch (e) {
       console.error("API de adivinanzas falló, usando fallback local:", e.message);
-      question = "Soy más grande que la Tierra, pero no peso nada. ¿Qué soy?";
-      answer = "El universo";
+      const riddlesFallback = [
+        { q: "Soy más grande que la Tierra, pero no peso nada. ¿Qué soy?", a: "El universo" },
+        { q: "Tengo agujas pero no sé coser, tengo números pero no sé leer. ¿Qué soy?", a: "El reloj" },
+        { q: "Siempre de camino, nunca me canso, a veces voy lento, a veces avanzo. ¿Qué soy?", a: "El río" },
+        { q: "Blanco por dentro, verde por fuera. Si quieres que te lo diga, espera.", a: "La pera" },
+        { q: "Vuelo sin alas, lloro sin ojos. ¿Qué soy?", a: "La nube" },
+        { q: "Tengo llaves pero no abro ninguna puerta. ¿Qué soy?", a: "El piano" },
+        { q: "Oro parece, plata no es. El que no lo adivine, bien tonto es.", a: "El plátano" },
+        { q: "Cuanto más caliente estoy, más fresco me consideran. ¿Qué soy?", a: "El pan" },
+        { q: "Te la digo y no me entiendes, te la vuelvo a repetir y no me comprendes. ¿Qué es?", a: "La tela" },
+        { q: "Tiene dientes pero no come, tiene cabeza pero no piensa. ¿Qué es?", a: "El ajo" },
+        { q: "Fui por él y no lo traje, me quedé sin él y lo traje. ¿Qué es?", a: "El camino" },
+        { q: "Pasa por el agua y no se moja, pasa por el fuego y no se quema. ¿Qué es?", a: "La sombra" }
+      ];
+      const randomRiddle = riddlesFallback[Math.floor(Math.random() * riddlesFallback.length)];
+      question = randomRiddle.q;
+      answer = randomRiddle.a;
     }
 
     const recompensa = 350;
