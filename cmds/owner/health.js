@@ -1,12 +1,17 @@
 import axios from 'axios';
 import { UI } from '../../utils/ui.js';
+import { resetAllApis } from '../../utils/healthChecker.js';
 
 export default {
   command: ['health', 'api', 'apis'],
   category: 'owner',
   isOwner: true,
-  desc: 'Verifica el estado de las APIs externas de Inteligencia Artificial',
+  desc: 'Verifica o restablece el estado de las APIs externas',
   run: async (client, m, args, usedPrefix, command) => {
+    if (args[0] === 'reset' || args[0] === 'reactivar' || args[0] === 'clear') {
+      resetAllApis();
+      return m.reply('✅ Todas las APIs externas han sido restablecidas manualmente a **ONLINE** en el HealthChecker y Circuit Breaker.');
+    }
     const key = (await client.sendMessage(m.chat, { text: `> ${UI.symbols.loading} Comprobando el estado de las APIs, por favor espera...` }, { quoted: m })).key;
 
     const endpoints = [
