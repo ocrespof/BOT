@@ -101,3 +101,13 @@ setInterval(runHealthCheck, 10 * 60 * 1000);
 
 // Ejecutar chequeo inicial 5 segundos después del arranque
 setTimeout(runHealthCheck, 5000);
+
+/**
+ * Restablece todas las APIs a ONLINE manualmente
+ */
+export function resetAllApis() {
+  for (const key of apiStatus.keys()) {
+    apiStatus.set(key, true);
+  }
+  Logger.info(`[HealthChecker] Todas las APIs se han restablecido manualmente a ONLINE.`);
+}
