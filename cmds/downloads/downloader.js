@@ -6,7 +6,6 @@
 import config from '../../config.js';
 import axios from 'axios';
 import { cache } from '../../utils/tools.js';
-import { scrapeFacebookVideo, searchFacebook } from '../../utils/fbscraper.js';
 import { scrapePinterest } from '../../utils/pinterestScraper.js';
 import { scrapeTikTokVideo, searchTikTokVideos } from '../../utils/tiktokScraper.js';
 import { scrapeYouTubeAudio, scrapeYouTubeVideo } from '../../utils/youtubeScraper.js';
@@ -224,12 +223,7 @@ export async function getFacebookMedia(url) {
     console.error("[Facebook Fallback Direct Error]:", e.message);
   }
   
-  // Fallback final: scraper GraphQL directo de Facebook
-  try {
-    return await scrapeFacebookVideo(url);
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 const FB_RE_URL = /(?:https?:\/\/)?(?:www\.|m\.|web\.|l\.)?facebook\.com\/[^\s<>"']+|fb\.watch\/[^\s<>"']+/i;
@@ -826,7 +820,10 @@ export async function getTwitterMedia(url) {
 export async function getMedia(platform, url, options = {}) {
   switch (platform) {
     case 'facebook': return await getFacebookMedia(url);
-    case 'facebook_search': return await searchFacebook(url, options.limit || 10);
+    case 'facebook_search':
+      throw new Error(
+        'La búsqueda de Facebook no está disponible. Por favor, descargue directamente ingresando el enlace del video.'
+      );
     case 'instagram': return await getInstagramMedia(url);
     case 'tiktok': return await getTikTokData(url, options.isUrl);
     case 'pinterest': return await getPinterestData(url, options.isUrl);
