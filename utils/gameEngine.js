@@ -47,7 +47,13 @@ class GameEngine {
     const timeoutId = setTimeout(() => {
       if (this.sessions.has(key)) {
         this.sessions.delete(key);
-        if (onTimeout) onTimeout();
+        if (onTimeout) {
+          try {
+            onTimeout();
+          } catch (err) {
+            console.error(`Error in game timeout callback for ${key}:`, err);
+          }
+        }
       }
     }, timeout);
 
