@@ -23,7 +23,10 @@ class CommandRegistry {
     const defaultExport = imported.default;
     const commands = Array.isArray(defaultExport) ? defaultExport : (defaultExport ? [defaultExport] : []);
     
-    const pluginObj = { ...imported };
+    const pluginObj = {};
+    for (const key of Object.getOwnPropertyNames(imported)) {
+      pluginObj[key] = imported[key];
+    }
     const firstCmd = commands[0];
     Object.defineProperty(pluginObj, 'priority', {
       value: imported.priority || firstCmd?.priority || 0,
