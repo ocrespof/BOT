@@ -86,6 +86,7 @@ function initDB(m, client) {
   chat.sWelcome ??= ''
   chat.sGoodbye ??= ''
   chat.warnLimit ??= 3
+  chat.expulsar ??= 1
 
   if (!chat.users[m.sender]) {
     chat.users[m.sender] = {};

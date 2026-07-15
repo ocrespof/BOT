@@ -146,7 +146,9 @@ export const defChat = {
   primaryBot: null,
   antilinks: 1,
   antistatus: 0,
-  rolls: '{}'
+  rolls: '{}',
+  warnLimit: 3,
+  expulsar: 1
 };
 
 export const defChatUser = {
@@ -218,9 +220,10 @@ export function initDB() {
       economy BOOLEAN DEFAULT 1,
       adminonly BOOLEAN DEFAULT 0,
       primaryBot TEXT,
-      antilinks BOOLEAN DEFAULT 1,
       antistatus BOOLEAN DEFAULT 0,
-      rolls TEXT DEFAULT '{}'
+      rolls TEXT DEFAULT '{}',
+      warnLimit INTEGER DEFAULT 3,
+      expulsar BOOLEAN DEFAULT 1
     )`);
   db.exec(`
     CREATE TABLE IF NOT EXISTS chat_users (
@@ -299,7 +302,7 @@ export function getChat(id) {
   if (cached !== undefined) return cached;
   let chat = stmt('SELECT * FROM chats WHERE id = ?').get(id);
   if (!chat) {
-    stmt(`INSERT OR IGNORE INTO chats (id, isBanned, welcome, goodbye, sWelcome, sGoodbye, nsfw, alerts, gacha, economy, adminonly, primaryBot, antilinks, antistatus, rolls) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(id, defChat.isBanned, defChat.welcome, defChat.goodbye, defChat.sWelcome, defChat.sGoodbye, defChat.nsfw, defChat.alerts, defChat.gacha, defChat.economy, defChat.adminonly, defChat.primaryBot, defChat.antilinks, defChat.antistatus, defChat.rolls);
+    stmt(`INSERT OR IGNORE INTO chats (id, isBanned, welcome, goodbye, sWelcome, sGoodbye, nsfw, alerts, gacha, economy, adminonly, primaryBot, antilinks, antistatus, rolls, warnLimit, expulsar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(id, defChat.isBanned, defChat.welcome, defChat.goodbye, defChat.sWelcome, defChat.sGoodbye, defChat.nsfw, defChat.alerts, defChat.gacha, defChat.economy, defChat.adminonly, defChat.primaryBot, defChat.antilinks, defChat.antistatus, defChat.rolls, defChat.warnLimit, defChat.expulsar);
     chat = stmt('SELECT * FROM chats WHERE id = ?').get(id);
   }
   chat = parseRow(chat, chatJsonFields);
