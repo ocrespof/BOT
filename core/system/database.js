@@ -999,6 +999,7 @@ const exportsObj = {
 };
 
 global.db = exportsObj;
+global.markPartitionDirty = () => {};
 global.DATABASE = exportsObj;
 
 export default exportsObj;
