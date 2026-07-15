@@ -1,5 +1,9 @@
 import { resolveLidToRealJid } from "../../core/utils.js"
 import axios from 'axios'
+import config from "../../config.js"
+
+const symbols = ['(⁠◠⁠‿⁠◕⁠)', '˃͈◡˂͈', '૮(˶ᵔᵕᵔ˶)ა', '(づ｡◕‿‿◕｡)づ', '(✿◡‿◡)', '(꒪⌓꒪)', '(✿✪‿✪｡)', '(*≧ω≦)', '(✧ω◕)', '˃ 𖥦 ˂', '(⌒‿⌒)', '(¬‿¬)', '(✧ω✧)', '✿(◕ ‿◕)✿', 'ʕ•́ᴥ•̀ʔっ', '(ㅇㅅㅇ❀)', '(∩︵∩)', '(✪ω✪)', '(✯◕‿◕✯)', '(•̀ᴗ•́)و ̑̑'];
+function getRandomSymbol() { return symbols[Math.floor(Math.random() * symbols.length)]; }
 
 // ── Captions ──
 const captions = {
@@ -152,21 +156,14 @@ const allCommands = Object.values(alias).flat();
  */
 async function fetchGifBuffer(query) {
   try {
-    const tenorKey = 'LIVDSRZULELA';
-    const res = await axios.get(`https://api.tenor.com/v1/search`, {
-      params: { key: tenorKey, q: `the amazing digital circus ${query}`, limit: 10 },
-      timeout: 8000
+    const api = config.APIs.stellar;
+    const res = await axios.get(`${api.url}/sfw/interaction`, {
+      params: { inter: query, key: api.key },
+      timeout: 10000
     });
-
-    if (!res.data?.results?.length) return null;
-
-    const randomGif = res.data.results[Math.floor(Math.random() * res.data.results.length)];
-    const media = randomGif.media?.[0];
-    const mp4Url = media?.mp4?.url || media?.tinymp4?.url || media?.nanogif?.url;
-
-    return mp4Url || null;
+    return res.data?.result || res.data?.url || res.data?.data || null;
   } catch (error) {
-    console.error("[Tenor API Error]:", error.message);
+    console.error("[Reaction API Error]:", error.message);
     return null;
   }
 }
@@ -174,7 +171,7 @@ async function fetchGifBuffer(query) {
 export default {
   command: allCommands,
   category: 'anime',
-  desc: 'Reacciones animadas con GIFs de The Amazing Digital Circus.',
+  desc: 'Comandos de reacciones de anime.',
   run: async (client, m, args, usedPrefix, command) => {
     const currentCommand = Object.keys(alias).find(key => alias[key].includes(command)) || command;
     if (!captions[currentCommand]) return;
@@ -187,15 +184,13 @@ export default {
     const genero = global.db.data.users[m.sender]?.genre || 'Oculto';
     const captionText = captions[currentCommand](fromName, toName, genero);
     const caption = who !== m.sender
-      ? `\`${fromName}\` ${captionText} \`${toName}\`.`
-      : `\`${fromName}\` ${captionText}`;
+      ? `\`${fromName}\` ${captionText} \`${toName}\` ${getRandomSymbol()}.`
+      : `\`${fromName}\` ${captionText} ${getRandomSymbol()}.`;
 
     try {
-      // Buscar animación de The Amazing Digital Circus en Tenor (formato MP4 válido para WhatsApp)
       let videoUrl = await fetchGifBuffer(currentCommand);
 
       if (videoUrl) {
-        // Enviar como GIF animado (reproducible en WhatsApp)
         await client.sendMessage(m.chat, {
           video: { url: videoUrl },
           mimetype: 'video/mp4',
@@ -204,7 +199,6 @@ export default {
           mentions: [who, m.sender]
         }, { quoted: m });
       } else {
-        // Si todo falla, enviar solo el texto
         await client.sendMessage(m.chat, { text: caption, mentions: [who, m.sender] }, { quoted: m });
       }
     } catch (e) {
