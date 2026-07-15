@@ -22,8 +22,31 @@ export default {
       }
       await m.react('🕒');
       const quoteObj = { type: 'quote', format: 'png', backgroundColor: '#000000', width: 512, height: 768, scale: 2, messages: [{ entities: [], avatar: true, from: { id: 1, name: nombre, photo: { url: pp } }, text: textFinal, replyMessage: {} }] };
-      const json = await axios.post('https://bot.lyo.su/quote/generate', quoteObj, { headers: { 'Content-Type': 'application/json' } });
-      const buffer = Buffer.from(json.data.result.image, 'base64');
+      const QUOTE_ENDPOINTS = [
+        'https://bot.lyo.su/quote/generate',
+        'https://quote.yuri.ly/quote/generate'
+      ];
+      let res;
+      let apiError = null;
+      for (const endpoint of QUOTE_ENDPOINTS) {
+        try {
+          res = await axios.post(endpoint, quoteObj, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 15000
+          });
+          if (res.data?.result?.image) {
+            apiError = null;
+            break;
+          }
+        } catch (err) {
+          apiError = err;
+          console.warn(`Quote API failed for endpoint ${endpoint}:`, err.message);
+        }
+      }
+      if (apiError || !res?.data?.result?.image) {
+        throw apiError || new Error('No se pudo obtener la imagen de ningún endpoint de Quote API');
+      }
+      const buffer = Buffer.from(res.data.result.image, 'base64');
       const user = db.users[m.sender] || {}
       const name = user.name || m.sender.split('@')[0];
       const meta1 = user.metadatos ? String(user.metadatos).trim() : '';
