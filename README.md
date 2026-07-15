@@ -1,15 +1,16 @@
 <div align="center">
 
-# ✧ Bot MD ✧
+# ✧ Bot ✧
 
-**Bot de WhatsApp Optimizado para Termux · Baileys Multi-Device**
+**Bot de WhatsApp Ultrarrápido con SQLite y Middleware Pipeline · Baileys Multi-Device**
 
 [![Termux Ready](https://img.shields.io/badge/Optimized_for-Termux-7e57c2?style=for-the-badge&logo=android)](https://termux.com/)
 [![Baileys](https://img.shields.io/badge/Powered_by-Baileys-25D366?style=for-the-badge&logo=whatsapp)](https://github.com/WhiskeySockets/Baileys)
-[![NodeJS](https://img.shields.io/badge/Node.js-v21+-43853D?style=for-the-badge&logo=node.js)](https://nodejs.org/)
+[![NodeJS](https://img.shields.io/badge/Node.js-%3E%3D22.5.0-43853D?style=for-the-badge&logo=node.js)](https://nodejs.org/)
+[![Database](https://img.shields.io/badge/Database-SQLite-003B57?style=for-the-badge&logo=sqlite)](https://www.sqlite.org/)
 [![ESM](https://img.shields.io/badge/Pure-ESM-blue?style=for-the-badge)](https://nodejs.org/api/esm.html)
 
-*Bot multifuncional con economía RPG, suite académica con IA, descargador multimedia multi-plataforma y 60+ reacciones animadas. Diseñado para rendimiento en entornos de bajos recursos.*
+*Bot de WhatsApp de última generación diseñado para alto rendimiento en dispositivos móviles y VPS de bajos recursos. Cuenta con base de datos transaccional SQLite, tubería de middlewares avanzada, suite de descargas protegida contra hotlinking, comandos académicos con IA y moderación inteligente.*
 
 </div>
 
@@ -19,111 +20,105 @@
 
 ```
 bot/
-├── index.js              # Boot + conexión Baileys + anti-crash
-├── main.js               # Hot path: middleware pipeline + routing
-├── config.js             # APIs, owner, prefixes
+├── index.js              # Boot + inicialización de DB + anti-crash + conexión Baileys
+├── main.js               # Hot path: ejecución del pipeline de middlewares + routing
+├── config.js             # Configuración de APIs, propietarios y prefijos
 ├── core/
-│   ├── message.js        # Message shimming (m.reply, m.quoted.download)
-│   ├── exif.js           # Sticker metadata (EXIF/WebP)
+│   ├── message.js        # Message shimming (m.reply, m.quoted.download, isBot)
+│   ├── exif.js           # Metadatos de Stickers (EXIF/WebP)
 │   └── system/
-│       ├── commandLoader.js   # Auto-discovery de plugins (soporte ESM)
-│       ├── database.js        # JSON DB con guardado debounced
-│       └── initDB.js          # Schema de usuario/chat/settings
+│       ├── commandLoader.js   # Descubrimiento automático de plugins (named & default exports)
+│       ├── database.js        # Motor SQLite + Proxy Reactivo (Unit of Work) para persistencia JSON transparente
+│       ├── initDB.js          # Inicialización pasiva de estructuras (Usuario, Grupo, Ajustes) en SQLite
+│       ├── antilink.js        # Moderador de enlaces de WhatsApp y URLs sospechosas (Anti-Phishing)
+│       ├── antistatus.js      # Moderador automático de menciones de estado grupal spam (Anti-Status)
+│       └── events.js          # Gestión de bienvenida, despedida y monitoreo de eventos silenciosos de WhatsApp
 ├── cmds/
-│   ├── downloads/        # Descargas unificadas
-│   ├── academia/         # Academia IA simplificada 
-│   ├── economia/         # RPG unificado en 5 áreas
-│   ├── juegos/           # Juegos unificados
-│   ├── stickers/         # Sticker, brat, getpack, emojimix
-│   ├── group/            # Admin unificado
-│   ├── profile/          # Perfil, nivel, leaderboard
-│   ├── Reactions/        # 60+ reacciones animadas con GIFs de Tenor
-│   └── utils/            # Utilidades consolidadas
+│   ├── downloads/        # Descargas unificadas (resiliente con fallback de buffers y APIs prioritarias)
+│   ├── academia/         # Suite académica con IA
+│   ├── economia/         # Sistema RPG unificado
+│   ├── juegos/           # Juegos (Ahorcado, Adivinanzas, Trivia, Wordle, TTT, Connect4)
+│   ├── stickers/         # Creación y utilidades de stickers (brat, getpack, emojimix)
+│   ├── group/            # Configuración y administración avanzada de grupos
+│   ├── profile/          # Perfiles de usuario, nivelación y tablas de clasificación (leaderboards)
+│   └── Reactions/        # Más de 60 reacciones animadas con GIFs integrados
 └── utils/
-    ├── ai.js             # Cliente IA centralizado con fallback chain
-    ├── tools.js          # Funciones compartidas (formateo, XP, grupo)
-    └── gameEngine.js     # Motor de juegos concurrentes
+    ├── ai.js             # Cliente de Inteligencia Artificial con cadena de fallbacks
+    ├── tools.js          # Utilidades compartidas (formateo, cálculo de XP, etc.)
+    └── gameEngine.js     # Motor transaccional de juegos concurrentes en tiempo real
 ```
 
 ---
 
-## 🔧 Optimizaciones de Rendimiento
+## 🔧 Optimizaciones y Tecnologías Core
 
-| Optimización | Impacto |
+| Optimización | Descripción / Impacto |
 |:---|:---|
-| **Hot-path cacheado** | `today` string con TTL 60s, prefix comparison directa (sin JSON.stringify) |
-| **Group metadata cacheado** | NodeCache con TTL 5 min, evita llamadas de red por mensaje |
-| **Antilink condicional** | Solo se ejecuta en grupos, no en chats privados |
-| **DB guardado debounced** | Escritura diferida, no síncrona por comando |
-| **Purga de dependencias** | Eliminadas: jimp, human-readable, qrcode, lodash, moment (core), aki-api, gradient-string, pdfkit, yargs, node-schedule |
-| **tools.js limpio** | De 302 a 160 LOC: eliminadas 15 funciones muertas |
-| **ESM puro** | Zero `require()` shims, tree-shakeable con alias de importación nativos |
-| **Message buffer limitado** | Máximo 25 chats × 50 msgs, con eviction automática |
-| **Álbumes nativos de WhatsApp** | Agrupa búsquedas múltiples (Pinterest, TikTok) en un solo álbum visual, reduciendo el tráfico de red y el spam de burbujas en el chat |
-| **Heurística dinámica de CDNs** | Evasión de bloqueos HTTP (403 Forbidden) en CDNs de Meta (Instagram/Facebook) mediante análisis de patrones de URL y fallbacks automáticos de tipo |
+| **Base de Datos SQLite** | Reemplazo total del sistema legacy de archivos JSON por SQLite. Utiliza un **Proxy Reactivo transaccional (Unit of Work)** por mensaje que permite escribir en base de datos usando la sintaxis nativa de objetos JSON (`global.db.data.users[...]`), sincronizando las diferencias de forma atómica al terminar de procesar el mensaje. |
+| **Limpieza Programada (clearDB)** | Mantenimiento diario automático al arranque del bot. Detecta y elimina de la base de datos registros de usuarios con más de 20 días de inactividad, evitando el consumo innecesario de almacenamiento. |
+| **Migrador Automático** | Rutina de migración integrada que transforma e importa de forma transparente bases de datos legacy de formato JSON (`db_users.json`, `db_chats.json`, `database.json`) a SQLite en el primer arranque. |
+| **Descarga Directa a Buffer** | Solución al fallo clásico de carga en teléfonos para recursos protegidos (Instagram/Facebook CDN). El bot pre-descarga localmente la imagen o video en un buffer de memoria antes de entregarlo a Baileys, evitando el envío de mensajes corruptos. |
+| **APIs de YouTube Lempi** | Integración prioritaria del endpoint privado de `YukiBot` para descargas de YouTube (MP3 y MP4), acelerando drásticamente el procesamiento de descargas multimedia. |
+| **Pipeline de Middlewares** | Sistema asíncrono estilo Express/Koa que procesa autorizaciones, spam y juegos en turnos secuenciales ordenados. |
+| **Caché Inteligente** | Caching de metadatos de grupos (`groupMetaCache`) con TTL de 5 min para evitar exceso de peticiones a la red de WhatsApp por cada mensaje. |
+| **Álbumes Nativos** | Agrupa resultados de búsquedas de imágenes (Pinterest/Google Images) en álbumes nativos de WhatsApp, eliminando el spam de burbujas en el chat. |
 
 ---
 
-## ✨ Características
+## ✨ Características Principales
 
-### 📥 Descargas (Quote-to-Download)
+### 📥 Descargas Resilientes (Quote-to-Download)
+Todos los comandos de descarga soportan **citar un mensaje que contenga un enlace** en lugar de requerir que escribas la URL:
+- **YouTube**: `.play` (audio) / `.play2` (video) con metadatos extendidos y fallbacks rápidos (APIs de Lempi, Opik, Ryze y scrapers internos).
+- **Instagram**: Descarga de Reels, Historias y Carruseles enviándolos como álbumes nativos de WhatsApp.
+- **Facebook / TikTok / Pinterest / Twitter**: Descargadores ultra estables optimizados.
+- **Documentos**: Soporte para Scribd, Google Drive, Mediafire y Studocu (con pre-búsqueda integrada).
 
-Todos los comandos soportan **citar un mensaje con enlace** en lugar de escribir la URL:
-
-- **YouTube**: `.p` (audio) / `.play2` (video) con metadata y fallback de alto rendimiento usando APIs dedicadas de Opik (conversión con carátula) y Ryze (video en calidades).
-- **Facebook**: `.fb` con título, resolución y duración, optimizado con un scraper directo de páginas web de reels y fallbacks de GraphQL.
-- **TikTok/Instagram/Pinterest**: `.tt` / `.ig` / `.pin` con evasión inteligente de bloqueos de CDN de Meta y soporte de álbumes.
-- **Twitter/X**: `.twitter`
-- **Documentos**: `.scribd` / `.grive` / `.mf` / `.studocu` con verificación de tamaño en cascada.
+### 👥 Moderación Avanzada de Grupos
+- **Anti-Link**: Eliminación de mensajes y expulsión de usuarios que compartan enlaces de otros grupos o canales de WhatsApp.
+- **Anti-Phishing**: Detección inteligente de URLs sospechosas o fraudes comunes y expulsión del remitente.
+- **Anti-Status**: Control y eliminación automática de reenvíos maliciosos de menciones de estado grupal que puedan colgar el chat de grupo.
+- **Detector de Eventos Silenciosos**: Monitoreo y reporte en tiempo real en el chat cuando se cambian los **Mensajes Temporales** (reporta duración) o se modifica la **Aprobación de nuevos miembros** por administradores.
+- **Panel de Ajustes Rápido**: Control inmediato a través de los comandos de administración `.nsfw enable/disable` y `.antistatus enable/disable`.
 
 ### 🎓 Academia (IA Modo Absoluto)
+Prompts optimizados y secuencias de fallback con respuestas limpias y estructuradas:
+- **Solver**: Guía de resolución analítica paso a paso.
+- **Resumir**: Análisis estructural rápido de textos.
+- **Humanizar**: Modificaciones sintácticas avanzadas para evadir detectores de IA.
+- **Detector IA/Plagio**: Análisis forense de patrones de redacción artificial.
+- **ChatPDF**: Consulta inteligente basada únicamente en documentos adjuntos.
 
-Prompts de alta fidelidad: sin emojis, sin relleno, solo información verificada.
-
-- **Solver**: Resolución paso a paso con verificación algebraica
-- **Resumir**: Extracción quirúrgica (tesis + ideas + datos clave)
-- **Humanizar**: Técnicas de burstiness + inversión sintáctica
-- **Detector IA/Plagio**: Análisis forense de perplejidad y patrones
-- **Diccionario**: Entrada lexicográfica RAE con etimología
-- **ChatPDF**: Análisis basado exclusivamente en evidencia del documento
-
-### 💰 Economía RPG
-
-Sistema completo con daily/weekly/monthly, trabajo, minería, caza, casino, slots, ruleta, robos, mazmorras, aventuras, tienda con lootboxes, títulos con buffs reales, e intercambio de items.
-
-### 🎮 Juegos
-
-Ahorcado visual, TicTacToe, Connect4, Blackjack, Wordle, Trivia, Piedra-papel-tijeras, Adivinanzas. Todos con apuestas de economía.
-
-### 🎭 60+ Reacciones
-
-GIFs animados de Tenor: hug, kiss, pat, slap, dance, cry, blush, cuddle, y muchas más.
+### 💰 Economía RPG & JUEGOS
+Mazmorras, trabajo, casino, aventuras, slots, ruleta, minería, y robo de monedas. Incluye juegos interactivos como Ahorcado visual, Wordle, Tres en raya (TTT), Trivia, Blackjack y Connect4 integrados directamente con las estadísticas y recompensas de economía del bot.
 
 ---
 
-## 🚀 Instalación
+## 🚀 Instalación y Despliegue
 
-### Termux (Android)
+### Requisitos Previos
+* Node.js **>= 22.5.0** (Requerido para el soporte nativo de `node:sqlite`).
+* FFmpeg instalado en el sistema.
 
+### Instalación en Termux (Android)
 ```bash
-# 1. Preparar entorno
+# 1. Preparar el entorno de almacenamiento y actualizar paquetes
 termux-setup-storage
 apt update && apt upgrade -y
 pkg install -y git nodejs ffmpeg
 
-# 2. Clonar e instalar
+# 2. Clonar el repositorio y entrar
 git clone https://github.com/ocrespof/BOT.git
 cd BOT
-npm install
 
-# 3. Iniciar
+# 3. Instalar dependencias e iniciar el bot
+npm install
 npm start
 ```
+> Escanea el código QR en pantalla o solicita la vinculación usando el código de 8 dígitos.
 
-> Escanea el código QR o usa la opción de código de 8 dígitos.
-
-### PM2 (24/7)
-
+### Despliegue 24/7 con PM2
+Para mantener el bot encendido en segundo plano sin importar que cierres la sesión:
 ```bash
 termux-wake-lock
 npm i -g pm2
@@ -131,27 +126,27 @@ pm2 start index.js --name "Bot" --max-memory-restart 512M
 pm2 save
 ```
 
-| Comando | Descripción |
+| Comando PM2 | Acción |
 |:---|:---|
-| `pm2 stop Bot` | Pausar |
-| `pm2 restart Bot` | Reiniciar |
-| `pm2 logs Bot` | Ver logs en tiempo real |
+| `pm2 stop Bot` | Pausar ejecución |
+| `pm2 restart Bot` | Reiniciar el bot |
+| `pm2 logs Bot` | Visualizar los registros y logs en tiempo real |
 
 ---
 
-## 🛠️ Solución de Problemas
+## 🛠️ Solución de Problemas Comunes
 
-| Problema | Solución |
+| Problema | Causa Común / Solución |
 |:---|:---|
-| Bot desconectado | `cd ~/BOT && npm start` |
-| Vincular nuevo número | `rm -rf Sessions/Owner && npm start` |
-| Error de memoria | Agregar `--max-old-space-size=512` al script start |
-| Dependencia faltante | `npm install` dentro de la carpeta BOT |
+| **Bot Desconectado** | Comprueba que el proceso de Node siga activo. Reinicia con `npm start` o `pm2 restart Bot`. |
+| **Vincular nuevo número** | Elimina la carpeta de credenciales ejecutando `rm -rf Sessions/Owner` e inicia el bot nuevamente para generar un nuevo QR/Código. |
+| **Falta librería de imágenes** | Si el bot alerta sobre el procesamiento de imágenes (para cambiar banners), ejecuta `npm install jimp@0.16.1`. |
+| **Error de memoria en Termux** | Si Termux mata el proceso por falta de RAM, inicia Node limitando el espacio: `node --max-old-space-size=450 index.js`. |
 
 ---
 
 <div align="center">
 
-*Hecho con dedicación para la comunidad de creadores de bots de WhatsApp.*
+*Hecho con dedicación para la comunidad de desarrolladores y administradores de comunidades de WhatsApp.*
 
 </div>

@@ -11,6 +11,7 @@ import {
   mediaQueueMiddleware,
   executorMiddleware,
 } from "./core/system/middleware.js";
+import { dbStorage, DbSession } from "./core/system/database.js";
 
 seeCommands();
 
@@ -27,6 +28,13 @@ const middlewares = [
 ];
 
 export default async (client, m) => {
-  const ctx = { client, m };
-  await runPipeline(ctx, middlewares);
+  const session = new DbSession();
+  await dbStorage.run(session, async () => {
+    try {
+      const ctx = { client, m };
+      await runPipeline(ctx, middlewares);
+    } finally {
+      session.flush();
+    }
+  });
 };

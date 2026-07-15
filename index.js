@@ -285,8 +285,9 @@ cleanCache();
 
 
 (async () => {
-  global.loadDatabase()
-  console.log(chalk.gray('[ ✿  ]  Base de datos cargada correctamente.'))
+  db.migrateJSONToSQLite();
+  db.clearDB();
+  console.log(chalk.gray('[ ✿  ]  Base de datos SQLite cargada, migrada y depurada correctamente.'))
   await startBot();
 })();
 
