@@ -35,7 +35,7 @@ const cmdWarn = {
         }).join('\n');
       let message = `✐ Se ha añadido una advertencia a @${targetId.split('@')[0]}.\n✿ Advertencias totales \`(${total})\`:\n\n${warningList}`;
       const warnLimit = chat.warnLimit || 3;
-      const expulsar = chat.expulsar === true;
+      const expulsar = chat.expulsar === true || chat.expulsar === 1;
       if (total >= warnLimit && expulsar) {
         try {
           await client.groupParticipantsUpdate(m.chat, [targetId], 'remove');
