@@ -24,7 +24,7 @@ export default {
       const quoteObj = { type: 'quote', format: 'png', backgroundColor: '#000000', width: 512, height: 768, scale: 2, messages: [{ entities: [], avatar: true, from: { id: 1, name: nombre, photo: { url: pp } }, text: textFinal, replyMessage: {} }] };
       const QUOTE_ENDPOINTS = [
         'https://bot.lyo.su/quote/generate',
-        'https://quote.yuri.ly/quote/generate'
+        'https://quote.yuri.ly/generate'
       ];
       let res;
       let apiError = null;

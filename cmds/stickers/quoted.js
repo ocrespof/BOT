@@ -343,7 +343,7 @@ export default {
 
         const QUOTE_ENDPOINTS = [
             'https://bot.lyo.su/quote/generate',
-            'https://quote.yuri.ly/quote/generate'
+            'https://quote.yuri.ly/generate'
         ];
 
         try {
