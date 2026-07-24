@@ -144,7 +144,43 @@ if (methodCodeQR) {
 
 let reconexion = 0;
 const intentos = 15;
+let lastActivityTimestamp = Date.now();
+
+function cleanupSocket() {
+  if (global.watchdogTimer) {
+    clearInterval(global.watchdogTimer);
+    global.watchdogTimer = null;
+  }
+  if (global.client) {
+    try {
+      global.client.ev.removeAllListeners();
+      if (global.client.ws) {
+        global.client.ws.close();
+      }
+    } catch {}
+    global.client = null;
+  }
+}
+
+function setupWatchdog(sock) {
+  if (global.watchdogTimer) clearInterval(global.watchdogTimer);
+  lastActivityTimestamp = Date.now();
+
+  global.watchdogTimer = setInterval(() => {
+    const now = Date.now();
+    const inactiveTime = now - lastActivityTimestamp;
+    const isWsOpen = sock.ws && sock.ws.readyState === 1;
+
+    if (inactiveTime > 15 * 60 * 1000 || !isWsOpen) {
+      console.log(chalk.yellow('[ ⚠ Watchdog ] Conexión inactiva o socket cerrado (>15 min). Forzando reconexión limpia...'));
+      cleanupSocket();
+      startBot();
+    }
+  }, 3 * 60 * 1000);
+}
+
 async function startBot() {
+  cleanupSocket();
   const { state, saveCreds } = await useMultiFileAuthState(global.sessionName);
   const { version } = await fetchLatestBaileysVersion();
   const logger = pino({ level: "silent" });
@@ -160,6 +196,8 @@ async function startBot() {
     markOnlineOnConnect: false,
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
+    shouldSyncHistoryMessage: () => false,
+    shouldIgnoreJid: (jid) => jid?.endsWith('@newsletter') || jid?.endsWith('@broadcast'),
     getMessage: async () => "",
     defaultQueryTimeoutMs: undefined,
     emitOwnEvents: true,
@@ -168,6 +206,7 @@ async function startBot() {
   global.client = sock;
   sock.isInit = false;
   decorateClient(sock, null);
+  setupWatchdog(sock);
   sock.ev.on("creds.update", saveCreds);
 
   if (opcion === "2" && !fs.existsSync("./Sessions/Owner/creds.json")) {
@@ -186,6 +225,7 @@ async function startBot() {
 
   sock.sendText = (jid, text, quoted = "", options) => sock.sendMessage(jid, { text, ...options }, { quoted });
   sock.ev.on("connection.update", async (update) => {
+    lastActivityTimestamp = Date.now();
     const { qr, connection, lastDisconnect, isNewLogin, receivedPendingNotifications } = update;
     if (qr != 0 && qr != undefined || methodCodeQR) {
       if (opcion == '1' || methodCodeQR) {
@@ -195,6 +235,7 @@ async function startBot() {
     }
 
     if (connection === "close") {
+      cleanupSocket();
       const reason = lastDisconnect?.error?.output?.statusCode || 0;
       if (reason === DisconnectReason.loggedOut) {
         log.warning("Escanee nuevamente y ejecute...");
@@ -235,17 +276,24 @@ async function startBot() {
     }
     if (isNewLogin) log.info("Nuevo dispositivo detectado");
     if (receivedPendingNotifications === true) {
-      log.warn("Por favor espere aproximadamente 1 minuto...");
+      log.warn("Sincronización inicial completada.");
       sock.ev.flush();
     }
   });
 
   sock.ev.on('messages.upsert', async (chatUpdate) => {
     try {
-      const kay = chatUpdate.messages[0];
+      lastActivityTimestamp = Date.now();
+
+      // Bloquear explícitamente cualquier mensaje de sincronización histórica de chat ('append')
+      if (chatUpdate.type !== 'notify') return;
+
+      const kay = chatUpdate.messages?.[0];
       if (!kay?.message) return;
       if (kay.key?.remoteJid === 'status@broadcast') return;
+
       kay.message = Object.keys(kay.message)[0] === 'ephemeralMessage' ? kay.message.ephemeralMessage.message : kay.message;
+
       // Solo filtrar mensajes generados internamente por el bot (protocolos/status)
       if (kay.key.fromMe) {
         const isBotSent = sock.sentMessageIds && sock.sentMessageIds.has(kay.key.id);
@@ -253,9 +301,12 @@ async function startBot() {
         if (isBotSent || isInternalBaileys) return;
       }
       
-      // No procesar mensajes antiguos de cuando el bot estaba apagado
-      const messageAge = Math.floor(Date.now() / 1000) - Number(kay.messageTimestamp);
-      if (messageAge > 60) return;
+      // No procesar mensajes antiguos de cuando el bot estaba apagado (evitar NaNs)
+      const msgTime = Number(kay.messageTimestamp);
+      if (!isNaN(msgTime) && msgTime > 0) {
+        const messageAge = Math.floor(Date.now() / 1000) - msgTime;
+        if (messageAge > 60) return;
+      }
 
       const m = await smsg(sock, kay);
       main(sock, m, chatUpdate);
