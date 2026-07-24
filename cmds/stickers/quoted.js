@@ -42,25 +42,41 @@ function parseMarkdownToEntities(text) {
     return { text: cleanText, entities };
 }
 
-// User name resolution prioritizing public profile names with groupMetadata & database lookups
+// User name resolution prioritizing public profile names with privacy protection (never leaks phone numbers)
 async function getUserName(client, jid, pushName, chatId) {
-    const isPhone = (str) => !str || /^\+?[0-9\s\-()]+$/.test(str.trim());
+    const isPhone = (str) => {
+        if (!str || typeof str !== 'string') return true;
+        const s = str.trim();
+        if (!s) return true;
+        const hasLetters = /[a-zA-Z\u00C0-\u024F\u0400-\u04FF\u0600-\u06FF]/.test(s);
+        return !hasLetters || /^\+?[0-9\s\-()@]+$/.test(s);
+    };
 
+    // 1. Nombre directo del objeto mensaje (pushName de WhatsApp)
     if (pushName && !isPhone(pushName)) return pushName.trim();
     if (!jid) return 'Usuario';
 
+    // 2. Buscar en el búfer de mensajes en memoria por algún mensaje del usuario que contenga su pushName
+    if (chatId && global.msgBuffer?.[chatId]) {
+        const bufferedMsg = global.msgBuffer[chatId].find(m => (m.sender === jid || m.key?.participant === jid) && m.pushName && !isPhone(m.pushName));
+        if (bufferedMsg?.pushName) return bufferedMsg.pushName.trim();
+    }
+
+    // 3. Buscar en la base de datos global del bot
     const dbName = global.db?.data?.users?.[jid]?.name;
     if (dbName && !isPhone(dbName)) return dbName.trim();
 
+    // 4. Buscar en los participantes del grupo (notify / pushName de perfil de WhatsApp)
     if (client && chatId?.endsWith('@g.us')) {
         try {
             const meta = await client.groupMetadata(chatId).catch(() => null);
             const p = meta?.participants?.find(x => client.decodeJid(x.id) === client.decodeJid(jid));
-            const pName = p?.name || p?.notify;
+            const pName = p?.notify || p?.name;
             if (pName && !isPhone(pName)) return pName.trim();
         } catch {}
     }
 
+    // 5. Consultar mediante helper de contactos de Baileys
     if (client?.getName) {
         try {
             const name = await client.getName(jid);
@@ -68,7 +84,8 @@ async function getUserName(client, jid, pushName, chatId) {
         } catch {}
     }
 
-    return '@' + jid.split('@')[0];
+    // Fallback seguro si no fue posible encontrar ningún nombre configurado en perfil
+    return 'Usuario';
 }
 
 // Unified multi-provider file uploader
