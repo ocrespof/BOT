@@ -1,5 +1,6 @@
 import axios from 'axios';
 import FormData from 'form-data';
+import { getCachedPushName } from '../../core/message.js';
 
 // Parse WhatsApp markdown (*bold*, _italic_, ~strike~, `code`) to Telegram entities
 function parseMarkdownToEntities(text) {
@@ -42,49 +43,29 @@ function parseMarkdownToEntities(text) {
     return { text: cleanText, entities };
 }
 
-// User name resolution prioritizing public profile names with privacy protection (never leaks phone numbers)
+// User name resolution prioritizing pushName
 async function getUserName(client, jid, pushName, chatId) {
-    const isPhone = (str) => {
-        if (!str || typeof str !== 'string') return true;
-        const s = str.trim();
-        if (!s) return true;
-        const hasLetters = /[a-zA-Z\u00C0-\u024F\u0400-\u04FF\u0600-\u06FF]/.test(s);
-        return !hasLetters || /^\+?[0-9\s\-()@]+$/.test(s);
-    };
-
-    // 1. Nombre directo del objeto mensaje (pushName de WhatsApp)
-    if (pushName && !isPhone(pushName)) return pushName.trim();
+    if (pushName && typeof pushName === 'string' && pushName.trim()) return pushName.trim();
     if (!jid) return 'Usuario';
 
-    // 2. Buscar en el búfer de mensajes en memoria por algún mensaje del usuario que contenga su pushName
+    const cachedPush = getCachedPushName?.(jid);
+    if (cachedPush && typeof cachedPush === 'string' && cachedPush.trim()) return cachedPush.trim();
+
     if (chatId && global.msgBuffer?.[chatId]) {
-        const bufferedMsg = global.msgBuffer[chatId].find(m => (m.sender === jid || m.key?.participant === jid) && m.pushName && !isPhone(m.pushName));
+        const bufferedMsg = global.msgBuffer[chatId].find(m => (m.sender === jid || m.key?.participant === jid) && m.pushName?.trim());
         if (bufferedMsg?.pushName) return bufferedMsg.pushName.trim();
     }
 
-    // 3. Buscar en la base de datos global del bot
     const dbName = global.db?.data?.users?.[jid]?.name;
-    if (dbName && !isPhone(dbName)) return dbName.trim();
+    if (dbName && typeof dbName === 'string' && dbName.trim()) return dbName.trim();
 
-    // 4. Buscar en los participantes del grupo (notify / pushName de perfil de WhatsApp)
-    if (client && chatId?.endsWith('@g.us')) {
-        try {
-            const meta = await client.groupMetadata(chatId).catch(() => null);
-            const p = meta?.participants?.find(x => client.decodeJid(x.id) === client.decodeJid(jid));
-            const pName = p?.notify || p?.name;
-            if (pName && !isPhone(pName)) return pName.trim();
-        } catch {}
-    }
-
-    // 5. Consultar mediante helper de contactos de Baileys
     if (client?.getName) {
         try {
             const name = await client.getName(jid);
-            if (name && !isPhone(name)) return name.trim();
+            if (name && typeof name === 'string' && name.trim()) return name.trim();
         } catch {}
     }
 
-    // Fallback seguro si no fue posible encontrar ningún nombre configurado en perfil
     return 'Usuario';
 }
 
@@ -151,10 +132,10 @@ async function getMediaUploadUrl(msg) {
 }
 
 export default {
-    command: ['quoted', 'q', 'fakereply', 'quote', 'q1', 'q2', 'q3', 'q4', 'q5'],
+    command: ['quoted', 'q', 'fakereply', 'quote', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10'],
     category: 'stickers',
     desc: 'Genera un sticker de cita a partir de texto o varios mensajes.',
-    usage: '.q [texto] o responde a un mensaje con .q [número] o usa .q2 / .q4 directamente.',
+    usage: '.q [texto] o responde a un mensaje con .q, .q 2, .q 3 o usa atajos como .q2, .q3.',
 
     run: async (client, m, args, usedPrefix, command) => {
         // 1. Extraer color de fondo (preset o código hex)
@@ -174,15 +155,17 @@ export default {
             }
         }
 
-        // 2. Determinar cantidad de mensajes (.q1-.q5 o argumento numérico)
-        const qMatch = command.match(/^q([1-5])$/);
+        // 2. Determinar cantidad de mensajes (.q1-.q10 o argumento numérico)
+        const qMatch = command.match(/^q([1-9]|10)$/i);
         let numMsgs = qMatch ? parseInt(qMatch[1]) : 1;
         let text = '';
 
         if (!qMatch && args.length > 0) {
-            if (!isNaN(args[0]) && args.length === 1 && m.quoted) {
-                numMsgs = Math.max(1, Math.min(parseInt(args[0]), 5));
-            } else {
+            const firstNum = parseInt(args[0]);
+            if (!isNaN(firstNum) && firstNum >= 1 && firstNum <= 10 && m.quoted) {
+                numMsgs = firstNum;
+                args.shift();
+            } else if (!m.quoted) {
                 text = args.join(' ').trim();
             }
         }
@@ -191,72 +174,61 @@ export default {
         let messagesToQuote = [];
         const buffer = global.msgBuffer?.[m.chat] || [];
 
-        if (numMsgs > 1 && m.quoted) {
-            const startIdx = buffer.findIndex(msg => msg.key.id === m.quoted.id);
+        if (m.quoted) {
+            const quotedId = m.quoted.id;
+            const startIdx = buffer.findIndex(msg => (msg.key?.id || msg.id) === quotedId);
+
             if (startIdx !== -1) {
-                messagesToQuote = buffer.slice(startIdx, startIdx + numMsgs).map(msg => ({
-                    sender: msg.sender,
+                const sliced = buffer.slice(startIdx, startIdx + numMsgs);
+                messagesToQuote = sliced.map(msg => ({
+                    sender: msg.sender || msg.key?.participant || m.chat,
                     pushName: msg.pushName,
                     text: msg.text || msg.caption || '',
-                    isMedia: msg.isMedia || false,
+                    isMedia: Boolean(msg.message?.imageMessage || msg.message?.videoMessage || msg.message?.stickerMessage),
                     type: msg.type || '',
-                    msgObj: msg,
-                    quoted: msg.quoted ? {
-                        sender: msg.quoted.sender,
-                        pushName: msg.quoted.pushName,
-                        text: msg.quoted.text || msg.quoted.caption || (msg.quoted.message?.imageMessage ? '📷 Imagen' : (msg.quoted.message?.videoMessage ? '🎥 Video' : (msg.quoted.message?.stickerMessage ? '🧩 Sticker' : 'Mensaje')))
-                    } : null
+                    msgObj: msg
                 }));
             } else {
-                messagesToQuote = [{
+                messagesToQuote.push({
                     sender: m.quoted.sender,
                     pushName: m.quoted.pushName,
                     text: m.quoted.text || m.quoted.caption || '',
-                    isMedia: m.quoted.isMedia || false,
+                    isMedia: Boolean(m.quoted.message?.imageMessage || m.quoted.message?.videoMessage || m.quoted.message?.stickerMessage),
                     type: m.quoted.type || '',
-                    msgObj: m.quoted,
-                    quoted: null
-                }];
-                m.reply('⚠️ No pude encontrar los mensajes siguientes en memoria, creando sticker solo del mensaje respondido.');
-            }
-        } else if (!text) {
-            const q = m.quoted;
-            if (!q) return m.reply('📝 Por favor, proporciona un texto o responde a un mensaje.\n\nEjemplos:\n* .q <texto>\n* Responde a un mensaje con .q\n* Responde a un mensaje con .q 2 (para capturar 2 mensajes)\n* Usa atajos como .q2 o .q4 en respuestas.\n* Cambia el color con .q #ff0000 o .q --red');
+                    msgObj: m.quoted
+                });
 
-            text = q.text || q.caption || '';
-            let parentQuoted = null;
-            const msgFromBuffer = buffer.find(msg => msg.key.id === q.id);
-            if (msgFromBuffer?.quoted) {
-                parentQuoted = msgFromBuffer.quoted;
-            } else if (m.getQuotedObj) {
-                const fullQuotedMsg = await m.getQuotedObj().catch(() => null);
-                if (fullQuotedMsg?.quoted) parentQuoted = fullQuotedMsg.quoted;
-            }
+                if (numMsgs > 1) {
+                    const quotedTime = Number(m.quoted.messageTimestamp || 0);
+                    const subsequent = buffer.filter(msg => {
+                        const t = Number(msg.messageTimestamp || 0);
+                        return t >= quotedTime && (msg.key?.id || msg.id) !== quotedId;
+                    }).slice(0, numMsgs - 1);
 
-            messagesToQuote = [{
-                sender: q.sender,
-                pushName: q.pushName,
-                text,
-                isMedia: q.isMedia || false,
-                type: q.type || '',
-                msgObj: q,
-                quoted: parentQuoted ? {
-                    sender: parentQuoted.sender,
-                    pushName: parentQuoted.pushName,
-                    text: parentQuoted.text || parentQuoted.caption || (parentQuoted.message?.imageMessage ? '📷 Imagen' : (parentQuoted.message?.videoMessage ? '🎥 Video' : (parentQuoted.message?.stickerMessage ? '🧩 Sticker' : 'Mensaje')))
-                } : null
-            }];
-        } else {
-            const who = m.mentionedJid?.[0] || (m.quoted ? m.quoted.sender : m.sender);
+                    for (const msg of subsequent) {
+                        messagesToQuote.push({
+                            sender: msg.sender || msg.key?.participant || m.chat,
+                            pushName: msg.pushName,
+                            text: msg.text || msg.caption || '',
+                            isMedia: Boolean(msg.message?.imageMessage || msg.message?.videoMessage || msg.message?.stickerMessage),
+                            type: msg.type || '',
+                            msgObj: msg
+                        });
+                    }
+                }
+            }
+        } else if (text) {
+            const who = m.mentionedJid?.[0] || m.sender;
             messagesToQuote = [{
                 sender: who,
-                pushName: m.quoted ? m.quoted.pushName : m.pushName,
+                pushName: m.pushName,
                 text,
                 isMedia: false,
                 type: 'conversation',
-                msgObj: null,
-                quoted: null
+                msgObj: null
             }];
+        } else {
+            return m.reply('📝 Responde a un mensaje con *.q* (o *.q 2*, *.q 3*, *.q2*, *.q3*) o escribe *.q <texto>*.');
         }
 
         await m.react('🕒');
@@ -265,7 +237,7 @@ export default {
 
         // 4. Construir payloads para la API de Citas en PARALELO
         const apiMessages = await Promise.all(messagesToQuote.map(async (msg) => {
-            const jid = msg.sender || m.sender;
+            const jid = client.decodeJid(msg.sender || m.sender);
             const [name, pfp, mediaInfo] = await Promise.all([
                 getUserName(client, jid, msg.pushName, m.chat),
                 getPfp(jid),
@@ -279,21 +251,11 @@ export default {
                 msgText = parsed.text;
                 entities = parsed.entities;
             } else if (msg.isMedia && msg.msgObj) {
-                const isImage = msg.msgObj.message?.imageMessage || msg.msgObj.type === 'imageMessage' || (msg.msgObj.mime && /image/i.test(msg.msgObj.mime));
-                const isSticker = msg.msgObj.message?.stickerMessage || msg.msgObj.type === 'stickerMessage' || (msg.msgObj.mime && /webp/i.test(msg.msgObj.mime));
+                const isImage = msg.msgObj.message?.imageMessage || msg.msgObj.type === 'imageMessage';
+                const isSticker = msg.msgObj.message?.stickerMessage || msg.msgObj.type === 'stickerMessage';
                 if (!isImage && !isSticker) {
                     msgText = msg.type === 'videoMessage' ? '🎥 Video' : (msg.type === 'stickerMessage' ? '🧩 Sticker' : 'Mensaje multimedia');
                 }
-            }
-
-            let replyMessage = {};
-            if (msg.quoted) {
-                const replyName = await getUserName(client, msg.quoted.sender, msg.quoted.pushName, m.chat);
-                replyMessage = {
-                    name: replyName,
-                    text: msg.quoted.text,
-                    chatId: msg.quoted.sender.split('@')[0]
-                };
             }
 
             const apiMsg = {
@@ -301,7 +263,7 @@ export default {
                 avatar: true,
                 from: { id: jid.split('@')[0], name, photo: { url: pfp } },
                 text: msgText,
-                replyMessage
+                replyMessage: {}
             };
 
             if (mediaInfo) {
