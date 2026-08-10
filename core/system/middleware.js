@@ -282,23 +282,17 @@ export async function dbInitMiddleware(ctx, next) {
   return next();
 }
 
-export async function prefixResolverMiddleware(ctx, next) {
-  const { client, m, settings, users } = ctx;
+const prefixCacheMap = new Map();
 
-  const today = getToday();
-  if (!users.stats) users.stats = {};
-  if (!users.stats[today]) users.stats[today] = { msgs: 0, cmds: 0 };
-  users.stats[today].msgs++;
-  global.markPartitionDirty("chats");
-  ctx.today = today;
-
-  const _pc = settings._prefixCache;
+function getBotPrefixRegex(botJid, settings) {
+  const pc = prefixCacheMap.get(botJid);
   const prefixChanged =
-    !_pc ||
-    !(_pc.regex instanceof RegExp) ||
-    _pc.namebot !== settings.namebot ||
-    _pc.type !== settings.type ||
-    _pc.prefixSettings !== settings.prefix;
+    !pc ||
+    !(pc.regex instanceof RegExp) ||
+    pc.namebot !== settings.namebot ||
+    pc.type !== settings.type ||
+    pc.prefixSettings !== settings.prefix;
+
   if (prefixChanged) {
     const rawBotname = settings.namebot || "Yuki";
     const cleanBotname = rawBotname.replace(/[^a-zA-Z0-9\s]/g, "");
@@ -331,23 +325,37 @@ export async function prefixResolverMiddleware(ctx, next) {
     } else {
       prefixReg = new RegExp("^(" + prefixes.join("|") + ")?", "i");
     }
-    settings._prefixCache = {
+    const newEntry = {
       namebot: settings.namebot,
       type: settings.type,
       prefixSettings: settings.prefix,
       regex: prefixReg,
     };
+    prefixCacheMap.set(botJid, newEntry);
+    return prefixReg;
   }
+  return pc.regex;
+}
 
-  let prefix = settings._prefixCache.regex;
+export async function prefixResolverMiddleware(ctx, next) {
+  const { client, m, settings, users, botJid } = ctx;
+
+  const today = getToday();
+  if (!users.stats) users.stats = {};
+  if (!users.stats[today]) users.stats[today] = { msgs: 0, cmds: 0 };
+  users.stats[today].msgs++;
+  global.markPartitionDirty("chats");
+  ctx.today = today;
+
+  const jidKey = botJid || (client?.user?.id?.split(":")[0] || "") + "@s.whatsapp.net";
+  let prefix = getBotPrefixRegex(jidKey, settings);
   const strRegex = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&");
   let customCmd = null;
   let pluginPrefix = client.prefix ? client.prefix : prefix;
 
-  for (const name in global.plugins) {
-    const plugin = global.plugins[name];
-    if (plugin && plugin.customPrefix) {
-      const cp = plugin.customPrefix;
+  for (const [cmdName, data] of registry.comandos) {
+    if (data && data.customPrefix) {
+      const cp = data.customPrefix;
       const ms = cp instanceof RegExp
         ? [[cp.exec(m.text), cp]]
         : Array.isArray(cp)
@@ -359,7 +367,7 @@ export async function prefixResolverMiddleware(ctx, next) {
             ? [[new RegExp(strRegex(cp)).exec(m.text), new RegExp(strRegex(cp))]]
             : [[null, null]];
       if (ms.find((p) => p[0])) {
-        customCmd = name;
+        customCmd = cmdName;
         pluginPrefix = cp;
         break;
       }
@@ -441,11 +449,16 @@ export async function commandParserMiddleware(ctx, next) {
   const { m, match, settings } = ctx;
 
   let usedPrefix = (match[0] || [])[0] || "";
-  let args = m.text.slice(usedPrefix.length).trim().split(" ");
-  let command = ctx.customCmd || (args.shift() || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+  let args = m.text.slice(usedPrefix.length).trim().split(" ").filter(Boolean);
+  let command;
+  if (ctx.customCmd) {
+    command = ctx.customCmd;
+  } else {
+    command = (args.shift() || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
   let text = args.join(" ");
 
   if (!command) return;
