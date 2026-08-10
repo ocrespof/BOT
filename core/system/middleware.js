@@ -9,14 +9,7 @@ import level from "../../utils/levelHook.js";
 import { registry } from "./commandLoader.js";
 import { enqueueTask } from "../../utils/mediaQueue.js";
 import { gameEngine } from "../../utils/gameEngine.js";
-
-// Cache for group metadata
-const groupMetaCache = new NodeCache({
-  stdTTL: 300,
-  checkperiod: 60,
-  useClones: false,
-});
-global.groupMetaCache = groupMetaCache;
+import { getCachedMeta, setCachedMeta, setCachedPushName } from "../message.js";
 
 // Cache for spam and cooldowns
 const spamCache = new Map();
@@ -210,17 +203,25 @@ export async function dbInitMiddleware(ctx, next) {
   if (!chat.users) chat.users = {};
   if (!chat.users[m.sender]) chat.users[m.sender] = {};
   const users = chat.users[m.sender];
-  const pushname = m.pushName || "Sin nombre";
+  const pushname = m.pushName || user.name || "Sin nombre";
+
+  if (m.pushName) {
+    user.name = m.pushName;
+    users.name = m.pushName;
+    setCachedPushName(m.sender, m.pushName);
+  }
 
   let groupMetadata = null;
   let groupAdmins = [];
   let groupName = "";
 
   if (m.isGroup) {
-    groupMetadata = groupMetaCache.get(m.chat);
+    groupMetadata = getCachedMeta(m.chat);
     if (!groupMetadata) {
       groupMetadata = await client.groupMetadata(m.chat).catch(() => null);
-      if (groupMetadata) groupMetaCache.set(m.chat, groupMetadata);
+      if (groupMetadata) {
+        setCachedMeta(m.chat, groupMetadata);
+      }
     }
     groupName = groupMetadata?.subject || "";
     groupAdmins =
@@ -340,7 +341,31 @@ export async function prefixResolverMiddleware(ctx, next) {
 
   let prefix = settings._prefixCache.regex;
   const strRegex = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&");
+  let customCmd = null;
   let pluginPrefix = client.prefix ? client.prefix : prefix;
+
+  for (const name in global.plugins) {
+    const plugin = global.plugins[name];
+    if (plugin && plugin.customPrefix) {
+      const cp = plugin.customPrefix;
+      const ms = cp instanceof RegExp
+        ? [[cp.exec(m.text), cp]]
+        : Array.isArray(cp)
+          ? cp.map((p) => {
+              let r = p instanceof RegExp ? p : new RegExp(strRegex(p));
+              return [r.exec(m.text), r];
+            })
+          : typeof cp === "string"
+            ? [[new RegExp(strRegex(cp)).exec(m.text), new RegExp(strRegex(cp))]]
+            : [[null, null]];
+      if (ms.find((p) => p[0])) {
+        customCmd = name;
+        pluginPrefix = cp;
+        break;
+      }
+    }
+  }
+
   let matchs =
     pluginPrefix instanceof RegExp
       ? [[pluginPrefix.exec(m.text), pluginPrefix]]
@@ -365,6 +390,7 @@ export async function prefixResolverMiddleware(ctx, next) {
   }
 
   ctx.match = match;
+  ctx.customCmd = customCmd;
   return next();
 }
 
@@ -416,7 +442,7 @@ export async function commandParserMiddleware(ctx, next) {
 
   let usedPrefix = (match[0] || [])[0] || "";
   let args = m.text.slice(usedPrefix.length).trim().split(" ");
-  let command = (args.shift() || "")
+  let command = ctx.customCmd || (args.shift() || "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");

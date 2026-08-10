@@ -16,6 +16,77 @@ const splitter = new GraphemeSplitter();
 
 const { imageToWebp, videoToWebp, writeExifImg, writeExifVid } = exif;
 
+export class BoundedMap {
+  #map = new Map();
+  #max;
+  #ttl;
+  constructor(max, ttlMs = 0) { this.#max = max; this.#ttl = ttlMs; }
+  #expired(e) { return this.#ttl > 0 && Date.now() - e.ts > this.#ttl; }
+  has(k) {
+    const e = this.#map.get(k);
+    if (!e) return false;
+    if (this.#expired(e)) { this.#map.delete(k); return false; }
+    return true;
+  }
+  get(k) {
+    const e = this.#map.get(k);
+    if (!e) return undefined;
+    if (this.#expired(e)) { this.#map.delete(k); return undefined; }
+    return e.v;
+  }
+  set(k, v) {
+    if (this.#map.size >= this.#max) this.#map.delete(this.#map.keys().next().value);
+    this.#map.set(k, { v, ts: Date.now() });
+  }
+}
+
+const groupMetaCache = new Map();
+const pushNameCache = new BoundedMap(1000, 24 * 60 * 60_000);
+const META_TTL = 300_000;
+
+const gcMeta = setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of groupMetaCache) {
+    if (now - val.ts > META_TTL) groupMetaCache.delete(key);
+  }
+}, 10 * 60 * 1000);
+gcMeta.unref();
+
+export function getCachedMeta(groupJid) {
+  const c = groupMetaCache.get(groupJid);
+  if (!c || Date.now() - c.ts > META_TTL) return null;
+  return c.metadata;
+}
+
+export function setCachedMeta(groupJid, metadata) {
+  if (groupJid && metadata) groupMetaCache.set(groupJid, { metadata, ts: Date.now() });
+}
+
+export function deleteCachedMeta(groupJid) {
+  groupMetaCache.delete(groupJid);
+}
+
+export function getCachedPushName(jid) {
+  return pushNameCache.get(jid);
+}
+
+export function setCachedPushName(jid, pushName) {
+  if (jid && pushName) pushNameCache.set(jid, pushName);
+}
+
+export function patchGroupMetadata(client) {
+  if (!client || client.isPatchedGroupMetadata) return;
+  client.isPatchedGroupMetadata = true;
+  const originalGroupMetadata = client.groupMetadata.bind(client);
+  client.groupMetadata = async (jid) => {
+    const cached = getCachedMeta(jid);
+    if (cached) return cached;
+    const meta = await originalGroupMetadata(jid);
+    if (meta) setCachedMeta(jid, meta);
+    return meta;
+  };
+}
+
 export * from '../utils/tools.js';
 
 export async function fixLid(client, m) {
@@ -85,11 +156,13 @@ export function decorateClient(client, store) {
     if (id.endsWith('@g.us')) {
       return new Promise(async (resolve) => {
         v = (store?.contacts?.[id]) || {};
-        if (!(v.name || v.subject)) v = await client.groupMetadata(id).catch(() => ({})) || {};
+        if (!(v.name || v.subject)) v = getCachedMeta(id) || await client.groupMetadata(id).catch(() => ({})) || {};
         resolve(v.name || v.subject || '+' + id.replace('@s.whatsapp.net', ''));
       });
     } else {
-      v = id === '0@s.whatsapp.net' ? { id, name: 'WhatsApp' } : id === client.decodeJid(client.user.jid) ? client.user : (store?.contacts?.[id]) || {};
+      const cachedPushName = getCachedPushName(id);
+      if (cachedPushName && !withoutContact) return cachedPushName;
+      v = id === '0@s.whatsapp.net' ? { id, name: 'WhatsApp' } : id === client.decodeJid(client.user.jid) ? client.user : (store?.contacts?.[id]) || (global.db?.data?.users?.[id]) || {};
     }
     return ((withoutContact ? '' : v.name) || v.subject || v.verifiedName || '+' + jid.replace('@s.whatsapp.net', ''));
   };
