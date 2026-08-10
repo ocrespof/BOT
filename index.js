@@ -177,6 +177,8 @@ function setupWatchdog(sock) {
       startBot();
     }
   }, 3 * 60 * 1000);
+}
+
 const msgStore = new Map();
 const msgLimit = 100;
 
