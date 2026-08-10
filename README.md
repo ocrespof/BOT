@@ -78,6 +78,7 @@ Todos los comandos de descarga soportan **citar un mensaje que contenga un enlac
 - **Documentos**: Soporte para Scribd, Google Drive, Mediafire y Studocu (con pre-búsqueda integrada).
 
 ### 👥 Moderación Avanzada de Grupos
+- **Expulsión Masiva (`.kick @all`)**: Permite expulsar masivamente a los miembros del grupo en lotes seguros. **Exclusivo para el creador del bot** para prevenir abusos. Protege automáticamente al propietario del grupo y al bot.
 - **Llamado a Administradores (`admins` / `reportar`)**: Escribiendo la palabra `admins` o `.admins <motivo>` en el chat, menciona automáticamente a todos los administradores del grupo notificándoles el motivo o reporte solicitado.
 - **Anti-Link**: Eliminación de mensajes y expulsión de usuarios que compartan enlaces de otros grupos o canales de WhatsApp.
 - **Anti-Phishing**: Detección inteligente de URLs sospechosas o fraudes comunes y expulsión del remitente.
