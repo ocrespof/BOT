@@ -4,29 +4,81 @@
  */
 import { getGroupMeta } from '../../utils/tools.js';
 import { resolveLidToRealJid } from '../../core/utils.js';
+import config from '../../config.js';
 
 const cmdKick = {
-  command: ['kick'],
-  category: 'grupo', desc: 'Expulsar del grupo.', isAdmin: true, botAdmin: true,
-  run: async (client, m) => {
+  command: ['kick', 'echar', 'sacar'],
+  category: 'grupo', desc: 'Expulsar miembro o usar .kick @all (Solo Creador).', isAdmin: true, botAdmin: true,
+  run: async (client, m, args) => {
+    const text = (args.join(' ') || '').toLowerCase().trim();
+    const isKickAll = text.includes('@all') || text === 'all';
+    const groupInfo = await getGroupMeta(client, m.chat);
+    if (!groupInfo) return m.reply('❌ No se pudo obtener la información del grupo.');
+
+    const botJid = client.decodeJid(client.user.id);
+    const ownerBotList = [
+      botJid,
+      ...(global.owner || []).map(num => num + '@s.whatsapp.net'),
+      ...(config.owner || []).map(num => num + '@s.whatsapp.net')
+    ];
+    const isOwner = ownerBotList.includes(client.decodeJid(m.sender));
+
+    if (isKickAll) {
+      if (!isOwner) {
+        return m.reply('❌ Solo el *creador del bot* puede usar el comando *.kick @all*.');
+      }
+
+      const ownerGroup = groupInfo.owner || m.chat.split('-')[0] + '@s.whatsapp.net';
+      const targets = (groupInfo.participants || []).filter(p => {
+        const jid = client.decodeJid(p.id || p.jid || p.phoneNumber);
+        return !ownerBotList.includes(jid) && jid !== ownerGroup;
+      });
+
+      if (!targets.length) {
+        return m.reply('⚠️ No hay miembros elegibles para expulsar en este grupo.');
+      }
+
+      await m.reply(`🚨 *INICIANDO EXPULSIÓN MASIVA (@all)* 🚨\n\n👥 *Miembros a expulsar:* ${targets.length}\n⏳ Procesando en lotes seguros...`);
+
+      const targetJids = targets.map(p => client.decodeJid(p.id || p.jid || p.phoneNumber));
+      let kickedCount = 0;
+      for (let i = 0; i < targetJids.length; i += 10) {
+        const batch = targetJids.slice(i, i + 10);
+        try {
+          await client.groupParticipantsUpdate(m.chat, batch, 'remove');
+          kickedCount += batch.length;
+          await new Promise(r => setTimeout(r, 1000));
+        } catch (err) {
+          console.error('[kickAll batch error]', err);
+        }
+      }
+
+      return client.sendMessage(m.chat, {
+        text: `✅ *Expulsión masiva completada.*\n\n🗑️ *Total expulsados:* ${kickedCount} de ${targetJids.length} miembros.`
+      }, { quoted: m });
+    }
+
     if (!m.mentionedJid[0] && !m.quoted) {
-      return m.reply(' Etiqueta o responde al *mensaje* de la *persona* que quieres eliminar');
+      return m.reply(' Etiqueta o responde al *mensaje* de la *persona* que quieres eliminar (o usa *.kick @all* si eres el creador)');
     }
     let user = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted.sender;
-    const groupInfo = await getGroupMeta(client, m.chat);
-    const ownerGroup = groupInfo.owner || m.chat.split`-`[0] + '@s.whatsapp.net';
-    const ownerBot = global.owner[0] + '@s.whatsapp.net';
-    const participant = groupInfo.participants.find((p) => p.phoneNumber === user || p.jid === user || p.id === user || p.lid === user);
+    user = client.decodeJid(user);
+    const ownerGroup = groupInfo.owner || m.chat.split('-')[0] + '@s.whatsapp.net';
+    const participant = groupInfo.participants.find((p) => {
+      const pJid = client.decodeJid(p.phoneNumber || p.jid || p.id || p.lid);
+      return pJid === user || p.phoneNumber === user || p.jid === user || p.id === user || p.lid === user;
+    });
+
     if (!participant) {
       return client.reply(m.chat, ` *@${user.split('@')[0]}* ya no está en el grupo.`, m, { mentions: [user] });
     }
-    if (user === client.decodeJid(client.user.id)) {
+    if (user === botJid) {
       return m.reply(' No puedo eliminar al *bot* del grupo');
     }
     if (user === ownerGroup) {
       return m.reply(' No puedo eliminar al *propietario* del grupo');
     }
-    if (user === ownerBot) {
+    if (ownerBotList.includes(user)) {
       return m.reply(' No puedo eliminar al *propietario* del bot');
     }
     try {
