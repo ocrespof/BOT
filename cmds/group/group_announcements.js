@@ -96,8 +96,44 @@ const cmdBot = {
       return m.reply(` Has *Activado* a *${botname}* en este grupo.`);
     }
 
-    return m.reply(`*✿ Estado de ${botname} (｡•́‿•̀｡)*\n✐ *Actual ›* ${estado ? '✗ Desactivado' : '✓ Activado'}\n\nPuedes cambiarlo con:\n● _Activar ›_ *bot on*\n● _Desactivar ›_ *bot off*`);
   }
 };
 
-export default [cmdHideTag, cmdTagAll, cmdBot];
+const cmdAdmins = {
+  command: ['admins', 'administradores', 'reportar', 'report'],
+  customPrefix: /^(\.|#|\/|!)?(admins|administradores|reportar|report)\b/i,
+  category: 'grupo', desc: 'Mencionar/reportar a los administradores.',
+  run: async (client, m, args) => {
+    if (!m.isGroup) return m.reply('❌ Este comando solo se puede usar en grupos.');
+    const groupInfo = await getGroupMeta(client, m.chat);
+    const participants = groupInfo?.participants || [];
+    const admins = participants.filter(p => p.admin === 'admin' || p.admin === 'superadmin');
+    
+    if (!admins.length) return m.reply('⚠️ No se encontraron administradores en este grupo.');
+
+    const reason = args.join(' ').trim() || (m.quoted ? (m.quoted.text || m.quoted.caption || '') : '');
+    const adminJids = admins.map(a => client.decodeJid(a.id || a.jid || a.phoneNumber)).filter(Boolean);
+
+    let teks = `🚨 *LLAMADO / REPORTE A ADMINISTRADORES* 🚨\n\n`;
+    teks += `👥 *Grupo:* ${groupInfo.subject || 'Grupo'}\n`;
+    teks += `👤 *Solicitado por:* @${m.sender.split('@')[0]}\n`;
+    if (reason) {
+      teks += `💬 *Motivo / Asunto:* ${reason}\n`;
+    }
+    teks += `\n📢 *Administradores etiquetados (${admins.length}):*\n`;
+
+    for (const adm of admins) {
+      const rawId = adm.id || adm.jid || adm.phoneNumber;
+      const cleanId = client.decodeJid(rawId);
+      teks += `• @${cleanId.split('@')[0]}\n`;
+    }
+
+    teks += `\n> ⚠️ *Administradores, por favor atienda este reporte lo antes posible.*`;
+
+    return client.reply(m.chat, teks, m, {
+      mentions: [m.sender, ...adminJids]
+    });
+  }
+};
+
+export default [cmdHideTag, cmdTagAll, cmdBot, cmdAdmins];
