@@ -15,9 +15,6 @@ export default async (m) => {
       user.coins = (user.coins || 0) + coinBonus
       user.exp = (user.exp || 0) + expBonus
     }
-    const { min, max } = xpRange(user.level, global.multiplier)
-    user.minxp = min
-    user.maxxp = max
     // Auto-check achievements on level up
     checkAchievements(m.sender)
   }
