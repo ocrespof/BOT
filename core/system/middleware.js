@@ -698,7 +698,7 @@ export async function executorMiddleware(ctx) {
       m.chat,
       { text: `❌ Error al ejecutar el comando\n[${error.message}]` },
       { quoted: m },
-    );
+    ).catch(() => {});
   } finally {
     global.markPartitionDirty("users");
     global.markPartitionDirty("chats");
