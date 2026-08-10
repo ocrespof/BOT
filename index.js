@@ -14,7 +14,7 @@ global.my = config.my;
 global.mess = config.mess;
 global.APIs = config.APIs;
 global.config = config;
-import main from './main.js';
+import main, { initCommands } from './main.js';
 import events from './core/system/events.js';
 import { Browsers, makeWASocket, makeCacheableSignalKeyStore, useMultiFileAuthState, fetchLatestBaileysVersion, jidDecode, DisconnectReason } from "@whiskeysockets/baileys";
 import cfonts from 'cfonts';
@@ -25,7 +25,7 @@ import fs from "fs";
 import path from "path";
 import readlineSync from "readline-sync";
 import NodeCache from "node-cache";
-import { smsg, decorateClient } from "./core/message.js";
+import { smsg, decorateClient, getCachedMeta, setCachedMeta, deleteCachedMeta, setCachedPushName, patchGroupMetadata } from "./core/message.js";
 import db from "./core/system/database.js";
 import { exec } from "child_process";
 
@@ -177,12 +177,52 @@ function setupWatchdog(sock) {
       startBot();
     }
   }, 3 * 60 * 1000);
+const msgStore = new Map();
+const msgLimit = 100;
+
+const versionCache = { value: null, expiresAt: 0 };
+async function getVersion() {
+  if (versionCache.value && Date.now() < versionCache.expiresAt) return versionCache.value;
+  try {
+    const latest = await fetchLatestBaileysVersion();
+    versionCache.value = latest.version;
+    versionCache.expiresAt = Date.now() + 60 * 60 * 1000;
+  } catch (e) {
+    if (!versionCache.value) versionCache.value = [2, 3000, 1033105955];
+  }
+  return versionCache.value;
+}
+
+async function warmupGroups(sock) {
+  try {
+    const allChats = db.data?.chats ? Object.keys(db.data.chats).map(id => ({ id })) : [];
+    const chatIds = allChats
+      .map(c => c.id || c)
+      .filter(id => typeof id === 'string' && id.endsWith('@g.us'))
+      .slice(0, 50);
+    if (!chatIds.length) return;
+    console.log(chalk.gray(`[ ✿ ] Precargando metadata de ${chatIds.length} grupos...`));
+    const t = Date.now();
+    const batches = [];
+    for (let i = 0; i < chatIds.length; i += 10) {
+      batches.push(chatIds.slice(i, i + 10));
+    }
+    await Promise.allSettled(batches.map(batch => Promise.allSettled(batch.map(async id => {
+      try {
+        const meta = await sock.groupMetadata(id);
+        if (meta) setCachedMeta(id, meta);
+      } catch {}
+    }))));
+    console.log(chalk.gray(`[ ✿ ] Warmup completado en ${Date.now() - t}ms`));
+  } catch (e) {
+    console.log(chalk.gray(`[ ✿ ] warmupGroups → ${e?.message || e}`));
+  }
 }
 
 async function startBot() {
   cleanupSocket();
   const { state, saveCreds } = await useMultiFileAuthState(global.sessionName);
-  const { version } = await fetchLatestBaileysVersion();
+  const version = await getVersion();
   const logger = pino({ level: "silent" });
   console.info = () => { };
   console.debug = () => { };
@@ -193,12 +233,13 @@ async function startBot() {
     browser: ['Ubuntu', 'Chrome', '20.0.04'],
     auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, logger) },
     msgRetryCounterCache,
+    cachedGroupMetadata: async (jid) => getCachedMeta(jid) ?? undefined,
+    getMessage: async (key) => msgStore.get(key.remoteJid + ':' + key.id) || "",
     markOnlineOnConnect: false,
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
     shouldSyncHistoryMessage: () => false,
     shouldIgnoreJid: (jid) => jid?.endsWith('@newsletter') || jid?.endsWith('@broadcast'),
-    getMessage: async () => "",
     defaultQueryTimeoutMs: undefined,
     emitOwnEvents: true,
     keepAliveIntervalMs: 25000,
@@ -206,8 +247,11 @@ async function startBot() {
   global.client = sock;
   sock.isInit = false;
   decorateClient(sock, null);
+  patchGroupMetadata(sock);
   setupWatchdog(sock);
   sock.ev.on("creds.update", saveCreds);
+  sock.ev.on("group-participants.update", ({ id }) => { deleteCachedMeta(id); });
+  sock.ev.on("groups.update", (updates) => { for (const update of updates) deleteCachedMeta(update.id); });
 
   if (opcion === "2" && !fs.existsSync("./Sessions/Owner/creds.json")) {
     setTimeout(async () => {
@@ -273,6 +317,7 @@ async function startBot() {
       reconexion = 0;
       const userName = sock.user.name || "Desconocido";
       console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`));
+      warmupGroups(sock);
     }
     if (isNewLogin) log.info("Nuevo dispositivo detectado");
     if (receivedPendingNotifications === true) {
@@ -287,6 +332,18 @@ async function startBot() {
 
       // Bloquear explícitamente cualquier mensaje de sincronización histórica de chat ('append')
       if (chatUpdate.type !== 'notify') return;
+
+      for (const msg of chatUpdate.messages || []) {
+        if (msg?.message && msg?.key?.id) {
+          const sid = msg.key.remoteJid + ':' + msg.key.id;
+          msgStore.set(sid, msg.message);
+          if (msgStore.size > msgLimit) msgStore.delete(msgStore.keys().next().value);
+        }
+        if (msg?.pushName) {
+          const senderJid = msg.key.participant || msg.key.remoteJid;
+          if (senderJid) setCachedPushName(senderJid, msg.pushName);
+        }
+      }
 
       const kay = chatUpdate.messages?.[0];
       if (!kay?.message) return;
@@ -338,7 +395,8 @@ cleanCache();
 (async () => {
   db.migrateJSONToSQLite();
   db.clearDB();
-  console.log(chalk.gray('[ ✿  ]  Base de datos SQLite cargada, migrada y depurada correctamente.'))
+  console.log(chalk.gray('[ ✿  ]  Base de datos SQLite cargada, migrada y depurada correctamente.'));
+  await initCommands();
   await startBot();
 })();
 

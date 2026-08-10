@@ -60,7 +60,10 @@ bot/
 | **Descarga Directa a Buffer** | Solución al fallo clásico de carga en teléfonos para recursos protegidos (Instagram/Facebook CDN). El bot pre-descarga localmente la imagen o video en un buffer de memoria antes de entregarlo a Baileys, evitando el envío de mensajes corruptos. |
 | **APIs de YouTube Lempi** | Integración prioritaria del endpoint privado de `YukiBot` para descargas de YouTube (MP3 y MP4), acelerando drásticamente el procesamiento de descargas multimedia. |
 | **Pipeline de Middlewares** | Sistema asíncrono estilo Express/Koa que procesa autorizaciones, spam y juegos en turnos secuenciales ordenados. |
-| **Caché Inteligente** | Caching de metadatos de grupos (`groupMetaCache`) con TTL de 5 min para evitar exceso de peticiones a la red de WhatsApp por cada mensaje. |
+| **Precarga y Caché de Grupos** | Sistema asíncrono de precarga (`warmupGroups`) de metadatos para hasta 50 grupos activos en el arranque del socket, con invalidación en tiempo real ante eventos de cambio de participantes. Evita llamadas redundantes a la red de WhatsApp. |
+| **Almacén `msgStore` Liviano** | Bounded Map circular en memoria limitado a 100 mensajes para alimentar `getMessage`. Asegura la correcta desencriptación de mensajes antiguos y citados sin sobrecargar la RAM. |
+| **Caché de Versión de Baileys** | Obtención eficiente de la versión de Baileys con expiración de 1 hora y fallback de emergencia local, previniendo bloqueos de inicio por caídas en repositorios remotos. |
+| **Prefijos Dinámicos y `customPrefix`** | Soporte integrado en el pipeline para procesar comandos con prefijos de expresión regular personalizados o palabras clave exactas. |
 | **Álbumes Nativos** | Agrupa resultados de búsquedas de imágenes (Pinterest/Google Images) en álbumes nativos de WhatsApp, eliminando el spam de burbujas en el chat. |
 
 ---
