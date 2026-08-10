@@ -167,12 +167,10 @@ function setupWatchdog(sock) {
   lastActivityTimestamp = Date.now();
 
   global.watchdogTimer = setInterval(() => {
-    const now = Date.now();
-    const inactiveTime = now - lastActivityTimestamp;
     const isWsOpen = sock.ws && sock.ws.readyState === 1;
 
-    if (inactiveTime > 15 * 60 * 1000 || !isWsOpen) {
-      console.log(chalk.yellow('[ ⚠ Watchdog ] Conexión inactiva o socket cerrado (>15 min). Forzando reconexión limpia...'));
+    if (!isWsOpen) {
+      console.log(chalk.yellow('[ ⚠ Watchdog ] Socket cerrado o desconectado. Forzando reconexión limpia...'));
       cleanupSocket();
       startBot();
     }
