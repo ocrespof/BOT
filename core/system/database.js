@@ -761,6 +761,7 @@ export class DbSession {
       const origStr = this.original.users.get(id);
       const orig = JSON.parse(origStr);
       for (const [k, v] of Object.entries(current)) {
+        if (k.startsWith('_') || !(k in defUser)) continue;
         if (JSON.stringify(orig[k]) !== JSON.stringify(v)) {
           setUser(id, k, v);
         }
@@ -771,7 +772,7 @@ export class DbSession {
       const origStr = this.original.chats.get(id);
       const orig = JSON.parse(origStr);
       for (const [k, v] of Object.entries(current)) {
-        if (k === 'users') continue;
+        if (k === 'users' || k.startsWith('_') || !(k in defChat)) continue;
         if (JSON.stringify(orig[k]) !== JSON.stringify(v)) {
           setChat(id, k, v);
         }
@@ -782,6 +783,7 @@ export class DbSession {
       const origStr = this.original.settings.get(id);
       const orig = JSON.parse(origStr);
       for (const [k, v] of Object.entries(current)) {
+        if (k.startsWith('_') || !(k in defSets)) continue;
         if (JSON.stringify(orig[k]) !== JSON.stringify(v)) {
           setSettings(id, k, v);
         }
@@ -793,6 +795,7 @@ export class DbSession {
       const origStr = this.original.chatUsers.get(key);
       const orig = JSON.parse(origStr);
       for (const [k, v] of Object.entries(current)) {
+        if (k.startsWith('_') || !(k in defChatUser)) continue;
         if (JSON.stringify(orig[k]) !== JSON.stringify(v)) {
           setChatUser(chatId, userId, k, v);
         }
