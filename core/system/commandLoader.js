@@ -33,12 +33,10 @@ class CommandRegistry {
     const afterFn = imported.after || commands.find(c => typeof c.after === 'function')?.after || null;
     const allFn = imported.all || commands.find(c => typeof c.all === 'function')?.all || null;
     
-    const customPrefixFn = imported.customPrefix || commands.find(c => c.customPrefix)?.customPrefix || null;
-    
     if (beforeFn) pluginObj.before = beforeFn;
     if (afterFn) pluginObj.after = afterFn;
     if (allFn) pluginObj.all = allFn;
-    if (customPrefixFn) pluginObj.customPrefix = customPrefixFn;
+    if (imported.customPrefix) pluginObj.customPrefix = imported.customPrefix;
     
     const firstCmd = commands[0];
     Object.defineProperty(pluginObj, 'priority', {
@@ -65,7 +63,7 @@ class CommandRegistry {
             desc: comando.desc || comando.description || '',
             usage: comando.usage || '',
             cooldown: comando.cooldown || 0,
-            customPrefix: comando.customPrefix || imported.customPrefix || null,
+            customPrefix: comando.customPrefix || null,
             before: imported.before || comando.before || null,
             after: imported.after || comando.after || null,
             info: comando.info || {}
