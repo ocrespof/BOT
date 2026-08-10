@@ -83,7 +83,7 @@ Todos los comandos de descarga soportan **citar un mensaje que contenga un enlac
 - **Anti-Link**: Eliminación de mensajes y expulsión de usuarios que compartan enlaces de otros grupos o canales de WhatsApp.
 - **Anti-Phishing**: Detección inteligente de URLs sospechosas o fraudes comunes y expulsión del remitente.
 - **Anti-Status**: Control y eliminación automática de reenvíos maliciosos de menciones de estado grupal que puedan colgar el chat de grupo.
-- **Detector de Eventos Silenciosos**: Monitoreo y reporte en tiempo real en el chat cuando se cambian los **Mensajes Temporales** (reporta duración) o se modifica la **Aprobación de nuevos miembros** por administradores.
+- **Detector de Eventos Silenciosos**: Monitoreo y reporte en tiempo real en el chat cuando se modifica la **Aprobación de nuevos miembros** por administradores o ajustes de seguridad del grupo.
 - **Panel de Ajustes Rápido**: Control inmediato a través de los comandos de administración `.nsfw enable/disable` y `.antistatus enable/disable`.
 
 ### 🎓 Academia (IA Modo Absoluto)
