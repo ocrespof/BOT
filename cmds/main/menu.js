@@ -148,11 +148,6 @@ export default {
  ⊳ *${prefix}gamestats* ➭ Estadísticas individuales
  ⊳ *${prefix}delgame* ➭ Cancelar juego activo
 
-> 🎭  *R E A C C I O N E S*
-> _GIFs Animados_
- ⊳ *${prefix}hug* / *${prefix}kiss* / *${prefix}pat* / *${prefix}dance* ...
- ⊳ *${prefix}slap* / *${prefix}bite* / *${prefix}cry* / *${prefix}blush* ...
- _60+ reacciones animadas disponibles_
 
 > 📖  *B I B L I A*
 > _Versículos automáticos_
