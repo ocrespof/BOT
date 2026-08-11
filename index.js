@@ -80,13 +80,13 @@ async function cleanCache() {
       let cleaned = 0;
       const now = Date.now();
       for (const file of files) {
-        try { 
+        try {
           const filePath = path.join(tmpFolder, file);
           const stat = await fs.promises.stat(filePath);
           // Borrar solo archivos que tengan más de 10 minutos de antigüedad
           if (now - stat.mtimeMs > 10 * 60 * 1000) {
-            await fs.promises.unlink(filePath); 
-            cleaned++; 
+            await fs.promises.unlink(filePath);
+            cleaned++;
           }
         } catch { }
       }
@@ -158,7 +158,7 @@ function cleanupSocket() {
       if (global.client.ws) {
         global.client.ws.close();
       }
-    } catch {}
+    } catch { }
     global.client = null;
   }
 }
@@ -199,7 +199,7 @@ async function warmupGroups(sock) {
       try {
         const meta = await sock.groupMetadata(id);
         if (meta) setCachedMeta(id, meta);
-      } catch {}
+      } catch { }
     }))));
     console.log(chalk.gray(`[ ✿ ] Warmup completado en ${Date.now() - t}ms`));
   } catch (e) {
@@ -274,15 +274,15 @@ async function startBot() {
       const reason = lastDisconnect?.error?.output?.statusCode || 0;
       if (reason === DisconnectReason.loggedOut) {
         log.warning("Escanee nuevamente y ejecute...");
-        await fs.promises.rm("./Sessions/Owner", { recursive: true, force: true }).catch(() => {});
+        await fs.promises.rm("./Sessions/Owner", { recursive: true, force: true }).catch(() => { });
         process.exit(1);
       } else if (reason === DisconnectReason.forbidden) {
         log.error("Error de conexión, escanee nuevamente y ejecute...");
-        await fs.promises.rm("./Sessions/Owner", { recursive: true, force: true }).catch(() => {});
+        await fs.promises.rm("./Sessions/Owner", { recursive: true, force: true }).catch(() => { });
         process.exit(1);
       } else if (reason === DisconnectReason.multideviceMismatch) {
         log.warning("Inicia nuevamente");
-        await fs.promises.rm("./Sessions/Owner", { recursive: true, force: true }).catch(() => {});
+        await fs.promises.rm("./Sessions/Owner", { recursive: true, force: true }).catch(() => { });
         process.exit(0);
       } else if (reason === DisconnectReason.connectionReplaced) {
         log.warning("Primero cierre la sesión actual...");
@@ -349,7 +349,7 @@ async function startBot() {
         const isInternalBaileys = kay.key.id.startsWith('BAE5') && kay.key.id.length >= 16;
         if (isBotSent || isInternalBaileys) return;
       }
-      
+
       // No procesar mensajes antiguos de cuando el bot estaba apagado (evitar NaNs)
       const msgTime = Number(kay.messageTimestamp);
       if (!isNaN(msgTime) && msgTime > 0) {
@@ -379,7 +379,7 @@ async function startBot() {
   };
 }
 
-setInterval(cleanCache, 1 * 60 * 60 * 1000);
+setInterval(cleanCache, 5 * 60 * 1000);
 cleanCache();
 
 
