@@ -13,6 +13,7 @@ global.links = config.links;
 global.my = config.my;
 global.mess = config.mess;
 global.APIs = config.APIs;
+global.APIKeys = config.APIKeys;
 global.config = config;
 import main, { initCommands } from './main.js';
 import events from './core/system/events.js';
