@@ -1,6 +1,23 @@
 import chalk from 'chalk'
 import { getGroupMeta, getBotId, getBotSettings } from '../../utils/tools.js';
 
+function formatWelcomeGoodbyeText(template, { phone, groupName, groupDesc, memberCount }) {
+  if (!template) return '';
+  const now = new Date();
+  const timeFormatted = now.toLocaleString('es-ES', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: true
+  });
+
+  return template
+    .replace(/@user|\{user\}|\{usuario\}/gi, `@${phone}`)
+    .replace(/@group|\{group\}|\{grupo\}/gi, groupName || 'el grupo')
+    .replace(/@desc|\{desc\}|\{description\}/gi, groupDesc || 'Sin descripción')
+    .replace(/@members|\{members\}|\{miembros\}|\{total\}/gi, String(memberCount || 1))
+    .replace(/@time|\{time\}|\{hora\}/gi, timeFormatted);
+}
+
 export default async (client, m) => {
   // Remove previous listeners to prevent duplication on reconnect
   client.ev.removeAllListeners('group-participants.update');
@@ -11,14 +28,14 @@ export default async (client, m) => {
       const chat = global?.db?.data?.chats?.[anu.id]
       const botId = getBotId(client)
       const primaryBotId = chat?.primaryBot
-      const memberCount = metadata.participants.length      
+      const memberCount = metadata?.participants?.length || 1
       const isSelf = getBotSettings(client)?.self ?? false
       if (isSelf) return
+      
       for (const p of anu.participants) {
-        const jid = p.phoneNumber
-        const phone = p.phoneNumber?.split('@')[0] || jid.split('@')[0]
-        const pp = await client.profilePictureUrl(jid, 'image').catch(_ => 'https://cdn.yuki-wabot.my.id/files/2PVh.jpeg')       
-        const mensajes = { add: chat.sWelcome ? `\n┊➤ ${chat.sWelcome.replace(/{usuario}/g, `@${phone}`).replace(/{grupo}/g, `*${metadata.subject}*`).replace(/{desc}/g, metadata?.desc || '✿ Sin Desc ✿')}` : '', remove: chat.sGoodbye ? `\n┊➤ ${chat.sGoodbye.replace(/{usuario}/g, `@${phone}`).replace(/{grupo}/g, `*${metadata.subject}*`).replace(/{desc}/g, metadata?.desc || '✿ Sin Desc ✿')}` : '', leave: chat.sGoodbye ? `\n┊➤ ${chat.sGoodbye.replace(/{usuario}/g, `@${phone}`).replace(/{grupo}/g, `*${metadata.subject}*`).replace(/{desc}/g, metadata?.desc || '✿ Sin Desc ✿')}` : '' }
+        const jid = typeof p === 'string' ? p : (p.id || p.phoneNumber || String(p));
+        const phone = jid.split('@')[0];
+        const pp = await client.profilePictureUrl(jid, 'image').catch(_ => 'https://cdn.yuki-wabot.my.id/files/2PVh.jpeg');
         const botSettings = getBotSettings(client)
         const fakeContext = {
           contextInfo: {
@@ -42,32 +59,56 @@ export default async (client, m) => {
             mentionedJid: [jid]
           }
         }
+
+        const nowStr = new Date().toLocaleString('es-ES', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+        });
+
         if (anu.action === 'add' && chat?.welcome && (!primaryBotId || primaryBotId === botId)) {
-          const caption = `╭┈──̇─̇─̇────̇─̇─̇──◯◝
-50: ┊「 *Bienvenido (⁠ ⁠ꈍ⁠ᴗ⁠ꈍ⁠)* 」
-51: ┊︶︶︶︶︶︶︶︶︶︶︶
-52: ┊  *Nombre ›* @${phone}
-53: ┊  *Grupo ›* ${metadata.subject}
-54: ┊  *Miembros ›* ${memberCount}
-55: ┊┈─────̇─̇─̇─────◯◝
-56: ┊➤ *Usa /menu para ver los comandos.*
-57: ┊➤ *Ahora somos ${memberCount} miembros.* ${mensajes[anu.action]}
-58: ┊ ︿︿︿︿︿︿︿︿︿︿︿
-59: ╰─────────────────╯`
-          await client.sendMessage(anu.id, { image: { url: pp }, caption, ...fakeContext })     
+          let caption;
+          if (chat.sWelcome && chat.sWelcome.trim()) {
+            caption = formatWelcomeGoodbyeText(chat.sWelcome, {
+              phone, groupName: metadata.subject, groupDesc: metadata?.desc || '', memberCount
+            });
+          } else {
+            caption = `╭┈──̇─̇─̇────̇─̇─̇──◯◝\n` +
+              `┊「 *Bienvenido (⁠ ⁠ꈍ⁠ᴗ⁠ꈍ⁠)* 」\n` +
+              `┊︶︶︶︶︶︶︶︶︶︶︶\n` +
+              `┊  *Nombre ›* @${phone}\n` +
+              `┊  *Grupo ›* ${metadata.subject}\n` +
+              `┊  *Miembros ›* #${memberCount}\n` +
+              `┊  *Fecha ›* ${nowStr}\n` +
+              `┊┈─────̇─̇─̇─────◯◝\n` +
+              `┊➤ *Usa .menu para ver los comandos.*\n` +
+              `┊➤ *Ahora somos ${memberCount} miembros en el grupo.*\n` +
+              `┊ ︿︿︿︿︿︿︿︿︿︿︿\n` +
+              `╰─────────────────╯`;
+          }
+          await client.sendMessage(anu.id, { image: { url: pp }, caption, mentions: [jid], ...fakeContext })     
         }
+
         if ((anu.action === 'remove' || anu.action === 'leave') && chat?.goodbye && (!primaryBotId || primaryBotId === botId)) {
-          const caption = `╭┈──̇─̇─̇────̇─̇─̇──◯◝
-61: ┊「 *Hasta pronto (⁠╥⁠﹏⁠╥⁠)* 」
-62: ┊︶︶︶︶︶︶︶︶︶︶︶
-63: ┊  *Nombre ›* @${phone}
-64: ┊  *Grupo ›* ${metadata.subject}
-65: ┊┈─────̇─̇─̇─────◯◝
-66: ┊➤ *Ojalá que vuelva pronto.*
-67: ┊➤ *Ahora somos ${memberCount} miembros.* ${mensajes[anu.action]}
-68: ┊ ︿︿︿︿︿︿︿︿︿︿︿
-69: ╰─────────────────╯`
-          await client.sendMessage(anu.id, { image: { url: pp }, caption, ...fakeContext })
+          let caption;
+          if (chat.sGoodbye && chat.sGoodbye.trim()) {
+            caption = formatWelcomeGoodbyeText(chat.sGoodbye, {
+              phone, groupName: metadata.subject, groupDesc: metadata?.desc || '', memberCount
+            });
+          } else {
+            caption = `╭┈──̇─̇─̇────̇─̇─̇──◯◝\n` +
+              `┊「 *Hasta pronto (⁠╥⁠﹏⁠╥⁠)* 」\n` +
+              `┊︶︶︶︶︶︶︶︶︶︶︶\n` +
+              `┊  *Nombre ›* @${phone}\n` +
+              `┊  *Grupo ›* ${metadata.subject}\n` +
+              `┊  *Miembros ›* #${memberCount}\n` +
+              `┊  *Fecha ›* ${nowStr}\n` +
+              `┊┈─────̇─̇─̇─────◯◝\n` +
+              `┊➤ *Ojalá vuelva pronto al grupo.*\n` +
+              `┊➤ *Ahora somos ${memberCount} miembros.*\n` +
+              `┊ ︿︿︿︿︿︿︿︿︿︿︿\n` +
+              `╰─────────────────╯`;
+          }
+          await client.sendMessage(anu.id, { image: { url: pp }, caption, mentions: [jid], ...fakeContext });
         }
         if (anu.action === 'promote' && chat?.alerts && (!primaryBotId || primaryBotId === botId)) {
           const usuario = anu.author
@@ -116,22 +157,7 @@ export default async (client, m) => {
     if (m.messageStubType == 26) {
       await client.sendMessage(id, { text: `「」 @${phone} cambió los ajustes del grupo para permitir que ${m.messageStubParameters[0] === 'on' ? 'solo los administradores puedan enviar mensajes al grupo.' : 'todos los miembros puedan enviar mensajes al grupo.'}`, mentions: [actor, ...groupAdmins.map(v => v.id)] })
     }
-    if (m.messageStubType == 32) {
-      const durationSec = parseInt(m.messageStubParameters[0]);
-      let durationText = '';
-      if (durationSec === 0) {
-        durationText = 'desactivado los mensajes temporales';
-      } else if (durationSec === 86400) {
-        durationText = 'activado los mensajes temporales (24 horas)';
-      } else if (durationSec === 604800) {
-        durationText = 'activado los mensajes temporales (7 días)';
-      } else if (durationSec === 7776000) {
-        durationText = 'activado los mensajes temporales (90 días)';
-      } else {
-        durationText = `activado los mensajes temporales (${Math.round(durationSec / 3600)} horas)`;
-      }
-      await client.sendMessage(id, { text: `「⚙️」 @${phone} ha ${durationText}.`, mentions: [actor, ...groupAdmins.map(v => v.id)] })
-    }
+
     if (m.messageStubType == 172) {
       const isOn = m.messageStubParameters[0] === 'on';
       const modeText = isOn 
