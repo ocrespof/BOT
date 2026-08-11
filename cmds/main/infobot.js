@@ -55,7 +55,8 @@ export default {
 ❒ *${desar === 'Hombre' ? 'Dueño' : desar === 'Mujer' ? 'Dueña' : 'Dueño(a)'} ›* ${owner ? (!isNaN(owner.replace(/@s\.whatsapp\.net$/, '')) ? `@${owner.split('@')[0]}` : owner) : "Oculto por privacidad"}
 
 \`Enlace:\` ${link}`.trim()
-await client.sendMessage(m.chat, banner.includes('.mp4') || banner.includes('.webm') ? {
+      const safeCanalId = (canalId && canalId.endsWith('@newsletter')) ? canalId : '120363401404146384@newsletter';
+      await client.sendMessage(m.chat, banner.includes('.mp4') || banner.includes('.webm') ? {
             video: { url: banner },
             gifPlayback: true,
             caption: message,
@@ -63,9 +64,9 @@ await client.sendMessage(m.chat, banner.includes('.mp4') || banner.includes('.we
               mentionedJid: [owner, m.sender],
               isForwarded: true,
               forwardedNewsletterMessageInfo: {
-                newsletterJid: canalId,
-                serverMessageId: '',
-                newsletterName: canalName
+                newsletterJid: safeCanalId,
+                serverMessageId: '100',
+                newsletterName: canalName || 'YukiBot'
               }
             }
           } : {
@@ -74,9 +75,9 @@ await client.sendMessage(m.chat, banner.includes('.mp4') || banner.includes('.we
               mentionedJid: [owner, m.sender],
               isForwarded: true,
               forwardedNewsletterMessageInfo: {
-                newsletterJid: canalId,
-                serverMessageId: '',
-                newsletterName: canalName
+                newsletterJid: safeCanalId,
+                serverMessageId: '100',
+                newsletterName: canalName || 'YukiBot'
               },
               externalAdReply: {
                 title: botname,
