@@ -151,15 +151,45 @@ const alias = {
 const allCommands = Object.values(alias).flat();
 
 /**
- * Obtiene un GIF animado de Tenor como buffer de vídeo descargable (MP4).
- * Cadena de fallback: mp4 → tinymp4 → nanogif para maximizar compatibilidad.
+ * Obtiene un GIF animado priorizando Giphy API (GIFs reales/memes)
+ * y con fallback a Stellar API (Anime) si falla o no hay resultados.
  */
 async function fetchGifBuffer(query) {
+  // 1. Intentar Giphy API (GIFs reales / memes)
+  try {
+    const giphyKey = config.giphyApiKey;
+    if (giphyKey) {
+      const res = await axios.get("https://api.giphy.com/v1/gifs/search", {
+        params: {
+          api_key: giphyKey,
+          q: `${query} reaction`,
+          limit: 10,
+          rating: "g",
+          lang: "es"
+        },
+        timeout: 5000
+      });
+
+      const results = res.data?.data;
+      if (results && results.length > 0) {
+        const randomItem = results[Math.floor(Math.random() * results.length)];
+        const videoUrl =
+          randomItem?.images?.original?.mp4 ||
+          randomItem?.images?.downsized_small?.mp4 ||
+          randomItem?.images?.original?.url;
+        if (videoUrl) return videoUrl;
+      }
+    }
+  } catch (err) {
+    // Fallback silencioso a Stellar
+  }
+
+  // 2. Fallback a Stellar API (Anime GIFs)
   try {
     const api = config.APIs.stellar;
     const res = await axios.get(`${api.url}/sfw/interaction`, {
       params: { inter: query, key: api.key },
-      timeout: 10000
+      timeout: 5000
     });
     return res.data?.result || res.data?.url || res.data?.data || null;
   } catch (error) {
