@@ -75,8 +75,6 @@ Soporta más de 60 reacciones dinámicas tanto en español como en inglés (`.ab
 
 ### 👥 Administración Grupal
 - **Foto de Grupo (`.setgpbanner` / `.grouppicture`)**: Cambia la foto del grupo respondiendo a una imagen.
-- **Obtener Foto (`.getpic` / `.getpp`)**: Descarga la foto de perfil en alta resolución de cualquier miembro o grupo.
-- **Expulsión Masiva (`.kick @all`)**: Exclusivo para el creador del bot, con protección automática para administradores.
 - **Moderación Inteligente**: Anti-Link, Anti-Phishing y Anti-Status.
 
 ### 🎓 Academia Asistida por IA
