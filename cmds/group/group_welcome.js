@@ -5,33 +5,77 @@
 
 const cmdSetWelcome = {
   command: ['setwelcome'],
-  category: 'grupo', desc: 'Configurar mensaje de bienvenida.', isAdmin: true,
+  category: 'grupo', desc: 'Establecer un mensaje de bienvenida personalizado.', isAdmin: true,
   run: async (client, m, args, usedPrefix, command, text) => {
     if (!global?.db?.data?.chats) global.db.data.chats = {};
     if (!global.db.data.chats[m.chat]) global.db.data.chats[m.chat] = {};
     const chat = global.db.data.chats[m.chat];
-    const value = text ? text.trim() : '';
-    if (!value) {
-      return m.reply(`Debes enviar un mensaje para establecerlo como mensaje de bienvenida.\nPuedes usar {usuario}, {grupo} y {desc} como variables dinámicas.\n\n✐ Ejemplo:\n${usedPrefix}setwelcome Bienvenido {usuario} a {grupo}!`);
+
+    if (!args.length) {
+      return m.reply(`*Configuración de Bienvenida* ࣭𑁯ᰍ܃܃
+
+*❒ Variables disponibles:*
+*@user* o *{usuario}*  ➔ Mención del usuario que ingresa
+*@group* o *{grupo}* ➔ Nombre del grupo
+*@desc* o *{desc}*   ➔ Descripción del grupo
+*@members* o *{miembros}* ➔ Número de miembros actuales
+*@time* o *{hora}*    ➔ Fecha y hora actual
+
+💡 *Ejemplo:*
+\`${usedPrefix + command} ¡Hola @user! Bienvenido a @group. Somos @members miembros.\`
+
+✿ Si ya tienes un mensaje configurado y quieres borrarlo usa: *${usedPrefix + command} clear*`);
     }
+
+    if (args[0].toLowerCase() === 'clear') {
+      if (!chat.sWelcome || !chat.sWelcome.trim()) {
+        return m.reply('✎ No tienes ningún mensaje de bienvenida personalizado configurado.');
+      }
+      chat.sWelcome = '';
+      return m.reply('✐ Mensaje de bienvenida personalizado eliminado. Se usará la plantilla por defecto.');
+    }
+
+    const value = text ? text.trim() : '';
     chat.sWelcome = value;
-    return m.reply(`Has establecido el mensaje de bienvenida correctamente.`);
+    return m.reply(`ꕥ Has establecido el mensaje de bienvenida correctamente.`);
   }
 };
 
 const cmdSetGoodbye = {
   command: ['setgoodbye'],
-  category: 'grupo', desc: 'Configurar mensaje de despedida.', isAdmin: true,
+  category: 'grupo', desc: 'Establecer un mensaje de despedida personalizado.', isAdmin: true,
   run: async (client, m, args, usedPrefix, command, text) => {
     if (!global?.db?.data?.chats) global.db.data.chats = {};
     if (!global.db.data.chats[m.chat]) global.db.data.chats[m.chat] = {};
     const chat = global.db.data.chats[m.chat];
-    const value = text ? text.trim() : '';
-    if (!value) {
-      return m.reply(`Debes enviar un mensaje para establecerlo como mensaje de despedida.\nPuedes usar {usuario}, {grupo} y {desc} como variables dinámicas.\n\n✐ Ejemplo:\n${usedPrefix + command} Adiós {usuario}, te extrañaremos en {grupo}!`);
+
+    if (!args.length) {
+      return m.reply(`*Configuración de Despedida* ࣭𑁯ᰍ܃܃
+
+*❒ Variables disponibles:*
+*@user* o *{usuario}*  ➔ Mención del usuario que sale
+*@group* o *{grupo}* ➔ Nombre del grupo
+*@desc* o *{desc}*   ➔ Descripción del grupo
+*@members* o *{miembros}* ➔ Número de miembros actuales
+*@time* o *{hora}*    ➔ Fecha y hora actual
+
+💡 *Ejemplo:*
+\`${usedPrefix + command} Adiós @user, te extrañaremos en @group.\`
+
+✿ Si ya tienes un mensaje configurado y quieres borrarlo usa: *${usedPrefix + command} clear*`);
     }
+
+    if (args[0].toLowerCase() === 'clear') {
+      if (!chat.sGoodbye || !chat.sGoodbye.trim()) {
+        return m.reply('✎ No tienes ningún mensaje de despedida personalizado configurado.');
+      }
+      chat.sGoodbye = '';
+      return m.reply('✐ Mensaje de despedida personalizado eliminado. Se usará la plantilla por defecto.');
+    }
+
+    const value = text ? text.trim() : '';
     chat.sGoodbye = value;
-    return m.reply(`Has establecido el mensaje de despedida correctamente.`);
+    return m.reply(`ꕥ Has establecido el mensaje de despedida correctamente.`);
   }
 };
 
@@ -40,7 +84,7 @@ const cmdOptions = {
     'alerts', 'alertas',
     'antilink', 'antienlaces', 'antilinks',
     'adminonly', 'onlyadmin',
-    'welcome', 'bienvenida',
+    'welcome', 'bienvenida', 'memberwelcome', 'memberwc',
     'goodbye', 'despedida',
     'economy', 'economia',
     'nsfw',
