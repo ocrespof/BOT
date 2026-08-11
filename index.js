@@ -162,20 +162,7 @@ function cleanupSocket() {
   }
 }
 
-function setupWatchdog(sock) {
-  if (global.watchdogTimer) clearInterval(global.watchdogTimer);
-  lastActivityTimestamp = Date.now();
 
-  global.watchdogTimer = setInterval(() => {
-    const isWsOpen = sock.ws && sock.ws.readyState === 1;
-
-    if (!isWsOpen) {
-      console.log(chalk.yellow('[ ⚠ Watchdog ] Socket cerrado o desconectado. Forzando reconexión limpia...'));
-      cleanupSocket();
-      startBot();
-    }
-  }, 3 * 60 * 1000);
-}
 
 const msgStore = new Map();
 const msgLimit = 100;
@@ -248,7 +235,6 @@ async function startBot() {
   sock.isInit = false;
   decorateClient(sock, null);
   patchGroupMetadata(sock);
-  setupWatchdog(sock);
   sock.ev.on("creds.update", saveCreds);
   sock.ev.on("group-participants.update", ({ id }) => { deleteCachedMeta(id); });
   sock.ev.on("groups.update", (updates) => { for (const update of updates) deleteCachedMeta(update.id); });
