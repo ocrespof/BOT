@@ -221,7 +221,11 @@ async function startBot() {
     auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, logger) },
     msgRetryCounterCache,
     cachedGroupMetadata: async (jid) => getCachedMeta(jid) ?? undefined,
-    getMessage: async (key) => msgStore.get(key.remoteJid + ':' + key.id) || "",
+    getMessage: async (key) => {
+      const sid = (key.remoteJid || '') + ':' + (key.id || '');
+      const msg = msgStore.get(sid) || msgStore.get(key.id);
+      return msg || undefined;
+    },
     markOnlineOnConnect: false,
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
@@ -323,7 +327,8 @@ async function startBot() {
         if (msg?.message && msg?.key?.id) {
           const sid = msg.key.remoteJid + ':' + msg.key.id;
           msgStore.set(sid, msg.message);
-          if (msgStore.size > msgLimit) msgStore.delete(msgStore.keys().next().value);
+          msgStore.set(msg.key.id, msg.message);
+          if (msgStore.size > msgLimit * 2) msgStore.delete(msgStore.keys().next().value);
         }
         if (msg?.pushName) {
           const senderJid = msg.key.participant || msg.key.remoteJid;
