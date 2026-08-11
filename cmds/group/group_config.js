@@ -35,35 +35,71 @@ const cmdSetGpDesc = {
 };
 
 const cmdSetGpBanner = {
-  command: ['setgpbanner', 'setgppic', 'setgpfoto'],
-  category: 'grupo', desc: 'Cambiar portada del grupo.', isAdmin: true, botAdmin: true,
+  command: ['setgpbanner', 'setgpp', 'setgppic', 'setgpfoto', 'grouppp', 'setgrouppic', 'gpicture', 'grouppicture'],
+  category: 'grupo', desc: 'Cambiar la foto o portada del grupo (imagen o sticker).', isAdmin: true, botAdmin: true,
   run: async (client, m, args, usedPrefix, command) => {
     const q = m.quoted ? m.quoted : m;
     const mime = (q.msg || q).mimetype || q.mediaType || '';
-    if (!/image/.test(mime)) return m.reply('《✧》 Te faltó la imagen para cambiar el perfil del grupo.');
+    const isImage = /image/.test(mime) || q.type === 'imageMessage';
+    const isSticker = /webp/.test(mime) || q.type === 'stickerMessage';
+
+    if (!isImage && !isSticker) {
+      return m.reply('🖼️ *Por favor, envía o responde a una imagen o sticker que quieras usar como foto del grupo.*');
+    }
+
+    await m.react('🕒');
+
+    let imgBuffer = null;
     try {
-      let img;
       if (typeof q.download === 'function') {
-        img = await q.download();
+        imgBuffer = await q.download();
       } else {
         const { downloadContentFromMessage } = await import('@whiskeysockets/baileys');
         const msgContent = q.msg || q;
-        const stream = await downloadContentFromMessage(msgContent, 'image');
+        const mediaType = isSticker ? 'sticker' : 'image';
+        const stream = await downloadContentFromMessage(msgContent, mediaType);
         const chunks = [];
         for await (const chunk of stream) chunks.push(chunk);
-        img = Buffer.concat(chunks);
+        imgBuffer = Buffer.concat(chunks);
       }
-      if (!img) return m.reply('《✧》 No se pudo descargar la imagen.');
-      await client.updateProfilePicture(m.chat, img);
-      m.reply('✿ La imagen del grupo se actualizó con éxito.');
     } catch (e) {
-      if (e.message.includes('No image processing library available')) {
-        return m.reply('❌ *ERROR CRÍTICO:* Falta la librería para procesar imágenes.\nPor favor apaga el bot y ejecuta en la terminal:\n\n`npm install jimp@0.16.1`');
+      console.error('[setgpbanner download error]', e);
+    }
+
+    if (!imgBuffer || !imgBuffer.length) {
+      await m.react('❌');
+      return m.reply('❌ No se pudo descargar la imagen o sticker seleccionado.');
+    }
+
+    // Intento 1: Actualización directa por Buffer
+    try {
+      await client.updateProfilePicture(m.chat, imgBuffer);
+      await m.react('✔️');
+      return m.reply('✅ ¡La foto de perfil del grupo se actualizó con éxito!');
+    } catch (e1) {
+      // Intento 2: Fallback guardando archivo temporal en ./tmp/gpp_...
+      try {
+        const tmpDir = path.join(process.cwd(), 'tmp');
+        if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+        const imgPath = path.join(tmpDir, `gpp_${Date.now()}.jpg`);
+        fs.writeFileSync(imgPath, imgBuffer);
+
+        await client.updateProfilePicture(m.chat, { url: imgPath });
+
+        try { fs.unlinkSync(imgPath); } catch {}
+        await m.react('✔️');
+        return m.reply('✅ ¡La foto de perfil del grupo se actualizó con éxito!');
+      } catch (e2) {
+        await m.react('❌');
+        const errMsg = e2?.message || e1?.message || String(e2 || e1 || '');
+        if (errMsg.includes('No image processing library available')) {
+          return m.reply('❌ *ERROR CRÍTICO:* Falta la librería para procesar imágenes.\nPor favor ejecuta en la terminal:\n\n`npm install jimp@0.16.1`');
+        }
+        if (errMsg.includes('not-authorized')) {
+          return m.reply('❌ El bot no tiene permisos de administrador reales para cambiar la foto del grupo.');
+        }
+        return m.reply(`❌ *Error al cambiar la foto del grupo:*\n[${errMsg}]`);
       }
-      if (e.message.includes('not-authorized')) {
-        return m.reply('❌ El bot no tiene permisos de administrador reales para cambiar la portada (aunque WhatsApp diga que sí).');
-      }
-      return m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: *${e.message}*]`);
     }
   }
 };
