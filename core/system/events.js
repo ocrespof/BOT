@@ -37,13 +37,16 @@ export default async (client, m) => {
         const phone = jid.split('@')[0];
         const pp = await client.profilePictureUrl(jid, 'image').catch(_ => 'https://cdn.yuki-wabot.my.id/files/2PVh.jpeg');
         const botSettings = getBotSettings(client)
+        const newsletterJid = (botSettings.newsletter_id && botSettings.newsletter_id.endsWith('@newsletter'))
+          ? botSettings.newsletter_id
+          : '120363401404146384@newsletter';
         const fakeContext = {
           contextInfo: {
             isForwarded: true,
             forwardedNewsletterMessageInfo: {
-              newsletterJid: botSettings.id,
-              serverMessageId: '0',
-              newsletterName: botSettings.nameid
+              newsletterJid: newsletterJid,
+              serverMessageId: '100',
+              newsletterName: botSettings.nameid || botSettings.namebot || 'YukiBot'
             },
             externalAdReply: {
               title: botSettings.namebot,
