@@ -164,6 +164,10 @@ export default {
 > _Estado del Sistema_
  ⊳ *${prefix}botstats* ➭ RAM, uptime, usuarios, BD
  ⊳ *${prefix}ping* ➭ Velocidad de respuesta
+
+> 🎭  *R E A C C I O N E S   D I S P O N I B L E S*
+> _Usa ${prefix}<reacción> [@tag / responder]_
+_abrazar, acurrucar, acurrucarse, amor, aplaudir, asustado, asustada, aburrido, aburrida, bañarse, bofetada, comer, nom, besar, muak, sonrojarse, morder, molestar, choca, golpear, golpe, llorar, bailar, tomar, lamer, cantar, reír, acariciar, puchero, presumir, sonreír, cosquillas, gritar, empujar, saltar, calor, llamar, beso, seducir, tímido, tímida, dormir, fumar, escupir, pisar, pensar, caminar, guiñar, enojado, enojada, mueca, drama, preñar, embarazar, correr, triste, asustado, curioso, curiosa, oler, tropezar, espiar_
 `.trim();
 
       const pp = botSettings.icon || "https://cdn.yuki-wabot.my.id/files/6n81.jpeg";
