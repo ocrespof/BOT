@@ -338,12 +338,22 @@ export function decorateClient(client, store) {
 
   client.sendContextInfoIndex = async (jid, text = '', options = {}, quoted = null, useQuoted = true, mentionedJid = null, config = {}) => {
     const botId = (client?.user?.id?.split(':')[0] || '') + '@s.whatsapp.net';
-    const settings = global.db.data.settings[botId] ||= {};
-    const botnam = config.title || settings.botname || '';
-    const mentions = Array.isArray(mentionedJid) ? mentionedJid.map(id => id.includes('@') ? id : id + '@s.whatsapp.net') : null;
-    const content = { extendedTextMessage: { text, contextInfo: { mentionedJid: mentions, externalAdReply: { title: botnam, body: global.dev, mediaType: 1, renderLargerThumbnail: false, previewType: 'NONE' } } } };
-    const prep = generateWAMessageFromContent(jid, content, useQuoted ? { quoted } : {});
-    return client.relayMessage(jid, prep.message, { quoted: useQuoted ? prep.key.quoted : undefined, messageId: prep.key.id });
+    const settings = global.db.data.settings[botId] || {};
+    const botnam = config.title || settings.botname || settings.namebot || 'YukiBot';
+    const mentions = Array.isArray(mentionedJid) ? mentionedJid.map(id => id.includes('@') ? id : id + '@s.whatsapp.net') : undefined;
+    const contextInfo = {
+      mentionedJid: mentions,
+      externalAdReply: {
+        title: botnam,
+        body: config.body || global.dev || 'YukiBot-MD',
+        mediaType: 1,
+        renderLargerThumbnail: false,
+        previewType: 'NONE',
+        thumbnailUrl: config.banner || settings.icon,
+        sourceUrl: config.redes || settings.link
+      }
+    };
+    return client.sendMessage(jid, { text, contextInfo, ...options }, { quoted: useQuoted ? quoted : undefined });
   };
 
   client.reply = async (jid, text = '', quoted, options) => {
