@@ -279,13 +279,14 @@ const evaluarIntento = (guess, target) => {
 // ── COMANDOS ──
 
 const cmdAhorcado = {
-  command: ["ahorcado", "hangman"],
+  command: ["ahorcado", "hangman", "ahorca"],
   category: "juegos",
   desc: "Juega al ahorcado visual adivinando la palabra secreta (API Infinita)",
-  cooldown: 5,
-  run: async (client, m, args) => {
+  usage: "[apuesta]",
+  cooldown: 3,
+  run: async (client, m, args, usedPrefix, command) => {
     if (gameEngine.has(m.chat, "ahorcado"))
-      return m.reply("🎮 Ya hay un juego de ahorcado activo en este chat.");
+      return m.reply("🎮 Ya hay un juego de ahorcado activo en este chat. Usa `.guess <letra>` o envía una letra directamente.");
 
     let apuesta = 150;
     if (args[0] && !isNaN(args[0])) {
@@ -298,11 +299,17 @@ const cmdAhorcado = {
         `❌ No tienes suficiente XP. Tienes *${global.db.data.users[m.sender]?.exp || 0} XP*.`,
       );
 
-    await m.reply("Generando palabra y preparando el juego...");
+    await m.react("🕒");
     const palabraSecreta = await obtenerPalabra();
     const progreso = Array(palabraSecreta.length).fill("_");
 
-    const caption = `🎮 *EL AHORCADO PRO* 🎮\n\nPalabra: \`${progreso.join(" ")}\`\n💰 Apuesta: ${bet} XP\n\n*Envía una letra* o *la palabra completa* para adivinar.`;
+    const caption = `🎮 *¡EL AHORCADO INICIADO!* 🎮\n\n` +
+      `📌 *Palabra:* \`${progreso.join(" ")}\`\n` +
+      `❤️ *Intentos:* 0/6\n` +
+      `💰 *Apuesta:* ${bet} XP\n\n` +
+      `👉 *¿Cómo jugar?*\n` +
+      `• Envía una letra en el chat (o usa \`${usedPrefix}guess <letra>\`)\n` +
+      `• O envía la palabra completa si ya la sabes!`;
 
     const imgBuffer = await getHangmanImageBuffer(0);
     if (imgBuffer) {
@@ -315,7 +322,7 @@ const cmdAhorcado = {
       await client.sendMessage(
         m.chat,
         {
-          text: `${caption}\n\n[La horca visual no se pudo cargar debido a problemas de red]`,
+          text: caption,
         },
         { quoted: m },
       );
@@ -335,16 +342,38 @@ const cmdAhorcado = {
         jugador: m.sender,
       },
       {
-        timeout: 180000,
-        onTimeout: () =>
-          client
-            .sendMessage(m.chat, {
-              text: `⏰ Tiempo agotado. La palabra era: *${palabraSecreta}*`,
-            })
-            .catch(() => {}),
+        timeout: 240000,
+        onTimeout: () => {
+          const game = gameEngine.get(m.chat, "ahorcado");
+          if (game) {
+            gameEngine.loss(game.jugador);
+            client
+              .sendMessage(m.chat, {
+                text: `⏰ Tiempo agotado. La palabra secreta era: *${palabraSecreta}*`,
+              })
+              .catch(() => {});
+          }
+        },
       },
     );
   },
+};
+
+const cmdGuess = {
+  command: ["guess", "g", "adivinar", "hm"],
+  category: "juegos",
+  desc: "Adivina una letra o palabra en el juego de Ahorcado activo.",
+  usage: "<letra o palabra>",
+  run: async (client, m, args) => {
+    if (!gameEngine.has(m.chat, "ahorcado")) {
+      return m.reply("❌ No hay ningún juego de ahorcado activo en este chat. Inicia uno con `.ahorcado`.");
+    }
+    if (!args[0]) {
+      return m.reply("⚠️ Ingresa una letra o la palabra completa para adivinar. Ejemplo: `.guess A` o `.guess robot`.");
+    }
+    m.text = args.join(" ");
+    await handleAhorcado(client, m);
+  }
 };
 
 const cmdAdivinanza = {
@@ -847,4 +876,4 @@ export const before = async (client, m) => {
   return false;
 };
 
-export default [cmdAhorcado, cmdAdivinanza, cmdTrivia, cmdWordle];
+export default [cmdAhorcado, cmdGuess, cmdAdivinanza, cmdTrivia, cmdWordle];

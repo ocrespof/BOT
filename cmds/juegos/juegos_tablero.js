@@ -7,10 +7,11 @@ import { resolveLidToRealJid } from "../../core/utils.js";
 
 // ── TICTACTOE HELPERS ──
 const renderTttBoard = (board) => {
-  const symbols = board.map((cell) =>
-    cell === "X" ? "❌" : cell === "O" ? "⭕" : "⬜",
+  const numEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣'];
+  const symbols = board.map((cell, idx) =>
+    cell === "X" ? "❎" : cell === "O" ? "⭕" : numEmojis[idx]
   );
-  return `\n${symbols[0]} ${symbols[1]} ${symbols[2]}\n${symbols[3]} ${symbols[4]} ${symbols[5]}\n${symbols[6]} ${symbols[7]} ${symbols[8]}`;
+  return `${symbols.slice(0, 3).join("")}\n${symbols.slice(3, 6).join("")}\n${symbols.slice(6, 9).join("")}`;
 };
 
 const checkTttWinner = (board) => {
@@ -97,40 +98,72 @@ const isBoardFull = (board) => board[0].every((c) => c !== null);
 // ── COMANDOS ──
 
 const cmdTicTacToe = {
-  command: ["tictactoe", "ttt"],
+  command: ["tictactoe", "ttt", "xo"],
   category: "juegos",
-  desc: "Juega TicTacToe contra otro usuario",
-  usage: "@usuario [apuesta]",
-  cooldown: 5,
+  desc: "Juega TicTacToe contra otro usuario o crea una sala pública.",
+  usage: "[@usuario] [apuesta]",
+  cooldown: 3,
   run: async (client, m, args, usedPrefix, command) => {
-    if (gameEngine.has(m.chat, "tictactoe"))
-      return m.reply(" Ya hay un juego activo de TicTacToe en este chat.");
-    if (!args[0])
-      return m.reply(`Uso: ${usedPrefix + command} @usuario [apuesta]`);
+    const activeGame = gameEngine.get(m.chat, "tictactoe");
 
-    let opponent =
-      (m.mentionedJid && m.mentionedJid[0]) ||
-      args[0].replace(/[^0-9]/g, "") + "@s.whatsapp.net";
-    opponent = client.decodeJid(
-      await resolveLidToRealJid(opponent, client, m.chat),
-    );
-    if (opponent === m.sender)
-      return m.reply(" No puedes jugar contra ti mismo.");
+    if (activeGame) {
+      if (activeGame.state === "WAITING") {
+        if (activeGame.players.X === m.sender) {
+          return m.reply("⚠️ Ya creaste una sala. Esperando a que otro jugador se una escribiendo `.ttt`.");
+        }
+        let apuesta = activeGame.apuesta;
+        const bet2 = gameEngine.validateBet(m.sender, apuesta);
+        if (bet2 === false) {
+          return m.reply(`❌ No tienes suficiente XP (${apuesta} XP) para unirte a esta partida.`);
+        }
+        activeGame.players.O = m.sender;
+        activeGame.state = "PLAYING";
 
-    let apuesta = 200;
-    if (args[1] && !isNaN(args[1])) {
-      apuesta = parseInt(args[1]);
-      if (apuesta < 10) return m.reply("❌ La apuesta mínima es de 10 XP.");
+        const text = `🎮 *¡TicTacToe Iniciado!*\n\n` +
+          `Turno de @${activeGame.players.X.split("@")[0]} (❎)\n\n` +
+          `${renderTttBoard(activeGame.board)}\n\n` +
+          `❎ *Jugador 1:* @${activeGame.players.X.split("@")[0]}\n` +
+          `⭕ *Jugador 2:* @${activeGame.players.O.split("@")[0]}\n` +
+          `💰 *Apuesta:* ${apuesta} XP cada uno\n\n` +
+          `• Escribe un número (1-9) para colocar tu símbolo\n` +
+          `• Escribe *rendirme* para retirarte`;
+
+        return client.sendMessage(m.chat, {
+          text,
+          mentions: [activeGame.players.X, activeGame.players.O],
+        });
+      } else {
+        return m.reply("🎮 Ya hay una partida activa de TicTacToe en este chat. Escribe *rendirme* si deseas abandonar la partida.");
+      }
     }
-    const bet1 = gameEngine.validateBet(m.sender, apuesta);
-    if (bet1 === false)
-      return m.reply(`❌ No tienes suficiente XP para esa apuesta.`);
-    const bet2 = gameEngine.validateBet(opponent, apuesta);
-    if (bet2 === false) {
-      gameEngine.refundBet(m.sender, apuesta);
-      return m.reply(
-        "❌ Tu oponente no tiene suficiente XP para cubrir la apuesta.",
+
+    let opponent = null;
+    let apuesta = 200;
+
+    if (m.mentionedJid && m.mentionedJid[0]) {
+      opponent = client.decodeJid(
+        await resolveLidToRealJid(m.mentionedJid[0], client, m.chat)
       );
+      if (args[1] && !isNaN(args[1])) apuesta = Math.max(10, parseInt(args[1]));
+    } else if (args[0] && !isNaN(args[0])) {
+      apuesta = Math.max(10, parseInt(args[0]));
+    }
+
+    if (opponent && opponent === m.sender) {
+      return m.reply(" No puedes jugar contra ti mismo.");
+    }
+
+    const bet1 = gameEngine.validateBet(m.sender, apuesta);
+    if (bet1 === false) {
+      return m.reply(`❌ No tienes suficiente XP para esa apuesta.`);
+    }
+
+    if (opponent) {
+      const bet2 = gameEngine.validateBet(opponent, apuesta);
+      if (bet2 === false) {
+        gameEngine.refundBet(m.sender, apuesta);
+        return m.reply("❌ Tu oponente no tiene suficiente XP para cubrir la apuesta.");
+      }
     }
 
     gameEngine.start(
@@ -142,23 +175,43 @@ const cmdTicTacToe = {
         turn: "X",
         players: { X: m.sender, O: opponent },
         apuesta,
+        state: opponent ? "PLAYING" : "WAITING",
       },
       {
         timeout: 300000,
         onTimeout: () => {
-          gameEngine.refundBet(m.sender, apuesta);
-          gameEngine.refundBet(opponent, apuesta);
-          client.sendMessage(m.chat, {
-            text: `⏰ Tiempo agotado. Se devolvieron las apuestas.`,
-          });
+          const game = gameEngine.get(m.chat, "tictactoe");
+          if (game) {
+            gameEngine.refundBet(game.players.X, game.apuesta);
+            if (game.players.O) gameEngine.refundBet(game.players.O, game.apuesta);
+            client.sendMessage(m.chat, {
+              text: `⏰ Tiempo agotado. Se devolvieron las apuestas del TicTacToe.`,
+            });
+          }
         },
-      },
+      }
     );
 
-    await client.sendMessage(m.chat, {
-      text: `🕹️ *TicTacToe* iniciado!\n@${m.sender.split("@")[0]} (X) vs @${opponent.split("@")[0]} (O)\n💰 *Apuesta:* ${apuesta} XP por jugador\n\nTurno de @${m.sender.split("@")[0]} (X)\n${renderTttBoard(Array(9).fill(null))}`,
-      mentions: [m.sender, opponent],
-    });
+    if (opponent) {
+      await client.sendMessage(m.chat, {
+        text: `🎮 *¡TicTacToe Iniciado!*\n\n` +
+          `Turno de @${m.sender.split("@")[0]} (❎)\n\n` +
+          `${renderTttBoard(Array(9).fill(null))}\n\n` +
+          `❎ *Jugador 1:* @${m.sender.split("@")[0]}\n` +
+          `⭕ *Jugador 2:* @${opponent.split("@")[0]}\n` +
+          `💰 *Apuesta:* ${apuesta} XP\n\n` +
+          `• Escribe un número (1-9) para colocar tu símbolo\n` +
+          `• Escribe *rendirme* para rendirte`,
+        mentions: [m.sender, opponent],
+      });
+    } else {
+      await client.sendMessage(m.chat, {
+        text: `⏳ *Esperando Oponente para TicTacToe*\n\n` +
+          `@${m.sender.split("@")[0]} creó una sala (Apuesta: ${apuesta} XP).\n\n` +
+          `👉 ¡Cualquier miembro del grupo puede escribir *${usedPrefix + command}* para unirse!`,
+        mentions: [m.sender],
+      });
+    }
   },
 };
 
@@ -232,18 +285,58 @@ const cmdConnect4 = {
 async function handleTtt(client, m) {
   const game = gameEngine.get(m.chat, "tictactoe");
   if (!game) return false;
-  const text = m.text.trim();
+
+  const text = m.text.trim().toLowerCase();
+  const senderJid = client.decodeJid(m.sender);
+
+  // Rendirse
+  const isSurrender = /^(surrender|rendirme|rendirse|me rindo|salir|abandonar)$/i.test(text);
+  if (isSurrender) {
+    if (senderJid !== game.players.X && senderJid !== game.players.O) return false;
+
+    const winnerId = senderJid === game.players.X ? game.players.O : game.players.X;
+    gameEngine.end(m.chat, "tictactoe");
+
+    if (winnerId) {
+      const ganancia = game.apuesta * 2;
+      gameEngine.reward(winnerId, { xp: ganancia, win: true });
+      gameEngine.loss(senderJid);
+      await client.sendMessage(m.chat, {
+        text: `🏳️ *@${senderJid.split("@")[0]}* se ha rendido.\n🏆 ¡@${winnerId.split("@")[0]} gana la partida y se lleva *${ganancia} XP*!`,
+        mentions: [senderJid, winnerId],
+      });
+    } else {
+      gameEngine.refundBet(senderJid, game.apuesta);
+      await client.sendMessage(m.chat, {
+        text: `🏳️ *@${senderJid.split("@")[0]}* canceló la sala de juego.`,
+        mentions: [senderJid],
+      });
+    }
+    return true;
+  }
+
+  if (game.state === "WAITING") return false;
   if (!/^[1-9]$/.test(text)) return false;
 
   const currentPlayer = client.decodeJid(game.players[game.turn]);
-  const senderJid = client.decodeJid(m.sender);
-  if (senderJid !== currentPlayer) return false;
+  if (senderJid !== currentPlayer) {
+    if (senderJid === game.players.X || senderJid === game.players.O) {
+      await client.sendMessage(
+        m.chat,
+        { text: `❌ ¡No es tu turno! Turno de @${currentPlayer.split("@")[0]} (${game.turn === 'X' ? '❎' : '⭕'}).`, mentions: [currentPlayer] },
+        { quoted: m }
+      );
+      return true;
+    }
+    return false;
+  }
+
   const pos = parseInt(text) - 1;
   if (game.board[pos]) {
     await client.sendMessage(
       m.chat,
-      { text: `⚠️ Esa casilla ya está ocupada.` },
-      { quoted: m },
+      { text: `⚠️ Esa casilla ya está ocupada. Elige otro número del 1 al 9.` },
+      { quoted: m }
     );
     return true;
   }
@@ -253,13 +346,13 @@ async function handleTtt(client, m) {
 
   if (winner) {
     gameEngine.end(m.chat, "tictactoe");
-    const winnerId = game.players[winner],
-      loserId = game.players[winner === "X" ? "O" : "X"];
+    const winnerId = game.players[winner];
+    const loserId = game.players[winner === "X" ? "O" : "X"];
     const ganancia = game.apuesta * 2;
     gameEngine.reward(winnerId, { xp: ganancia, win: true });
     gameEngine.loss(loserId);
     await client.sendMessage(m.chat, {
-      text: `🏆 *¡@${winnerId.split("@")[0]} gana!* 🎉\n🎁 Ganaste *${ganancia} XP*\n\n${renderTttBoard(game.board)}`,
+      text: `🏆 *¡@${winnerId.split("@")[0]} gana el TicTacToe!* 🎉\n💰 Ganaste *${ganancia} XP*\n\n${renderTttBoard(game.board)}`,
       mentions: [game.players.X, game.players.O],
     });
     return true;
@@ -270,7 +363,8 @@ async function handleTtt(client, m) {
     gameEngine.refundBet(game.players.X, game.apuesta);
     gameEngine.refundBet(game.players.O, game.apuesta);
     await client.sendMessage(m.chat, {
-      text: `🤝 *Empate!*\nAmbos recuperan sus apuestas.\n\n${renderTttBoard(game.board)}`,
+      text: `🤝 *¡Empate!*\nAmbos recuperan sus apuestas.\n\n${renderTttBoard(game.board)}`,
+      mentions: [game.players.X, game.players.O],
     });
     return true;
   }
@@ -278,7 +372,7 @@ async function handleTtt(client, m) {
   game.turn = game.turn === "X" ? "O" : "X";
   const nextPlayer = game.players[game.turn];
   await client.sendMessage(m.chat, {
-    text: `🕹️ Turno de @${nextPlayer.split("@")[0]} (${game.turn})\n${renderTttBoard(game.board)}`,
+    text: `🎮 Turno de @${nextPlayer.split("@")[0]} (${game.turn === 'X' ? '❎' : '⭕'})\n\n${renderTttBoard(game.board)}`,
     mentions: [nextPlayer],
   });
   return true;
