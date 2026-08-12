@@ -207,18 +207,28 @@ async function warmupGroups(sock) {
   }
 }
 
+let bootTime = Date.now();
+let botReady = false;
+
 async function startBot() {
   cleanupSocket();
-  const { state, saveCreds } = await useMultiFileAuthState(global.sessionName);
+  const { state, saveCreds: saveCredsDB } = await useMultiFileAuthState(global.sessionName);
   const version = await getVersion();
   const logger = pino({ level: "silent" });
   console.info = () => { };
   console.debug = () => { };
+
+  let saveCredsTimer = null;
+  const saveCreds = () => {
+    clearTimeout(saveCredsTimer);
+    saveCredsTimer = setTimeout(saveCredsDB, 2000);
+  };
+
   const sock = makeWASocket({
     version,
     logger,
     printQRInTerminal: false,
-    browser: ['Ubuntu', 'Chrome', '20.0.04'],
+    browser: Browsers.macOS('Chrome'),
     auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, logger) },
     msgRetryCounterCache,
     cachedGroupMetadata: async (jid) => getCachedMeta(jid) ?? undefined,
@@ -234,7 +244,9 @@ async function startBot() {
     shouldIgnoreJid: (jid) => jid?.endsWith('@newsletter') || jid?.endsWith('@broadcast'),
     defaultQueryTimeoutMs: undefined,
     emitOwnEvents: true,
-    keepAliveIntervalMs: 25000,
+    keepAliveIntervalMs: 30000,
+    connectTimeoutMs: 20000,
+    transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 3000 },
   });
   global.client = sock;
   sock.isInit = false;
@@ -270,6 +282,7 @@ async function startBot() {
     }
 
     if (connection === "close") {
+      botReady = false;
       cleanupSocket();
       const reason = lastDisconnect?.error?.output?.statusCode || 0;
       if (reason === DisconnectReason.loggedOut) {
@@ -305,6 +318,8 @@ async function startBot() {
     }
 
     if (connection === "open") {
+      bootTime = Date.now();
+      botReady = true;
       reconexion = 0;
       const userName = sock.user.name || "Desconocido";
       console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`));
@@ -321,46 +336,49 @@ async function startBot() {
     try {
       lastActivityTimestamp = Date.now();
 
-      // Bloquear explícitamente cualquier mensaje de sincronización histórica de chat ('append')
+      if (!botReady) return;
       if (chatUpdate.type !== 'notify') return;
 
       for (const msg of chatUpdate.messages || []) {
-        if (msg?.message && msg?.key?.id) {
+        if (!msg?.message || msg.key?.remoteJid === 'status@broadcast') continue;
+
+        // Guardar mensaje en la memoria circular para desencriptación / retries
+        if (msg.key?.id) {
           const sid = msg.key.remoteJid + ':' + msg.key.id;
           msgStore.set(sid, msg.message);
           msgStore.set(msg.key.id, msg.message);
           if (msgStore.size > msgLimit * 2) msgStore.delete(msgStore.keys().next().value);
         }
-        if (msg?.pushName) {
+
+        if (msg.pushName) {
           const senderJid = msg.key.participant || msg.key.remoteJid;
           if (senderJid) setCachedPushName(senderJid, msg.pushName);
         }
+
+        // Ignorar mensajes antiguos acumulados mientras el bot arrancaba (más de 30s de antigüedad)
+        const msgTime = Number(msg.messageTimestamp);
+        if (!isNaN(msgTime) && msgTime > 0) {
+          if ((msgTime * 1000) < bootTime - 15000) continue;
+          const messageAge = Math.floor(Date.now() / 1000) - msgTime;
+          if (messageAge > 60) continue;
+        }
+
+        msg.message = Object.keys(msg.message)[0] === 'ephemeralMessage' ? msg.message.ephemeralMessage.message : msg.message;
+
+        // Solo filtrar mensajes generados internamente por el bot
+        if (msg.key.fromMe) {
+          const isBotSent = sock.sentMessageIds && sock.sentMessageIds.has(msg.key.id);
+          const isInternalBaileys = msg.key.id.startsWith('BAE5') && msg.key.id.length >= 16;
+          if (isBotSent || isInternalBaileys) continue;
+        }
+
+        const m = await smsg(sock, msg);
+        if (typeof main === 'function') {
+          await main(sock, m, chatUpdate).catch((err) => Logger.error('Error en main handler', err));
+        }
       }
-
-      const kay = chatUpdate.messages?.[0];
-      if (!kay?.message) return;
-      if (kay.key?.remoteJid === 'status@broadcast') return;
-
-      kay.message = Object.keys(kay.message)[0] === 'ephemeralMessage' ? kay.message.ephemeralMessage.message : kay.message;
-
-      // Solo filtrar mensajes generados internamente por el bot (protocolos/status)
-      if (kay.key.fromMe) {
-        const isBotSent = sock.sentMessageIds && sock.sentMessageIds.has(kay.key.id);
-        const isInternalBaileys = kay.key.id.startsWith('BAE5') && kay.key.id.length >= 16;
-        if (isBotSent || isInternalBaileys) return;
-      }
-
-      // No procesar mensajes antiguos de cuando el bot estaba apagado (evitar NaNs)
-      const msgTime = Number(kay.messageTimestamp);
-      if (!isNaN(msgTime) && msgTime > 0) {
-        const messageAge = Math.floor(Date.now() / 1000) - msgTime;
-        if (messageAge > 60) return;
-      }
-
-      const m = await smsg(sock, kay);
-      main(sock, m, chatUpdate);
     } catch (err) {
-      Logger.error('Error procesando mensaje', err);
+      Logger.error('Error procesando mensajes en upsert', err);
     }
   });
   try {
