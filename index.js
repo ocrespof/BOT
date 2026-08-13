@@ -214,9 +214,8 @@ async function startBot() {
   cleanupSocket();
   const { state, saveCreds: saveCredsDB } = await useMultiFileAuthState(global.sessionName);
   const version = await getVersion();
-  const logger = pino({ level: "silent" });
-  console.info = () => { };
-  console.debug = () => { };
+  const isDebug = process.env.DEBUG === 'true' || process.argv.includes('--debug');
+  const logger = pino({ level: isDebug ? "debug" : "warn" });
 
   let saveCredsTimer = null;
   const saveCreds = () => {
@@ -235,7 +234,12 @@ async function startBot() {
     getMessage: async (key) => {
       const sid = (key.remoteJid || '') + ':' + (key.id || '');
       const msg = msgStore.get(sid) || msgStore.get(key.id);
-      return msg || undefined;
+      if (msg) {
+        if (isDebug) console.log(chalk.cyan(`[ 🔑 Retry Key ] Re-enviando llave de descifrado para: ${key.remoteJid} (ID: ${key.id})`));
+        return msg;
+      }
+      if (isDebug) console.log(chalk.yellow(`[ ⚠️ Clave no encontrada ] Solicitud de reintento para mensaje no almacenado: ${key.remoteJid} (ID: ${key.id})`));
+      return undefined;
     },
     markOnlineOnConnect: false,
     generateHighQualityLinkPreview: false,
