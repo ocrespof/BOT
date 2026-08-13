@@ -188,6 +188,11 @@ export function decorateClient(client, store) {
     } else {
       buffer = await imageToWebp(buff);
     }
+    if (typeof buffer === 'string' && fs.existsSync(buffer)) {
+      const filePath = buffer;
+      buffer = fs.readFileSync(filePath);
+      try { fs.unlinkSync(filePath); } catch {}
+    }
     await client.sendMessage(jid, { sticker: buffer, ...options }, { quoted });
     return buffer;
   };
@@ -199,6 +204,11 @@ export function decorateClient(client, store) {
       buffer = await writeExifVid(buff, options);
     } else {
       buffer = await videoToWebp(buff);
+    }
+    if (typeof buffer === 'string' && fs.existsSync(buffer)) {
+      const filePath = buffer;
+      buffer = fs.readFileSync(filePath);
+      try { fs.unlinkSync(filePath); } catch {}
     }
     await client.sendMessage(jid, { sticker: buffer, ...options }, { quoted });
     return buffer;

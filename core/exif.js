@@ -55,8 +55,12 @@ async function writeExifImg(media, metadata) {
     if (fs.existsSync(tmpFileIn)) fs.unlinkSync(tmpFileIn)
     img.exif = exif
     await img.save(tmpFileOut)
-    return tmpFileOut
+    const resultBuffer = fs.readFileSync(tmpFileOut)
+    if (fs.existsSync(tmpFileOut)) fs.unlinkSync(tmpFileOut)
+    return resultBuffer
   }
+  if (fs.existsSync(tmpFileIn)) fs.unlinkSync(tmpFileIn)
+  return wMedia
 }
 
 async function writeExifVid(media, metadata) {
@@ -76,8 +80,12 @@ async function writeExifVid(media, metadata) {
     if (fs.existsSync(tmpFileIn)) fs.unlinkSync(tmpFileIn)
     img.exif = exif
     await img.save(tmpFileOut)
-    return tmpFileOut
+    const resultBuffer = fs.readFileSync(tmpFileOut)
+    if (fs.existsSync(tmpFileOut)) fs.unlinkSync(tmpFileOut)
+    return resultBuffer
   }
+  if (fs.existsSync(tmpFileIn)) fs.unlinkSync(tmpFileIn)
+  return wMedia
 }
 
 async function writeExif(media, metadata) {
@@ -96,8 +104,12 @@ async function writeExif(media, metadata) {
     if (fs.existsSync(tmpFileIn)) fs.unlinkSync(tmpFileIn)
     img.exif = exif
     await img.save(tmpFileOut)
-    return tmpFileOut
+    const resultBuffer = fs.readFileSync(tmpFileOut)
+    if (fs.existsSync(tmpFileOut)) fs.unlinkSync(tmpFileOut)
+    return resultBuffer
   }
+  if (fs.existsSync(tmpFileIn)) fs.unlinkSync(tmpFileIn)
+  return wMedia
 }
 
 export default { imageToWebp, videoToWebp, writeExifImg, writeExifVid, writeExif };
