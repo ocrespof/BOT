@@ -160,14 +160,6 @@ export default async (client, m) => {
     if (m.messageStubType == 26) {
       await client.sendMessage(id, { text: `「」 @${phone} cambió los ajustes del grupo para permitir que ${m.messageStubParameters[0] === 'on' ? 'solo los administradores puedan enviar mensajes al grupo.' : 'todos los miembros puedan enviar mensajes al grupo.'}`, mentions: [actor, ...groupAdmins.map(v => v.id)] })
     }
-
-    if (m.messageStubType == 172) {
-      const isOn = m.messageStubParameters[0] === 'on';
-      const modeText = isOn 
-        ? 'activó la aprobación de nuevos miembros (los administradores deben aprobar a quienes intenten unirse)' 
-        : 'desactivó la aprobación de nuevos miembros';
-      await client.sendMessage(id, { text: `「⚙️」 @${phone} ${modeText}.`, mentions: [actor, ...groupAdmins.map(v => v.id)] })
-    }
   }
   client.ev.on('messages.upsert', client._stubHandler);
 }

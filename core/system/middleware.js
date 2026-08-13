@@ -186,14 +186,14 @@ export async function dbInitMiddleware(ctx, next) {
     antistatus(client, m);
   }
 
-  // Buffer messages
+  // Buffer messages para comandos como .q, .q2, .q3
   global.msgBuffer = global.msgBuffer || {};
   global.msgBuffer[m.chat] = global.msgBuffer[m.chat] || [];
   global.msgBuffer[m.chat].push(m);
-  if (global.msgBuffer[m.chat].length > 50) global.msgBuffer[m.chat].shift();
+  if (global.msgBuffer[m.chat].length > 100) global.msgBuffer[m.chat].shift();
 
   const bufKeys = Object.keys(global.msgBuffer);
-  if (bufKeys.length > 25) delete global.msgBuffer[bufKeys[0]];
+  if (bufKeys.length > 50) delete global.msgBuffer[bufKeys[0]];
 
   const botJid = (client?.user?.id?.split(":")[0] || "") + "@s.whatsapp.net";
   const chat = global.db.data.chats[m.chat] || {};
