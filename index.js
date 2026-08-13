@@ -108,21 +108,22 @@ async function cleanCache() {
       };
       const sizeMB = await getFolderSizeMB(sessionsFolder);
       if (sizeMB > maxCache) {
-        console.log(chalk.yellow(`[ ⚠ ] Sessions ${sizeMB.toFixed(1)}MB — limpiando...`));
-        const safeDelete = async (dir) => {
+        console.log(chalk.yellow(`[ ⚠ ] Sessions ${sizeMB.toFixed(1)}MB — purgando sync temporal...`));
+        // Solo purgar archivos de sincronización temporal app-state, NUNCA llaves criptográficas (pre-keys, sender-keys, session)
+        const safeDeleteSync = async (dir) => {
           const files = await fs.promises.readdir(dir);
           for (const file of files) {
             const filePath = path.join(dir, file);
             const stat = await fs.promises.stat(filePath);
             if (stat.isDirectory()) {
-              await safeDelete(filePath);
-            } else if (!file.includes('creds') && !file.startsWith('session-')) {
+              await safeDeleteSync(filePath);
+            } else if (file.startsWith('app-state-sync-') || file.startsWith('syncd-')) {
               try { await fs.promises.unlink(filePath); } catch { }
             }
           }
         };
         const botFolder = path.join(sessionsFolder, 'Owner');
-        if (fs.existsSync(botFolder)) await safeDelete(botFolder);
+        if (fs.existsSync(botFolder)) await safeDeleteSync(botFolder);
       }
     }
   } catch (e) {
@@ -163,10 +164,9 @@ function cleanupSocket() {
   }
 }
 
-
-
 const msgStore = new Map();
-const msgLimit = 100;
+const msgLimit = 500;
+global.msgStore = msgStore;
 
 const versionCache = { value: null, expiresAt: 0 };
 async function getVersion() {
