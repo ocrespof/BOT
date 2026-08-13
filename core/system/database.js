@@ -74,11 +74,11 @@ function parseRow(row, jsonFields) {
   for (const [k, v] of Object.entries(parsed)) {
     if (typeof v === 'string') {
       if (jsonFields.includes(k)) {
-        try { parsed[k] = JSON.parse(v); } catch {}
+        try { parsed[k] = JSON.parse(v); } catch { }
       } else if (!TEXT_COLUMNS.includes(k)) {
         const trimmed = v.trim();
         if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-          try { parsed[k] = JSON.parse(v); } catch {}
+          try { parsed[k] = JSON.parse(v); } catch { }
         }
       }
     }
@@ -92,7 +92,7 @@ function getCacheKey(type, id) {
 
 export const defUser = {
   name: '',
-  exp: 0,
+  exp: 200,
   level: 0,
   usedcommands: 0,
   pasatiempo: '',
@@ -170,14 +170,14 @@ export const defSets = {
   prefix: '["/","!",".","#"]',
   commandsejecut: 0,
   newsletter_id: '120363401404146384@newsletter',
-  nameid: 'ೃ  Pinkanema.ೃ࿐',
+  nameid: 'ೃ el bot de wasa.ೃ࿐',
   type: 'Owner',
   link: 'https://api.yuki-wabot.my.id',
   banner: 'https://vignette.wikia.nocookie.net/mlp/images/1/17/Pinkie_Pie_starts_rapping_EGS1.png/revision/latest?cb=20170811024135',
   icon: 'https://cdn.twibooru.org/img/2024/3/1/3173192/medium.jpeg',
-  currency: 'Yenes',
-  namebot: 'PinkieBot',
-  botname: 'PinkieBot',
+  currency: 'Ecuadolares',
+  namebot: 'el bot de wasa',
+  botname: 'el bot de wasa',
   owner: ''
 };
 
@@ -255,8 +255,8 @@ export function initDB() {
       banner TEXT DEFAULT 'https://vignette.wikia.nocookie.net/mlp/images/1/17/Pinkie_Pie_starts_rapping_EGS1.png/revision/latest?cb=20170811024135',
       icon TEXT DEFAULT 'https://cdn.twibooru.org/img/2024/3/1/3173192/medium.jpeg',
       currency TEXT DEFAULT 'Yenes',
-      namebot TEXT DEFAULT 'PinkieBot',
-      botname TEXT DEFAULT 'PinkieBot',
+      namebot TEXT DEFAULT 'el bot de wasa',
+      botname TEXT DEFAULT 'el bot de wasa',
       owner TEXT DEFAULT ''
     )`);
   db.exec(`CREATE TABLE IF NOT EXISTS characters (id TEXT PRIMARY KEY, data TEXT)`);
@@ -429,27 +429,27 @@ export function setStickersPack(id, field, val) {
 export function deletedb(type, ...ids) {
   if (!type || !ids || ids.length === 0) return false;
   switch (type) {
-    case 'user':       memCache.delete(getCacheKey('user', ids[0]));        return stmt('DELETE FROM users WHERE id = ?').run(ids[0]).changes > 0;
-    case 'chat':       memCache.delete(getCacheKey('chat', ids[0]));        return stmt('DELETE FROM chats WHERE id = ?').run(ids[0]).changes > 0;
+    case 'user': memCache.delete(getCacheKey('user', ids[0])); return stmt('DELETE FROM users WHERE id = ?').run(ids[0]).changes > 0;
+    case 'chat': memCache.delete(getCacheKey('chat', ids[0])); return stmt('DELETE FROM chats WHERE id = ?').run(ids[0]).changes > 0;
     case 'chatuser':
       if (ids.length < 2) return false;
       memCache.delete(getCacheKey('chatuser', `${ids[0]}:${ids[1]}`));
       return stmt('DELETE FROM chat_users WHERE chat_id = ? AND user_id = ?').run(ids[0], ids[1]).changes > 0;
-    case 'settings':   memCache.delete(getCacheKey('set', ids[0]));         return stmt('DELETE FROM settings WHERE id = ?').run(ids[0]).changes > 0;
-    case 'character':  memCache.delete(getCacheKey('char', ids[0]));        return stmt('DELETE FROM characters WHERE id = ?').run(ids[0]).changes > 0;
+    case 'settings': memCache.delete(getCacheKey('set', ids[0])); return stmt('DELETE FROM settings WHERE id = ?').run(ids[0]).changes > 0;
+    case 'character': memCache.delete(getCacheKey('char', ids[0])); return stmt('DELETE FROM characters WHERE id = ?').run(ids[0]).changes > 0;
     case 'stickerpack': memCache.delete(getCacheKey('stickerpack', ids[0])); return stmt('DELETE FROM sticker_packs WHERE id = ?').run(ids[0]).changes > 0;
     default: return false;
   }
 }
 
 export function setCreate(table, identifier, field, value) {
-  const tableConfig = { 
-    users: { primaryKeys: ['id'], identifierFields: ['id'], jsonFields: userJsonFields }, 
-    chats: { primaryKeys: ['id'], identifierFields: ['id'], jsonFields: chatJsonFields }, 
-    chat_users: { primaryKeys: ['chat_id', 'user_id'], identifierFields: ['chat_id', 'user_id'], jsonFields: chatUserJsonFields }, 
-    settings: { primaryKeys: ['id'], identifierFields: ['id'], jsonFields: settingsJsonFields }, 
-    characters: { primaryKeys: ['id'], identifierFields: ['id'], jsonFields: [], isSimpleTable: true }, 
-    sticker_packs: { primaryKeys: ['id'], identifierFields: ['id'], jsonFields: ['packs'] } 
+  const tableConfig = {
+    users: { primaryKeys: ['id'], identifierFields: ['id'], jsonFields: userJsonFields },
+    chats: { primaryKeys: ['id'], identifierFields: ['id'], jsonFields: chatJsonFields },
+    chat_users: { primaryKeys: ['chat_id', 'user_id'], identifierFields: ['chat_id', 'user_id'], jsonFields: chatUserJsonFields },
+    settings: { primaryKeys: ['id'], identifierFields: ['id'], jsonFields: settingsJsonFields },
+    characters: { primaryKeys: ['id'], identifierFields: ['id'], jsonFields: [], isSimpleTable: true },
+    sticker_packs: { primaryKeys: ['id'], identifierFields: ['id'], jsonFields: ['packs'] }
   };
   const config = tableConfig[table];
   if (!config) throw new Error(`Tabla '${table}' no soportada`);
@@ -480,7 +480,7 @@ export function setCreate(table, identifier, field, value) {
     else if (typeof value === 'string') defaultVal = "''";
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${field} ${sqlType} DEFAULT ${defaultVal}`);
     for (const k of Object.keys(stmts).filter(k => k.includes(table))) {
-      try { stmts[k].finalize(); } catch {}
+      try { stmts[k].finalize(); } catch { }
       delete stmts[k];
     }
   }
@@ -678,10 +678,10 @@ export function migrateJSONToSQLite() {
 try {
   initDB();
   const tables = [
-    { name: 'users', def: defUser, exclude: ['id'] }, 
-    { name: 'chats', def: defChat, exclude: ['id'] }, 
-    { name: 'chat_users', def: defChatUser, exclude: ['chat_id', 'user_id'] }, 
-    { name: 'settings', def: defSets, exclude: ['id'] }, 
+    { name: 'users', def: defUser, exclude: ['id'] },
+    { name: 'chats', def: defChat, exclude: ['id'] },
+    { name: 'chat_users', def: defChatUser, exclude: ['chat_id', 'user_id'] },
+    { name: 'settings', def: defSets, exclude: ['id'] },
     { name: 'sticker_packs', def: defStickerPack, exclude: ['id'] }
   ];
   for (const table of tables) {
@@ -705,8 +705,8 @@ try {
       }
     }
   }
-} catch (e) { 
-  Logger.error('[DB migration error]', e); 
+} catch (e) {
+  Logger.error('[DB migration error]', e);
 }
 
 // ----------------------------------------------------
@@ -848,7 +848,7 @@ export const dbProxy = new Proxy({
         get(t, chatId) {
           if (typeof chatId !== 'string') return undefined;
           let chatObj = session ? session.getChat(chatId) : getChat(chatId);
-          
+
           return new Proxy(chatObj, {
             get(chat, key) {
               if (key === 'users') {
@@ -1002,7 +1002,7 @@ const exportsObj = {
 };
 
 global.db = exportsObj;
-global.markPartitionDirty = () => {};
+global.markPartitionDirty = () => { };
 global.DATABASE = exportsObj;
 
 export default exportsObj;
