@@ -1,4 +1,4 @@
-import { proto, delay, areJidsSameUser, generateWAMessage, prepareWAMessageMedia, generateWAMessageFromContent, downloadContentFromMessage, generateMessageID, generateWAMessageContent, getContentType, getDevice, extractMessageContent } from '@whiskeysockets/baileys';
+import { proto, delay, areJidsSameUser, generateWAMessage, prepareWAMessageMedia, generateWAMessageFromContent, downloadContentFromMessage, generateMessageID, generateWAMessageContent, getContentType, getDevice, extractMessageContent, jidDecode } from '@whiskeysockets/baileys';
 import { resolveLidToRealJid } from "./utils.js";
 import fs from 'fs';
 import crypto from 'crypto';
@@ -42,6 +42,7 @@ export class BoundedMap {
 
 const groupMetaCache = new Map();
 const pushNameCache = new BoundedMap(1000, 24 * 60 * 60_000);
+const lidCache = new BoundedMap(2000, 24 * 60 * 60_000);
 const META_TTL = 300_000;
 
 const gcMeta = setInterval(() => {
@@ -74,16 +75,78 @@ export function setCachedPushName(jid, pushName) {
   if (jid && pushName) pushNameCache.set(jid, pushName);
 }
 
+export function normalizeJid(raw) {
+  if (!raw) return null;
+  const s = typeof raw === 'number' ? String(raw) : String(raw).trim();
+  if (!s) return null;
+  if (s.endsWith('@g.us')) return s;
+  if (s.endsWith('@newsletter')) return s;
+  if (s.endsWith('@lid')) return s;
+  if (/:\d+@/i.test(s)) {
+    const decoded = jidDecode(s);
+    if (decoded?.user && decoded?.server) return `${decoded.user}@${decoded.server}`;
+  }
+  if (s.endsWith('@s.whatsapp.net')) return s;
+  const digits = s.replace(/\D/g, '');
+  if (digits && digits.length >= 4 && digits.length <= 15) return `${digits}@s.whatsapp.net`;
+  return s;
+}
+
+export function resolveParticipantJid(p, sock) {
+  if (!p) return null;
+  if (p.phoneNumber) {
+    const n = normalizeJid(p.phoneNumber);
+    if (n && !n.endsWith('@lid')) return n;
+  }
+  if (p.id && !p.id.endsWith('@lid')) {
+    const n = normalizeJid(p.id);
+    if (n && !n.endsWith('@lid')) return n;
+  }
+  if (p.jid && !p.jid.endsWith('@lid')) {
+    const n = normalizeJid(p.jid);
+    if (n && !n.endsWith('@lid')) return n;
+  }
+  const rawLid = p.lid || (p.id?.endsWith('@lid') ? p.id : null) || (p.jid?.endsWith('@lid') ? p.jid : null);
+  if (rawLid) {
+    if (lidCache.has(rawLid)) return lidCache.get(rawLid);
+    if (typeof sock?.findJidByLid === 'function') {
+      const found = sock.findJidByLid(rawLid);
+      if (found && !found.endsWith('@lid')) {
+        const r = normalizeJid(found);
+        if (r) { lidCache.set(rawLid, r); return r; }
+      }
+    }
+    return rawLid;
+  }
+  return null;
+}
+
+export function resolveParticipants(participants, sock) {
+  if (!Array.isArray(participants)) return [];
+  return participants.map(p => {
+    const realJid = resolveParticipantJid(p, sock);
+    if (!realJid) return p;
+    const originalLid = p.lid || (p.id?.endsWith('@lid') ? p.id : undefined) || (p.jid?.endsWith('@lid') ? p.jid : undefined);
+    return { ...p, id: realJid, ...(originalLid ? { lid: originalLid } : {}), ...(p.phoneNumber ? { phoneNumber: p.phoneNumber } : {}) };
+  }).filter(p => p.id);
+}
+
 export function patchGroupMetadata(client) {
   if (!client || client.isPatchedGroupMetadata) return;
   client.isPatchedGroupMetadata = true;
   const originalGroupMetadata = client.groupMetadata.bind(client);
   client.groupMetadata = async (jid) => {
-    const cached = getCachedMeta(jid);
-    if (cached) return cached;
-    const meta = await originalGroupMetadata(jid);
-    if (meta) setCachedMeta(jid, meta);
-    return meta;
+    try {
+      const cached = getCachedMeta(jid);
+      if (cached) return cached;
+      const meta = await originalGroupMetadata(jid);
+      if (!meta?.participants) return meta;
+      meta.participants = resolveParticipants(meta.participants, client);
+      setCachedMeta(jid, meta);
+      return meta;
+    } catch (e) {
+      return null;
+    }
   };
 }
 
