@@ -138,9 +138,18 @@ export function decorateClient(client, store) {
     const result = await originalSendMessage(...args);
     if (result && result.key && result.key.id) {
       client.sentMessageIds.add(result.key.id);
-      if (client.sentMessageIds.size > 200) {
+      if (client.sentMessageIds.size > 500) {
         const firstValue = client.sentMessageIds.values().next().value;
         client.sentMessageIds.delete(firstValue);
+      }
+      // Guardar el mensaje saliente en msgStore para responder a reintentos (retry requests) en grupos
+      if (global.msgStore && result.message) {
+        const sid = (result.key.remoteJid || '') + ':' + result.key.id;
+        global.msgStore.set(sid, result.message);
+        global.msgStore.set(result.key.id, result.message);
+        if (global.msgStore.size > 1000) {
+          global.msgStore.delete(global.msgStore.keys().next().value);
+        }
       }
     }
     return result;
@@ -162,9 +171,9 @@ export function decorateClient(client, store) {
     } else {
       const cachedPushName = getCachedPushName(id);
       if (cachedPushName && !withoutContact) return cachedPushName;
-      v = id === '0@s.whatsapp.net' ? { id, name: 'WhatsApp' } : id === client.decodeJid(client.user.jid) ? client.user : (store?.contacts?.[id]) || (global.db?.data?.users?.[id]) || {};
+      v = id === '0@s.whatsapp.net' ? { id, name: 'WhatsApp' } : areJidsSameUser(id, client.user.id) ? client.user : (store?.contacts?.[id]) || {};
     }
-    return ((withoutContact ? '' : v.name) || v.subject || v.verifiedName || '+' + jid.replace('@s.whatsapp.net', ''));
+    return (withoutContact ? '' : v.name) || v.subject || v.verifiedName || '+' + id.replace('@s.whatsapp.net', '');
   };
 
   client.parseMention = async (text) => {
@@ -179,7 +188,7 @@ export function decorateClient(client, store) {
     } else {
       buffer = await imageToWebp(buff);
     }
-    await client.sendMessage(jid, { sticker: { url: buffer }, ...options }, { quoted });
+    await client.sendMessage(jid, { sticker: buffer, ...options }, { quoted });
     return buffer;
   };
 
@@ -191,7 +200,7 @@ export function decorateClient(client, store) {
     } else {
       buffer = await videoToWebp(buff);
     }
-    await client.sendMessage(jid, { sticker: { url: buffer }, ...options }, { quoted });
+    await client.sendMessage(jid, { sticker: buffer, ...options }, { quoted });
     return buffer;
   };
 
