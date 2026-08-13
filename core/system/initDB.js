@@ -20,8 +20,8 @@ function initDB(m, client) {
   settings.banner ??= 'https://vignette.wikia.nocookie.net/mlp/images/1/17/Pinkie_Pie_starts_rapping_EGS1.png/revision/latest?cb=20170811024135'
   settings.icon ??= 'https://cdn.twibooru.org/img/2024/3/1/3173192/medium.jpeg'
   settings.currency ??= 'Yenes'
-  settings.namebot ??= config.my.name || 'PinkieBot'
-  settings.botname ??= config.my.name || 'PinkieBot'
+  settings.namebot ??= config.my.name || 'el bot de wasa'
+  settings.botname ??= config.my.name || 'el bot de wasa'
   settings.owner ??= ''
 
   // ── Usuario Global (XP, nivel, economía, perfil) ──
