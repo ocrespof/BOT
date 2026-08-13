@@ -140,9 +140,7 @@ export function patchGroupMetadata(client) {
       const cached = getCachedMeta(jid);
       if (cached) return cached;
       const meta = await originalGroupMetadata(jid);
-      if (!meta?.participants) return meta;
-      meta.participants = resolveParticipants(meta.participants, client);
-      setCachedMeta(jid, meta);
+      if (meta) setCachedMeta(jid, meta);
       return meta;
     } catch (e) {
       return null;
