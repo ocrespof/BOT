@@ -244,6 +244,7 @@ async function startBot() {
     markOnlineOnConnect: false,
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
+    fireInitQueries: false,
     shouldIgnoreJid: (jid) => jid?.endsWith('@newsletter') || jid?.endsWith('@broadcast'),
     defaultQueryTimeoutMs: undefined,
     emitOwnEvents: false,
