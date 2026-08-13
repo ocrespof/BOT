@@ -1,10 +1,14 @@
 import axios from 'axios';
+import NodeCache from 'node-cache';
 
-// Format text with auto word-wrap to make animated Brat font large, bold & readable
+// Caché en memoria para evitar llamadas redundantes a la red (TTL 30 min)
+const bratCache = new NodeCache({ stdTTL: 1800, checkperiod: 300, useClones: false });
+
+// Formatear texto con ajuste automático de línea para legibilidad
 function formatBratText(text) {
     if (!text) return '';
     let clean = text.trim();
-    if (clean.length > 200) clean = clean.substring(0, 200);
+    if (clean.length > 150) clean = clean.substring(0, 150);
     if (clean.includes('\n')) return clean;
 
     const words = clean.split(/\s+/);
@@ -12,7 +16,7 @@ function formatBratText(text) {
     let currentLine = '';
 
     for (const word of words) {
-        if ((currentLine + ' ' + word).trim().length <= 18) {
+        if ((currentLine + ' ' + word).trim().length <= 16) {
             currentLine = (currentLine + ' ' + word).trim();
         } else {
             if (currentLine) lines.push(currentLine);
@@ -23,12 +27,17 @@ function formatBratText(text) {
     return lines.join('\n');
 }
 
-// Fetch animated sticker video with multi-endpoint fallback
+// Descargar buffer de video animado con cadena de fallbacks rápida
 const fetchStickerVideoBuffer = async (formattedText) => {
+    const cacheKey = `bratv:${formattedText}`;
+    const cachedBuffer = bratCache.get(cacheKey);
+    if (cachedBuffer) return cachedBuffer;
+
     const endpoints = [
-        { url: 'https://skyzxu-brat.hf.space/brat-animated', params: { text: formattedText } },
         { url: 'https://api.vreden.web.id/api/brat-animated', params: { text: formattedText } },
-        { url: 'https://api.siputzx.my.id/api/brat-animated', params: { text: formattedText } }
+        { url: 'https://api.siputzx.my.id/api/brat-animated', params: { text: formattedText } },
+        { url: 'https://skyzxu-brat.hf.space/brat-animated', params: { text: formattedText } },
+        { url: 'https://api.delirius.store/canvas/brat-animated', params: { text: formattedText } }
     ];
 
     for (const ep of endpoints) {
@@ -36,27 +45,29 @@ const fetchStickerVideoBuffer = async (formattedText) => {
             const res = await axios.get(ep.url, {
                 params: ep.params,
                 responseType: 'arraybuffer',
-                timeout: 15000
+                timeout: 7000
             });
-            if (res.data && res.data.length > 0) {
-                return res.data;
+            if (res.status === 200 && res.data && res.data.length > 500) {
+                const buffer = Buffer.from(res.data);
+                bratCache.set(cacheKey, buffer);
+                return buffer;
             }
         } catch {}
     }
-    throw new Error('No se pudo conectar a los servidores de Brat Animado.');
+    throw new Error('Servidores de Brat animado no disponibles o con tiempo agotado.');
 };
 
 export default {
     command: ['bratv', 'bratvid', 'bratanimado'],
     category: 'stickers',
-    desc: 'Sticker brat animado con alta legibilidad.',
+    desc: 'Sticker brat animado rápido con alta legibilidad.',
     usage: '.bratv [texto] o responde a un mensaje.',
 
     run: async (client, m, args, usedPrefix, command, text) => {
         try {
             const input = m.quoted?.text || m.quoted?.caption || text;
             if (!input) {
-                return client.reply(m.chat, '📝 Por favor, responde a un mensaje o ingresa un texto para crear el Sticker animado.', m);
+                return client.reply(m.chat, '📝 Responde a un mensaje o ingresa un texto para crear el Sticker Brat animado.', m);
             }
 
             await m.react('🕒');
@@ -64,7 +75,7 @@ export default {
             const formattedText = formatBratText(input);
             const videoBuffer = await fetchStickerVideoBuffer(formattedText);
 
-            // Metadata & privacy check
+            // Metadata de stickers personalizada
             const userDb = global.db?.data?.users?.[m.sender] || {};
             const isPhone = (str) => !str || /^\+?[0-9\s\-()@]+$/.test(str.trim()) || !/[a-zA-Z\u00C0-\u024F]/.test(str);
             
@@ -76,19 +87,30 @@ export default {
             const packname = meta1 || 'YukiBot Quotes';
             const author = meta1 ? (meta2 || '') : validName;
 
-            if (typeof client.sendVideoAsSticker === 'function') {
-                await client.sendVideoAsSticker(m.chat, videoBuffer, m, { packname, author });
-            } else if (typeof client.sendImageAsSticker === 'function') {
-                await client.sendImageAsSticker(m.chat, videoBuffer, m, { packname, author });
-            } else {
-                await client.sendMessage(m.chat, { video: videoBuffer, gifPlayback: true }, { quoted: m });
+            try {
+                if (typeof client.sendVideoAsSticker === 'function') {
+                    await client.sendVideoAsSticker(m.chat, videoBuffer, m, { packname, author });
+                } else {
+                    await client.sendMessage(m.chat, { video: videoBuffer, gifPlayback: true }, { quoted: m });
+                }
+                await m.react('✔️');
+            } catch (sendErr) {
+                const errMsg = sendErr?.message || String(sendErr);
+                if (errMsg.includes('Connection Closed') || errMsg.includes('closed') || errMsg.includes('timed out')) {
+                    console.warn('[BratV] Advertencia: Conexión cerrada al enviar sticker:', errMsg);
+                    return;
+                }
+                throw sendErr;
             }
-            
-            await m.react('✔️');
         } catch (e) {
+            const msg = e?.message || String(e);
+            if (msg.includes('Connection Closed') || msg.includes('closed')) {
+                console.warn('[BratV] Conexión cerrada durante la generación:', msg);
+                return;
+            }
             console.error('Error en comando bratv:', e);
-            await m.react('✖️');
-            return m.reply(`> ❌ Error al generar el sticker Brat animado.\n[Error: *${e.message}*]`);
+            await m.react('✖️').catch(() => {});
+            return m.reply(`> ❌ Error al generar el sticker Brat animado.\n[Error: *${msg}*]`).catch(() => {});
         }
     }
 };

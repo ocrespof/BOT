@@ -2,7 +2,7 @@ import axios from 'axios';
 import FormData from 'form-data';
 import { getCachedPushName } from '../../core/message.js';
 
-// Parse WhatsApp markdown (*bold*, _italic_, ~strike~, `code`) to Telegram entities
+// Convertir formato de WhatsApp (*negrita*, _cursiva_, ~tachado~, `código`) a entidades Telegram
 function parseMarkdownToEntities(text) {
     const entities = [];
     let cleanText = text;
@@ -43,33 +43,35 @@ function parseMarkdownToEntities(text) {
     return { text: cleanText, entities };
 }
 
-// User name resolution prioritizing pushName
+// Resolución inteligente del nombre del usuario
 async function getUserName(client, jid, pushName, chatId) {
     if (pushName && typeof pushName === 'string' && pushName.trim()) return pushName.trim();
     if (!jid) return 'Usuario';
 
-    const cachedPush = getCachedPushName?.(jid);
+    const cleanJid = client?.decodeJid ? client.decodeJid(jid) : jid;
+    const cachedPush = getCachedPushName?.(cleanJid);
     if (cachedPush && typeof cachedPush === 'string' && cachedPush.trim()) return cachedPush.trim();
 
     if (chatId && global.msgBuffer?.[chatId]) {
-        const bufferedMsg = global.msgBuffer[chatId].find(m => (m.sender === jid || m.key?.participant === jid) && m.pushName?.trim());
+        const bufferedMsg = global.msgBuffer[chatId].find(m => (m.sender === cleanJid || m.key?.participant === cleanJid) && m.pushName?.trim());
         if (bufferedMsg?.pushName) return bufferedMsg.pushName.trim();
     }
 
-    const dbName = global.db?.data?.users?.[jid]?.name;
+    const dbName = global.db?.data?.users?.[cleanJid]?.name;
     if (dbName && typeof dbName === 'string' && dbName.trim()) return dbName.trim();
 
     if (client?.getName) {
         try {
-            const name = await client.getName(jid);
+            const name = await client.getName(cleanJid);
             if (name && typeof name === 'string' && name.trim()) return name.trim();
         } catch {}
     }
 
-    return 'Usuario';
+    const phone = cleanJid.split('@')[0];
+    return phone ? `@${phone}` : 'Usuario';
 }
 
-// Unified multi-provider file uploader
+// Subidor multi-proveedor de multimedia
 async function uploadMedia(buffer, mime) {
     const ext = mime.split("/")[1] || "bin";
     const filename = `${Math.random().toString(36).substring(2, 8)}.${ext}`;
@@ -77,23 +79,23 @@ async function uploadMedia(buffer, mime) {
     const uploaders = [
         async () => {
             const form = new FormData();
-            form.append("reqtype", "fileupload");
-            form.append("userhash", "c9bc208e83a7dbc7c7cc68aff");
-            form.append("fileToUpload", buffer, { filename });
-            const res = await axios.post("https://catbox.moe/user/api.php", form, { headers: form.getHeaders() });
-            return typeof res.data === "string" && res.data.startsWith("https://") ? res.data : null;
-        },
-        async () => {
-            const form = new FormData();
             form.append("files[]", buffer, filename);
-            const res = await axios.post("https://uguu.se/upload.php", form, { headers: form.getHeaders() });
+            const res = await axios.post("https://uguu.se/upload.php", form, { headers: form.getHeaders(), timeout: 9000 });
             return res.data?.files?.[0]?.url || null;
         },
         async () => {
             const form = new FormData();
             form.append("file", buffer, { filename, contentType: mime });
-            const res = await axios.post("https://qu.ax/upload.php", form, { headers: form.getHeaders() });
+            const res = await axios.post("https://qu.ax/upload.php", form, { headers: form.getHeaders(), timeout: 9000 });
             return res.data?.files?.[0]?.url || null;
+        },
+        async () => {
+            const form = new FormData();
+            form.append("reqtype", "fileupload");
+            form.append("userhash", "c9bc208e83a7dbc7c7cc68aff");
+            form.append("fileToUpload", buffer, { filename });
+            const res = await axios.post("https://catbox.moe/user/api.php", form, { headers: form.getHeaders(), timeout: 9000 });
+            return typeof res.data === "string" && res.data.startsWith("https://") ? res.data : null;
         }
     ];
 
@@ -106,26 +108,40 @@ async function uploadMedia(buffer, mime) {
     return null;
 }
 
-// Extract and upload media from WhatsApp message
+// Extraer y subir multimedia de mensajes (con soporte de mensajes antiguos mediante thumbnail)
 async function getMediaUploadUrl(msg) {
     if (!msg) return null;
-    const isSticker = msg.message?.stickerMessage || msg.type === 'stickerMessage' || (msg.mime && /webp/i.test(msg.mime));
-    const isImage = msg.message?.imageMessage || msg.type === 'imageMessage' || (msg.mime && /image/i.test(msg.mime) && !/webp/i.test(msg.mime));
-    const isVideo = msg.message?.videoMessage || msg.type === 'videoMessage' || (msg.mime && /video/i.test(msg.mime));
+    const isSticker = Boolean(msg.message?.stickerMessage || msg.type === 'stickerMessage' || (msg.mime && /webp/i.test(msg.mime)));
+    const isImage = Boolean(msg.message?.imageMessage || msg.type === 'imageMessage' || (msg.mime && /image/i.test(msg.mime) && !/webp/i.test(msg.mime)));
+    const isVideo = Boolean(msg.message?.videoMessage || msg.type === 'videoMessage' || (msg.mime && /video/i.test(msg.mime)));
 
     if (isImage || isSticker || isVideo) {
         try {
+            let buffer = null;
             const downloadFunc = msg.download || (msg.getQuotedObj ? async () => (await msg.getQuotedObj())?.download() : null);
             if (downloadFunc) {
-                const buffer = await downloadFunc();
-                if (buffer) {
-                    const mime = msg.mime || msg.msg?.mimetype || (isImage ? 'image/jpeg' : isSticker ? 'image/webp' : 'video/mp4');
-                    const url = await uploadMedia(buffer, mime);
-                    if (url) return { url, type: isSticker ? 'sticker' : 'image' };
+                try {
+                    buffer = await downloadFunc();
+                } catch (dlErr) {
+                    // Si falla la descarga directa (típico en mensajes viejos cuyos tokens expiraron en WA)
                 }
             }
+
+            // Fallback a jpegThumbnail / pngThumbnail para mensajes antiguos
+            if (!buffer || buffer.length === 0) {
+                const rawThumb = msg.msg?.jpegThumbnail || msg.message?.imageMessage?.jpegThumbnail || msg.message?.videoMessage?.jpegThumbnail || msg.message?.stickerMessage?.pngThumbnail;
+                if (rawThumb) {
+                    buffer = Buffer.isBuffer(rawThumb) ? rawThumb : Buffer.from(rawThumb, 'base64');
+                }
+            }
+
+            if (buffer && buffer.length > 0) {
+                const mime = isSticker ? 'image/webp' : (isVideo ? 'video/mp4' : 'image/jpeg');
+                const url = await uploadMedia(buffer, mime);
+                if (url) return { url, type: isSticker ? 'sticker' : 'image' };
+            }
         } catch (e) {
-            console.error('Failed media upload for quote:', e);
+            console.error('[Quoted] Error al procesar multimedia para quote:', e?.message || e);
         }
     }
     return null;
@@ -134,16 +150,29 @@ async function getMediaUploadUrl(msg) {
 export default {
     command: ['quoted', 'q', 'fakereply', 'quote', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10'],
     category: 'stickers',
-    desc: 'Genera un sticker de cita a partir de texto o varios mensajes.',
+    desc: 'Genera un sticker de cita a partir de texto o varios mensajes con alta legibilidad.',
     usage: '.q [texto] o responde a un mensaje con .q, .q 2, .q 3 o usa atajos como .q2, .q3.',
 
     run: async (client, m, args, usedPrefix, command) => {
         // 1. Extraer color de fondo (preset o código hex)
         let backgroundColor = '#1b1429';
-        const colorPresets = { '--dark': '#1b1429', '--black': '#000000', '--red': '#8b0000', '--blue': '#00008b', '--green': '#006400', '--purple': '#4b0082', '--grey': '#2f4f4f' };
+        const colorPresets = {
+            '--dark': '#1b1429',
+            '--black': '#0a0a0a',
+            '--white': '#f5f5f5',
+            '--red': '#7a1c1c',
+            '--blue': '#1b2a4a',
+            '--green': '#1c4a2a',
+            '--purple': '#3e1c5c',
+            '--grey': '#2a2e33',
+            '--gray': '#2a2e33',
+            '--pink': '#6b2046',
+            '--cyan': '#154e59',
+            '--orange': '#6e3c15'
+        };
 
         for (let i = 0; i < args.length; i++) {
-            const arg = args[i];
+            const arg = args[i]?.toLowerCase();
             if (colorPresets[arg]) {
                 backgroundColor = colorPresets[arg];
                 args.splice(i, 1);
@@ -162,12 +191,13 @@ export default {
 
         if (!qMatch && args.length > 0) {
             const firstNum = parseInt(args[0]);
-            if (!isNaN(firstNum) && firstNum >= 1 && firstNum <= 10 && m.quoted) {
+            if (!isNaN(firstNum) && firstNum >= 1 && firstNum <= 10) {
                 numMsgs = firstNum;
                 args.shift();
-            } else if (!m.quoted) {
-                text = args.join(' ').trim();
             }
+        }
+        if (args.length > 0) {
+            text = args.join(' ').trim();
         }
 
         // 3. Recopilar mensajes a citar
@@ -183,33 +213,38 @@ export default {
                 messagesToQuote = sliced.map(msg => ({
                     sender: msg.sender || msg.key?.participant || m.chat,
                     pushName: msg.pushName,
-                    text: msg.text || msg.caption || '',
+                    text: msg.text || msg.caption || msg.body || '',
                     isMedia: Boolean(msg.message?.imageMessage || msg.message?.videoMessage || msg.message?.stickerMessage),
                     type: msg.type || '',
                     msgObj: msg
                 }));
             } else {
+                // Mensaje citado antiguo (previo al inicio de sesión o fuera del buffer)
                 messagesToQuote.push({
-                    sender: m.quoted.sender,
+                    sender: m.quoted.sender || m.quoted.key?.participant || m.chat,
                     pushName: m.quoted.pushName,
-                    text: m.quoted.text || m.quoted.caption || '',
+                    text: m.quoted.text || m.quoted.caption || m.quoted.body || '',
                     isMedia: Boolean(m.quoted.message?.imageMessage || m.quoted.message?.videoMessage || m.quoted.message?.stickerMessage),
                     type: m.quoted.type || '',
                     msgObj: m.quoted
                 });
 
-                if (numMsgs > 1) {
+                if (numMsgs > 1 && buffer.length > 0) {
                     const quotedTime = Number(m.quoted.messageTimestamp || 0);
-                    const subsequent = buffer.filter(msg => {
+                    let subsequent = buffer.filter(msg => {
                         const t = Number(msg.messageTimestamp || 0);
                         return t >= quotedTime && (msg.key?.id || msg.id) !== quotedId;
                     }).slice(0, numMsgs - 1);
+
+                    if (subsequent.length === 0) {
+                        subsequent = buffer.slice(-numMsgs + 1);
+                    }
 
                     for (const msg of subsequent) {
                         messagesToQuote.push({
                             sender: msg.sender || msg.key?.participant || m.chat,
                             pushName: msg.pushName,
-                            text: msg.text || msg.caption || '',
+                            text: msg.text || msg.caption || msg.body || '',
                             isMedia: Boolean(msg.message?.imageMessage || msg.message?.videoMessage || msg.message?.stickerMessage),
                             type: msg.type || '',
                             msgObj: msg
@@ -217,6 +252,17 @@ export default {
                     }
                 }
             }
+        } else if (!text && numMsgs > 1 && buffer.length > 0) {
+            // .q2, .q3 ejecutado directamente sin citar -> Citar los últimos N mensajes del chat
+            const recent = buffer.slice(-numMsgs);
+            messagesToQuote = recent.map(msg => ({
+                sender: msg.sender || msg.key?.participant || m.chat,
+                pushName: msg.pushName,
+                text: msg.text || msg.caption || msg.body || '',
+                isMedia: Boolean(msg.message?.imageMessage || msg.message?.videoMessage || msg.message?.stickerMessage),
+                type: msg.type || '',
+                msgObj: msg
+            }));
         } else if (text) {
             const who = m.mentionedJid?.[0] || m.sender;
             messagesToQuote = [{
@@ -228,12 +274,18 @@ export default {
                 msgObj: null
             }];
         } else {
-            return m.reply('📝 Responde a un mensaje con *.q* (o *.q 2*, *.q 3*, *.q2*, *.q3*) o escribe *.q <texto>*.');
+            return m.reply(`📝 *Uso del comando Quote / Citas:*\n\n● Responde a un mensaje con *${usedPrefix}q* o *${usedPrefix}q2*, *${usedPrefix}q3*.\n● O escribe *${usedPrefix}q [texto]*.\n● Fondos opcionales: *--dark*, *--black*, *--white*, *--red*, *--blue*, *--green*, *--purple*, *--grey*, *--pink*, *--cyan* o código *#hex*.`);
         }
 
         await m.react('🕒');
 
-        const getPfp = async (jid) => client.profilePictureUrl(jid, 'image').catch(() => 'https://telegra.ph/file/24fa902ead26340f3df2c.png');
+        const getPfp = async (jid) => {
+            try {
+                return await client.profilePictureUrl(jid, 'image');
+            } catch {
+                return 'https://cdn.yuki-wabot.my.id/files/2PVh.jpeg';
+            }
+        };
 
         // 4. Construir payloads para la API de Citas en PARALELO
         const apiMessages = await Promise.all(messagesToQuote.map(async (msg) => {
@@ -254,7 +306,7 @@ export default {
                 const isImage = msg.msgObj.message?.imageMessage || msg.msgObj.type === 'imageMessage';
                 const isSticker = msg.msgObj.message?.stickerMessage || msg.msgObj.type === 'stickerMessage';
                 if (!isImage && !isSticker) {
-                    msgText = msg.type === 'videoMessage' ? '🎥 Video' : (msg.type === 'stickerMessage' ? '🧩 Sticker' : 'Mensaje multimedia');
+                    msgText = msg.type === 'videoMessage' ? '🎥 Video' : (msg.type === 'stickerMessage' ? '🧩 Sticker' : 'Multimedia');
                 }
             }
 
@@ -274,10 +326,41 @@ export default {
             return apiMsg;
         }));
 
-        // 5. Llamar a la API de citas y enviar sticker
+        // 5. Dimensionamiento adaptativo para máxima legibilidad
+        const count = apiMessages.length;
+        let width = 512;
+        let height = 512;
+        let scale = 2.0;
+
+        if (count === 1) {
+            const textLen = (apiMessages[0]?.text || '').length;
+            if (textLen > 180) {
+                height = 650;
+                scale = 2.2;
+            } else {
+                height = 512;
+                scale = 2.0;
+            }
+        } else if (count === 2) {
+            height = 680;
+            scale = 2.3;
+        } else if (count === 3) {
+            height = 880;
+            scale = 2.5;
+        } else if (count <= 5) {
+            height = 1150;
+            scale = 2.8;
+        } else {
+            height = 1450;
+            scale = 3.0;
+        }
+
+        // 6. Cadena de endpoints para Quotly
         const QUOTE_ENDPOINTS = [
             'https://bot.lyo.su/quote/generate',
-            'https://quote.yuri.ly/generate'
+            'https://quote.yuri.ly/generate',
+            'https://api.aggelos-007.xyz/qc',
+            'https://qc.botcahx.eu.org/generate'
         ];
 
         try {
@@ -285,9 +368,9 @@ export default {
                 type: 'quote',
                 format: 'png',
                 backgroundColor,
-                width: 512,
-                height: 512,
-                scale: 2,
+                width,
+                height,
+                scale,
                 messages: apiMessages
             };
 
@@ -297,7 +380,7 @@ export default {
                 try {
                     res = await axios.post(endpoint, quoteObj, {
                         headers: { 'Content-Type': 'application/json' },
-                        timeout: 12000
+                        timeout: 10000
                     });
                     if (res.data?.result?.image) {
                         apiError = null;
@@ -309,7 +392,7 @@ export default {
             }
 
             if (apiError || !res?.data?.result?.image) {
-                throw apiError || new Error('La API devolvió datos inválidos.');
+                throw apiError || new Error('La API de citas no devolvió una imagen válida.');
             }
 
             const bufferImage = Buffer.from(res.data.result.image, 'base64');
@@ -324,7 +407,7 @@ export default {
             }
             await m.react('✔️');
         } catch (err) {
-            console.error('Quote plugin error:', err);
+            console.error('[Quoted] Error al generar cita:', err?.message || err);
             await m.react('❌');
             await m.reply('❌ Fallo al generar la cita. Inténtalo de nuevo más tarde.');
         }
