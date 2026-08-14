@@ -323,10 +323,13 @@ async function startBot() {
 
     if (connection === "open") {
       bootTime = Date.now();
+      global.bootTime = bootTime;
       botReady = true;
+      global.botReady = true;
       reconexion = 0;
       const userName = sock.user.name || "Desconocido";
       console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`));
+      sock.ev.flush();
       warmupGroups(sock);
     }
     if (isNewLogin) log.info("Nuevo dispositivo detectado");
@@ -359,10 +362,20 @@ async function startBot() {
           if (senderJid) setCachedPushName(senderJid, msg.pushName);
         }
 
-        // Ignorar mensajes antiguos acumulados mientras el bot arrancaba (más de 30s de antigüedad)
-        const msgTime = Number(msg.messageTimestamp);
-        if (!isNaN(msgTime) && msgTime > 0) {
-          if ((msgTime * 1000) < bootTime - 15000) continue;
+        // Extraer timestamp numérico correctamente (soportando números, Long objects y strings)
+        const rawTimestamp = msg.messageTimestamp;
+        let msgTime = 0;
+        if (typeof rawTimestamp === 'number') {
+          msgTime = rawTimestamp;
+        } else if (rawTimestamp && typeof rawTimestamp === 'object') {
+          msgTime = rawTimestamp.low || rawTimestamp.toNumber?.() || 0;
+        } else if (rawTimestamp) {
+          msgTime = Number(rawTimestamp) || 0;
+        }
+
+        // Ignorar mensajes antiguos acumulados antes de que el bot arrancara (o más de 60s de antigüedad)
+        if (msgTime > 0) {
+          if ((msgTime * 1000) < (bootTime - 5000)) continue;
           const messageAge = Math.floor(Date.now() / 1000) - msgTime;
           if (messageAge > 60) continue;
         }
