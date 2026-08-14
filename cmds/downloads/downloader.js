@@ -702,51 +702,136 @@ async function getVideoFromRyze(url) {
   }
 }
 
-export async function getYouTubeAudioData(url) {
-  // 1. Try the robust proxy scraper first
-  const primaryResult = await scrapeYouTubeAudio(url);
-  if (primaryResult) return primaryResult;
+export function getVideoId(text = '') {
+  const raw = String(text || '').trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
+  const patterns = [
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/live\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/,
+    /[?&]v=([a-zA-Z0-9_-]{11})/
+  ];
+  for (const pattern of patterns) {
+    const match = raw.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+  return null;
+}
 
-  // 2. Try the dedicated Opik conversion API
+export function cleanYouTubeUrl(input = '') {
+  const raw = String(input || '').trim();
+  const id = getVideoId(raw);
+  if (id) return `https://youtu.be/${id}`;
+  return raw;
+}
+
+export async function getYouTubeAudioData(rawUrl) {
+  const url = cleanYouTubeUrl(rawUrl);
+
+  // 1. Try Lempi API (Fast and active)
+  const apis = [
+    {
+      endpoint: `https://api.lempi.lat/dl/yta?url=${encodeURIComponent(url)}&apikey=montekey28`,
+      extractor: res => {
+        const downloadUrl = res.datos?.url || res.descarga?.url || res.data?.url || (typeof res.datos === 'string' ? res.datos : null);
+        if (res.status && downloadUrl) {
+          return {
+            url: downloadUrl,
+            title: res.titulo || res.title || 'YouTube Audio',
+            author: res.canal || res.author || '',
+            duration: res.duracion || res.duration || '',
+            thumbnail: res.miniatura || res.thumbnail || '',
+            api: 'Lempi'
+          };
+        }
+        return null;
+      }
+    },
+    {
+      endpoint: `https://api.ryzendesu.vip/api/downloader/ytmp3?url=${encodeURIComponent(url)}`,
+      extractor: res => res.url || res.data?.url || res.download ? { url: res.url || res.data?.url || res.download, api: 'RyzenDesu' } : null
+    },
+    {
+      endpoint: `${config.APIs.vreden?.url || 'https://api.vreden.web.id'}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=256`,
+      extractor: res => res.result?.download?.url ? { url: res.result.download.url, title: res.result.title, author: res.result.author?.name, duration: res.result.duration, thumbnail: res.result.image, api: 'Vreden' } : null
+    },
+    {
+      endpoint: `${config.APIs.stellar?.url || 'https://api.yuki-wabot.my.id'}/dl/ytdl?url=${encodeURIComponent(url)}&format=mp3&key=${config.APIs.stellar?.key || 'zB5h1m-Gj4R8s-vT3q7x'}`,
+      extractor: res => res.result?.download ? { url: res.result.download, title: res.result.title, api: 'Stellar' } : null
+    },
+    {
+      endpoint: `https://api.siputzx.my.id/api/d/ytmp3?url=${encodeURIComponent(url)}`,
+      extractor: res => res.data?.dl ? { url: res.data.dl, api: 'Siputzx' } : null
+    }
+  ];
+
+  const apiRes = await executeWithFallback('youtube_audio', url, apis, { timeout: 15000 });
+  if (apiRes) return apiRes;
+
+  // Fallback to internal scrapers
   const opikResult = await getAudioFromOpik(url);
   if (opikResult?.url) return { url: opikResult.url, api: 'Opik' };
 
-  // 3. Fallback to external APIs
-  const apis = [
-    { endpoint: `https://api.lempi.lat/dl/yta?url=${encodeURIComponent(url)}&apikey=montekey28`, extractor: res => res.status && res.descarga?.url ? { url: res.descarga.url, api: 'Lempi' } : null },
-    { endpoint: `https://api.ryzendesu.vip/api/downloader/ytmp3?url=${encodeURIComponent(url)}`, extractor: res => res.url || res.data?.url || res.download ? { url: res.url || res.data?.url || res.download, api: 'RyzenDesu' } : null },
-    { endpoint: `https://api.siputzx.my.id/api/d/ytmp3?url=${encodeURIComponent(url)}`, extractor: res => res.data?.dl ? { url: res.data.dl, api: 'Siputzx' } : null },
-    { endpoint: `${config.APIs.axi.url}/down/ytaudio?url=${encodeURIComponent(url)}`, extractor: res => res?.resultado?.url_dl ? { url: res.resultado.url_dl, api: 'Axi' } : null },
-    { endpoint: `${config.APIs.ootaizumi.url}/downloader/youtube/play?query=${encodeURIComponent(url)}`, extractor: res => res.result?.download ? { url: res.result.download, api: 'Ootaizumi' } : null },
-    { endpoint: `${config.APIs.vreden.url}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=256`, extractor: res => res.result?.download?.url ? { url: res.result.download.url, api: 'Vreden' } : null },
-    { endpoint: `${config.APIs.stellar.url}/dl/ytdl?url=${encodeURIComponent(url)}&format=mp3&key=${config.APIs.stellar.key}`, extractor: res => res.result?.download ? { url: res.result.download, api: 'Stellar' } : null },
-    { endpoint: `${config.APIs.ootaizumi.url}/downloader/youtube?url=${encodeURIComponent(url)}&format=mp3`, extractor: res => res.result?.download ? { url: res.result.download, api: 'Ootaizumi v2' } : null },
-    { endpoint: `${config.APIs.vreden.url}/api/v1/download/play/audio?query=${encodeURIComponent(url)}`, extractor: res => res.result?.download?.url ? { url: res.result.download.url, api: 'Vreden v2' } : null },
-    { endpoint: `${config.APIs.nekolabs.url}/downloader/youtube/v1?url=${encodeURIComponent(url)}&format=mp3`, extractor: res => res.result?.downloadUrl ? { url: res.result.downloadUrl, api: 'Nekolabs' } : null }
-  ];
-  return executeWithFallback('youtube_audio', url, apis, { timeout: 15000 });
-}
-
-export async function getYouTubeVideoData(url) {
-  // 1. Try the robust proxy scraper first
-  const primaryResult = await scrapeYouTubeVideo(url);
+  const primaryResult = await scrapeYouTubeAudio(url);
   if (primaryResult) return primaryResult;
 
-  // 2. Try the dedicated Ryze API scraper
+  return null;
+}
+
+export async function getYouTubeVideoData(rawUrl) {
+  const url = cleanYouTubeUrl(rawUrl);
+
+  // 1. Try Lempi API (Fast and active)
+  const apis = [
+    {
+      endpoint: `https://api.lempi.lat/dl/ytv?url=${encodeURIComponent(url)}&apikey=montekey28`,
+      extractor: res => {
+        const downloadUrl = res.datos?.url || res.descarga?.url || res.data?.url || (typeof res.datos === 'string' ? res.datos : null);
+        if (res.status && downloadUrl) {
+          return {
+            url: downloadUrl,
+            title: res.titulo || res.title || 'YouTube Video',
+            author: res.canal || res.author || '',
+            duration: res.duracion || res.duration || '',
+            thumbnail: res.miniatura || res.thumbnail || '',
+            api: 'Lempi'
+          };
+        }
+        return null;
+      }
+    },
+    {
+      endpoint: `https://api.ryzendesu.vip/api/downloader/ytmp4?url=${encodeURIComponent(url)}`,
+      extractor: res => res.url || res.data?.url || res.download ? { url: res.url || res.data?.url || res.download, api: 'RyzenDesu' } : null
+    },
+    {
+      endpoint: `${config.APIs.vreden?.url || 'https://api.vreden.web.id'}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=720`,
+      extractor: res => res.result?.download?.url ? { url: res.result.download.url, title: res.result.title, author: res.result.author?.name, duration: res.result.duration, thumbnail: res.result.image, api: 'Vreden' } : null
+    },
+    {
+      endpoint: `${config.APIs.stellar?.url || 'https://api.yuki-wabot.my.id'}/dl/ytdl?url=${encodeURIComponent(url)}&format=mp4&key=${config.APIs.stellar?.key || 'zB5h1m-Gj4R8s-vT3q7x'}`,
+      extractor: res => res.result?.download ? { url: res.result.download, title: res.result.title, api: 'Stellar' } : null
+    },
+    {
+      endpoint: `https://api.siputzx.my.id/api/d/ytmp4?url=${encodeURIComponent(url)}`,
+      extractor: res => res.data?.dl ? { url: res.data.dl, api: 'Siputzx' } : null
+    }
+  ];
+
+  const apiRes = await executeWithFallback('youtube_video', url, apis, { timeout: 15000 });
+  if (apiRes) return apiRes;
+
+  // Fallback to internal scrapers
   const ryzeResult = await getVideoFromRyze(url);
   if (ryzeResult?.url) return { url: ryzeResult.url, api: 'Ryze' };
 
-  // 3. Fallback to external APIs
-  const apis = [
-    { endpoint: `https://api.lempi.lat/dl/ytv?url=${encodeURIComponent(url)}&apikey=montekey28`, extractor: res => res.status && res.descarga?.url ? { url: res.descarga.url, api: 'Lempi' } : null },
-    { endpoint: `https://api.ryzendesu.vip/api/downloader/ytmp4?url=${encodeURIComponent(url)}`, extractor: res => res.url || res.data?.url || res.download ? { url: res.url || res.data?.url || res.download, api: 'RyzenDesu' } : null },
-    { endpoint: `${config.APIs.vreden.url}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=720`, extractor: res => res.result?.download?.url ? { url: res.result.download.url, api: 'Vreden' } : null },
-    { endpoint: `${config.APIs.stellar.url}/dl/ytdl?url=${encodeURIComponent(url)}&format=mp4&key=${config.APIs.stellar.key}`, extractor: res => res.result?.download ? { url: res.result.download, api: 'Stellar' } : null },
-    { endpoint: `${config.APIs.ootaizumi.url}/downloader/youtube?url=${encodeURIComponent(url)}&format=mp4`, extractor: res => res.result?.download ? { url: res.result.download, api: 'Ootaizumi' } : null },
-    { endpoint: `${config.APIs.nekolabs.url}/downloader/youtube/v1?url=${encodeURIComponent(url)}&format=mp4`, extractor: res => res.result?.downloadUrl ? { url: res.result.downloadUrl, api: 'Nekolabs' } : null },
-    { endpoint: `https://api.siputzx.my.id/api/d/ytmp4?url=${encodeURIComponent(url)}`, extractor: res => res.data?.dl ? { url: res.data.dl, api: 'Siputzx' } : null }
-  ];
-  return executeWithFallback('youtube_video', url, apis, { timeout: 15000 });
+  const primaryResult = await scrapeYouTubeVideo(url);
+  if (primaryResult) return primaryResult;
+
+  return null;
 }
 
 export async function getGoogleImageData(query) {

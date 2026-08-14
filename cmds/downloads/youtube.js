@@ -58,6 +58,7 @@ export default {
         await client.sendMessage(m.chat, { 
           audio: { url: media.url }, 
           mimetype: 'audio/mpeg',
+          fileName: `${media.title || 'audio'}.mp3`,
           contextInfo: {
             externalAdReply: {
               title: media.title || "YouTube Audio",
@@ -85,7 +86,9 @@ export default {
           (media.duration ? `• *Duración:* ${media.duration}\n` : '');
         await client.sendMessage(m.chat, { 
           video: { url: media.url }, 
-          caption: caption.trim()
+          caption: caption.trim(),
+          fileName: `${media.title || 'video'}.mp4`,
+          mimetype: 'video/mp4'
         }, { quoted: m });
       } catch (e) {
         await m.reply(`> ⚠️ *Ocurrió un error al procesar el video.*\n[Causa: *${e.message}*]`);
