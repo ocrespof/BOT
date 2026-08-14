@@ -215,7 +215,7 @@ async function startBot() {
   const { state, saveCreds: saveCredsDB } = await useMultiFileAuthState(global.sessionName);
   const version = await getVersion();
   const isDebug = process.env.DEBUG === 'true' || process.argv.includes('--debug');
-  const logger = pino({ level: isDebug ? "debug" : "silent" });
+  const logger = pino({ level: isDebug ? "debug" : "warn" });
 
   let saveCredsTimer = null;
   const saveCreds = () => {
