@@ -127,15 +127,10 @@ async function executeWithFallback(platform, identifier, apis, customOptions = {
   }
 
   for (const api of apis) {
-    const apiName = getApiName(api.endpoint);
-    if (apiName && !isApiOnline(apiName)) {
-      continue; // Skip offline APIs
-    }
-
     try {
       const isPost = api.method === 'POST';
       const options = {
-        timeout: customOptions.timeout || 12000, // Safe default timeout for scraping
+        timeout: customOptions.timeout || 12000,
         headers: api.headers || {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
@@ -150,7 +145,6 @@ async function executeWithFallback(platform, identifier, apis, customOptions = {
 
       const result = api.extractor(res);
       if (result) {
-        // Validación para evitar arrays vacíos o respuestas exitosas pero sin datos útiles
         if (Array.isArray(result) && result.length === 0) {
            throw new Error('Empty array result');
         }
@@ -164,14 +158,9 @@ async function executeWithFallback(platform, identifier, apis, customOptions = {
         return result;
       }
     } catch (e) {
-      // Mark as offline if network/timeout error
-      const isNetworkError = !e.response || e.response?.status >= 500 || e.code === 'ECONNABORTED';
-      if (apiName && isNetworkError) {
-        setApiOffline(apiName);
-        console.warn(`[Downloader] API ${apiName} marcada offline para ${platform} (${e.code || e.message})`);
-      }
+      // Continuar al siguiente proveedor de la lista
     }
-    await delay(500);
+    await delay(300);
   }
   return null;
 }
@@ -585,25 +574,45 @@ export async function getPinterestData(input, isUrl) {
       { endpoint: `${config.APIs.ootaizumi.url}/downloader/pinterest?url=${encodeURIComponent(input)}`, extractor: res => (res.status && res.result?.download) ? { type: res.result.download.includes('.mp4') ? 'video' : 'image', title: res.result.title || null, description: null, author: res.result.author?.name || null, username: res.result.author?.username || null, uploadDate: res.result.upload || null, format: res.result.download.includes('.mp4') ? 'mp4' : 'jpg', url: res.result.download, thumbnail: res.result.thumb || null, source: res.result.source || null } : null }
     ];
     return executeWithFallback('pinterest', `${input}|url`, apis);
-  } else {
-    const endpoints = [`${config.APIs.stellar.url}/search/pinterest?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`, `${config.APIs.stellar.url}/search/pinterestv2?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`, `${config.APIs.delirius.url}/search/pinterestv2?text=${encodeURIComponent(input)}`, `${config.APIs.vreden.url}/api/v1/search/pinterest?query=${encodeURIComponent(input)}`, `${config.APIs.vreden.url}/api/v2/search/pinterest?query=${encodeURIComponent(input)}&limit=10&type=videos`, `${config.APIs.delirius.url}/search/pinterest?text=${encodeURIComponent(input)}`, `${config.APIs.siputzx.url}/api/s/pinterest?query=${encodeURIComponent(input)}&type=image`];
+    const endpoints = [
+      `https://api.siputzx.my.id/api/s/pinterest?query=${encodeURIComponent(input)}`,
+      `${config.APIs.stellar.url}/search/pinterest?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`,
+      `${config.APIs.stellar.url}/search/pinterestv2?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`,
+      `${config.APIs.delirius.url}/search/pinterestv2?text=${encodeURIComponent(input)}`,
+      `${config.APIs.vreden.url}/api/v1/search/pinterest?query=${encodeURIComponent(input)}`,
+      `${config.APIs.vreden.url}/api/v2/search/pinterest?query=${encodeURIComponent(input)}&limit=10&type=videos`,
+      `${config.APIs.delirius.url}/search/pinterest?text=${encodeURIComponent(input)}`
+    ];
     
     const apis = endpoints.map(endpoint => ({
       endpoint,
       extractor: res => {
         let result = null;
         if (res?.data?.length) {
-          result = res.data.map(d => ({ type: 'image', title: d.title || d.grid_title || null, description: d.description || null, name: d.full_name || d.name || d.pinner?.full_name || null, username: d.username || d.pinner?.username || null, followers: d.followers || d.pinner?.follower_count || null, likes: d.likes || d.reaction_counts?.[1] || null, created_at: d.created || d.created_at || null, image: d.hd || d.image || d.image_url || d.images?.orig?.url || d.media_urls?.[0]?.url || d.url || null }));
+          result = res.data.map(d => {
+            const img = typeof d === 'string' ? d : (d.image_url || d.hd || d.image || d.images?.orig?.url || d.media_urls?.[0]?.url || d.url || null);
+            return {
+              type: (d.type === 'video' || (typeof d === 'string' && d.includes('.mp4'))) ? 'video' : 'image',
+              title: typeof d === 'object' ? (d.title || d.grid_title || d.seo_alt_text || null) : null,
+              description: typeof d === 'object' ? (d.description || null) : null,
+              name: typeof d === 'object' ? (d.pinner?.full_name || d.full_name || d.name || null) : null,
+              username: typeof d === 'object' ? (d.pinner?.username || d.username || null) : null,
+              followers: typeof d === 'object' ? (d.pinner?.follower_count || d.followers || null) : null,
+              likes: typeof d === 'object' ? (d.reaction_counts?.['1'] || d.likes || null) : null,
+              created_at: typeof d === 'object' ? (d.created_at || d.created || null) : null,
+              image: img
+            };
+          }).filter(r => r.image);
         } else if (res?.response?.pins?.length) {
-          result = res.response.pins.map(p => ({ type: p.media?.video ? 'video' : 'image', title: p.title || null, description: p.description || null, name: p.uploader?.full_name || null, username: p.uploader?.username || null, followers: p.uploader?.followers || null, likes: null, created_at: null, image: p.media?.images?.orig?.url || null }));
+          result = res.response.pins.map(p => ({ type: p.media?.video ? 'video' : 'image', title: p.title || null, description: p.description || null, name: p.uploader?.full_name || null, username: p.uploader?.username || null, followers: p.uploader?.followers || null, likes: null, created_at: null, image: p.media?.images?.orig?.url || null })).filter(r => r.image);
         } else if (res?.results?.length) {
-          result = res.results.map(url => ({ type: 'image', title: null, description: null, name: null, username: null, followers: null, likes: null, created_at: null, image: typeof url === 'string' ? url : (url.image || url.url || null) }));
+          result = res.results.map(url => ({ type: 'image', title: null, description: null, name: null, username: null, followers: null, likes: null, created_at: null, image: typeof url === 'string' ? url : (url.image_url || url.image || url.url || null) })).filter(r => r.image);
         } else if (res?.result?.search_data?.length) {
-          result = res.result.search_data.map(url => ({ type: 'image', title: null, description: null, name: null, username: null, followers: null, likes: null, created_at: null, image: typeof url === 'string' ? url : (url.image || url.url || null) }));
+          result = res.result.search_data.map(url => ({ type: 'image', title: null, description: null, name: null, username: null, followers: null, likes: null, created_at: null, image: typeof url === 'string' ? url : (url.image_url || url.image || url.url || null) })).filter(r => r.image);
         } else if (res?.result?.result?.length) {
-          result = res.result.result.map(d => ({ type: d.media_urls?.[0]?.type || 'video', title: d.title || null, description: d.description || null, name: d.uploader?.full_name || null, username: d.uploader?.username || null, followers: d.uploader?.followers || null, likes: null, created_at: null, image: d.media_urls?.[0]?.url || null }));
+          result = res.result.result.map(d => ({ type: d.media_urls?.[0]?.type || 'video', title: d.title || null, description: d.description || null, name: d.uploader?.full_name || null, username: d.uploader?.username || null, followers: d.uploader?.followers || null, likes: null, created_at: null, image: d.media_urls?.[0]?.url || null })).filter(r => r.image);
         }
-        return (result && result.length > 0 && result.some(r => r.image)) ? result : null;
+        return (result && result.length > 0) ? result : null;
       }
     }));
     
