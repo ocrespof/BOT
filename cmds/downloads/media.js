@@ -310,7 +310,15 @@ const handlers = {
         };
       });
 
-      await client.sendAlbumMessage(m.chat, albumMedias, { quoted: m });
+      try {
+        await client.sendAlbumMessage(m.chat, albumMedias, { quoted: m });
+      } catch (albumErr) {
+        for (let i = 0; i < albumMedias.length; i++) {
+          const item = albumMedias[i];
+          await client.sendMessage(m.chat, { [item.type]: { url: item.data.url }, caption: item.caption }, { quoted: i === 0 ? m : undefined });
+          if (i < albumMedias.length - 1) await sleep(600);
+        }
+      }
     }
   },
 

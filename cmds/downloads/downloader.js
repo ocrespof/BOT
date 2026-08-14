@@ -5,6 +5,7 @@
  */
 import config from '../../config.js';
 import axios from 'axios';
+import vm from 'node:vm';
 import { cache } from '../../utils/tools.js';
 import { scrapePinterest } from '../../utils/pinterestScraper.js';
 import { scrapeTikTokVideo, searchTikTokVideos } from '../../utils/tiktokScraper.js';
@@ -167,6 +168,34 @@ async function executeWithFallback(platform, identifier, apis, customOptions = {
 
 export async function getFacebookMedia(url) {
   const apis = [
+    {
+      endpoint: `https://api.lempi.lat/dl/facebook?url=${encodeURIComponent(url)}&apikey=montekey28`,
+      extractor: res => {
+        if (!res.status || !res.datos?.url) return null;
+        return {
+          type: 'video',
+          title: res.titulo || 'Facebook Video',
+          resolution: res.datos.calidad || 'HD',
+          format: 'mp4',
+          url: res.datos.url
+        };
+      }
+    },
+    {
+      endpoint: `https://api.siputzx.my.id/api/d/facebook?url=${encodeURIComponent(url)}`,
+      extractor: res => {
+        if (!res.status || !res.data?.downloads?.length) return null;
+        const dl = res.data.downloads.find(d => d.quality?.includes('HD') || d.quality?.includes('720p')) || res.data.downloads[0];
+        return dl?.url ? {
+          type: dl.type || 'video',
+          title: res.data.title || 'Facebook Video',
+          resolution: dl.quality || 'HD',
+          format: 'mp4',
+          url: dl.url,
+          thumbnail: res.data.thumbnail || null
+        } : null;
+      }
+    },
     {
       endpoint: `${config.APIs.stellar.url}/dl/facebook?url=${encodeURIComponent(url)}&key=${config.APIs.stellar.key}`,
       extractor: res => {
@@ -398,7 +427,84 @@ export async function scrapeFacebookDirect(fbUrl) {
   }
 }
 
+export async function scrapeInstagramSnapSave(url) {
+  try {
+    const res = await axios.post('https://snapsave.app/action.php?lang=en', new URLSearchParams({ url }).toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Origin': 'https://snapsave.app',
+        'Referer': 'https://snapsave.app/'
+      },
+      timeout: 12000
+    });
+    const text = res.data || '';
+    if (!text || typeof text !== 'string') return null;
+
+    let htmlResult = '';
+    const loc = { hostname: 'snapsave.app', href: 'https://snapsave.app/' };
+    
+    const createMockElement = () => ({
+      set innerHTML(val) { htmlResult += val; },
+      get innerHTML() { return htmlResult; },
+      set textContent(val) { htmlResult += val; },
+      append: () => {},
+      appendChild: () => {},
+      remove: () => {},
+      reset: () => {},
+      style: {},
+      classList: { add: () => {}, remove: () => {} },
+      setAttribute: () => {},
+      getAttribute: () => ''
+    });
+
+    const mockElement = createMockElement();
+
+    const sandbox = {
+      window: {},
+      location: loc,
+      gtag: () => {},
+      document: {
+        location: loc,
+        getElementById: () => mockElement,
+        querySelector: () => mockElement,
+        querySelectorAll: () => [mockElement],
+        createElement: () => createMockElement()
+      },
+      $: () => ({
+        html: (val) => { htmlResult += val; },
+        append: () => {},
+        remove: () => {}
+      })
+    };
+    sandbox.window = sandbox;
+
+    const context = vm.createContext(sandbox);
+    vm.runInContext(text, context);
+
+    const matches = [...htmlResult.matchAll(/href="([^"]+)"/g)].map(m => m[1]).filter(u => u.startsWith('http') && !u.includes('snapsave.app') && !u.includes('facebook.com') && !u.includes('google'));
+    
+    if (matches.length > 0) {
+      const urls = matches.map(u => ({
+        type: u.includes('.mp4') ? 'video' : 'image',
+        url: u
+      }));
+      return { isCarousel: urls.length > 1, urls, title: 'Instagram Media', caption: null };
+    }
+  } catch (e) {
+    // Ignore and proceed to fallback APIs
+  }
+  return null;
+}
+
 export async function getInstagramMedia(url) {
+  // 1. Direct Scraper
+  try {
+    const snapResult = await scrapeInstagramSnapSave(url);
+    if (snapResult?.urls?.length) return snapResult;
+  } catch {}
+
   const apis = [
     {
       endpoint: `${config.APIs.stellar.url}/dl/instagram?url=${encodeURIComponent(url)}&key=${config.APIs.stellar.key}`,
@@ -556,6 +662,32 @@ export async function getTikTokData(input, isUrl) {
 
 export async function getPinterestData(input, isUrl) {
   if (isUrl) {
+    // 1. Direct Pinterest HTML scraper (high reliability, zero API dependency)
+    try {
+      const pinRes = await axios.get(input, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
+        },
+        timeout: 10000
+      });
+      const html = pinRes.data || '';
+      const videoMatch = html.match(/https:\/\/v\.pinimg\.com\/videos\/mc\/[a-zA-Z0-9_\/.-]+\.mp4/) || html.match(/https:\/\/v\.pinimg\.com\/videos\/[a-zA-Z0-9_\/.-]+\.mp4/);
+      const origMatch = html.match(/https:\/\/i\.pinimg\.com\/originals\/[a-zA-Z0-9_\/.-]+\.(?:jpg|png|webp|gif)/) || html.match(/https:\/\/i\.pinimg\.com\/736x\/[a-zA-Z0-9_\/.-]+\.(?:jpg|png|webp|gif)/);
+      const titleMatch = html.match(/<meta property="og:title" content="([^"]+)"/) || html.match(/<title>([^<]+)<\/title>/);
+      
+      const mediaUrl = videoMatch ? videoMatch[0] : (origMatch ? origMatch[0] : null);
+      if (mediaUrl) {
+        return {
+          type: videoMatch ? 'video' : 'image',
+          title: titleMatch ? titleMatch[1].replace(' | Pinterest', '').trim() : 'Pinterest Media',
+          format: videoMatch ? 'mp4' : 'jpg',
+          url: mediaUrl,
+          thumbnail: origMatch ? origMatch[0] : mediaUrl
+        };
+      }
+    } catch {}
+
     const apis = [
       { endpoint: `${config.APIs.stellar.url}/dl/pinterest?url=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`, extractor: res => (res.status && res.data?.dl) ? { type: res.data.type, title: res.data.title || null, author: res.data.author || null, username: res.data.username || null, uploadDate: res.data.uploadDate || null, format: res.data.type === 'video' ? 'mp4' : 'jpg', url: res.data.dl, thumbnail: res.data.thumbnail || null } : null },
       { endpoint: `${config.APIs.vreden.url}/api/v1/download/pinterest?url=${encodeURIComponent(input)}`, extractor: res => {
@@ -577,6 +709,7 @@ export async function getPinterestData(input, isUrl) {
   } else {
     const endpoints = [
       `https://api.siputzx.my.id/api/s/pinterest?query=${encodeURIComponent(input)}`,
+      `https://api.dorratz.com/v2/pinterest?q=${encodeURIComponent(input)}`,
       `${config.APIs.stellar.url}/search/pinterest?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`,
       `${config.APIs.stellar.url}/search/pinterestv2?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`,
       `${config.APIs.delirius.url}/search/pinterestv2?text=${encodeURIComponent(input)}`,
@@ -589,7 +722,19 @@ export async function getPinterestData(input, isUrl) {
       endpoint,
       extractor: res => {
         let result = null;
-        if (res?.data?.length) {
+        if (res?.ok && res?.data?.results?.length) {
+          result = res.data.results.map(d => ({
+            type: 'image',
+            title: d.title || null,
+            description: null,
+            name: d.author || null,
+            username: null,
+            followers: null,
+            likes: null,
+            created_at: null,
+            image: d.image_large_url || d.image_medium_url || d.image_small_url || d.image_url || null
+          })).filter(r => r.image);
+        } else if (res?.data?.length) {
           result = res.data.map(d => {
             const img = typeof d === 'string' ? d : (d.image_url || d.hd || d.image || d.images?.orig?.url || d.media_urls?.[0]?.url || d.url || null);
             return {
