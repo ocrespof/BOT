@@ -215,7 +215,7 @@ async function startBot() {
   const { state, saveCreds: saveCredsDB } = await useMultiFileAuthState(global.sessionName);
   const version = await getVersion();
   const isDebug = process.env.DEBUG === 'true' || process.argv.includes('--debug');
-  const logger = pino({ level: isDebug ? "debug" : "warn" });
+  const logger = pino({ level: isDebug ? "debug" : "silent" });
 
   let saveCredsTimer = null;
   const saveCreds = () => {
@@ -362,32 +362,12 @@ async function startBot() {
           if (senderJid) setCachedPushName(senderJid, msg.pushName);
         }
 
-        // Extraer timestamp numérico correctamente (soportando números, Long objects y strings)
+        // Ignorar únicamente mensajes antiguos acumulados antes de que el bot arrancara
         const rawTimestamp = msg.messageTimestamp;
-        let msgTime = 0;
-        if (typeof rawTimestamp === 'number') {
-          msgTime = rawTimestamp;
-        } else if (rawTimestamp && typeof rawTimestamp === 'object') {
-          msgTime = rawTimestamp.low || rawTimestamp.toNumber?.() || 0;
-        } else if (rawTimestamp) {
-          msgTime = Number(rawTimestamp) || 0;
-        }
+        const msgTime = (typeof rawTimestamp === 'number' ? rawTimestamp : (rawTimestamp?.low || rawTimestamp?.toNumber?.() || Number(rawTimestamp))) || 0;
+        if (msgTime > 0 && (msgTime * 1000) < (bootTime - 30_000)) continue;
 
-        // Ignorar mensajes antiguos acumulados antes de que el bot arrancara (o más de 60s de antigüedad)
-        if (msgTime > 0) {
-          if ((msgTime * 1000) < (bootTime - 5000)) continue;
-          const messageAge = Math.floor(Date.now() / 1000) - msgTime;
-          if (messageAge > 60) continue;
-        }
-
-        msg.message = Object.keys(msg.message)[0] === 'ephemeralMessage' ? msg.message.ephemeralMessage.message : msg.message;
-
-        // Solo filtrar mensajes generados internamente por el bot
-        if (msg.key.fromMe) {
-          const isBotSent = sock.sentMessageIds && sock.sentMessageIds.has(msg.key.id);
-          const isInternalBaileys = msg.key.id.startsWith('BAE5') && msg.key.id.length >= 16;
-          if (isBotSent || isInternalBaileys) continue;
-        }
+        if (msg.message.ephemeralMessage) msg.message = msg.message.ephemeralMessage.message;
 
         const m = await smsg(sock, msg);
         if (typeof main === 'function') {
