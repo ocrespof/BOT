@@ -23,6 +23,9 @@ export default async (client, m) => {
   client.ev.removeAllListeners('group-participants.update');
   client.ev.on('group-participants.update', async (anu) => {
     try {
+      // Ignorar eventos acumulados mientras el bot estuvo apagado (primeros 15s desde conexión)
+      if (!global.botReady || (Date.now() - (global.bootTime || 0)) < 15000) return;
+
       const metadata = await getGroupMeta(client, anu.id)
       const groupAdmins = metadata?.participants.filter(p => (p.admin === 'admin' || p.admin === 'superadmin')) || []
       const chat = global?.db?.data?.chats?.[anu.id]
