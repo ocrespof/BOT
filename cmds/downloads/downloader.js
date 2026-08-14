@@ -574,6 +574,7 @@ export async function getPinterestData(input, isUrl) {
       { endpoint: `${config.APIs.ootaizumi.url}/downloader/pinterest?url=${encodeURIComponent(input)}`, extractor: res => (res.status && res.result?.download) ? { type: res.result.download.includes('.mp4') ? 'video' : 'image', title: res.result.title || null, description: null, author: res.result.author?.name || null, username: res.result.author?.username || null, uploadDate: res.result.upload || null, format: res.result.download.includes('.mp4') ? 'mp4' : 'jpg', url: res.result.download, thumbnail: res.result.thumb || null, source: res.result.source || null } : null }
     ];
     return executeWithFallback('pinterest', `${input}|url`, apis);
+  } else {
     const endpoints = [
       `https://api.siputzx.my.id/api/s/pinterest?query=${encodeURIComponent(input)}`,
       `${config.APIs.stellar.url}/search/pinterest?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`,
