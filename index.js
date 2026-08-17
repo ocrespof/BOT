@@ -346,6 +346,8 @@ async function startBot() {
     browser: Browsers.macOS('Chrome'),
     auth: { creds: state.creds, keys: safeKeyStore },
     msgRetryCounterCache,
+    retryRequestDelayMs: 250,
+    maxMsgRetryCount: 5,
     cachedGroupMetadata: async (jid) => getCachedMeta(jid) ?? undefined,
     getMessage: async (key) => {
       const sid = (key.remoteJid || '') + ':' + (key.id || '');
@@ -357,7 +359,7 @@ async function startBot() {
       if (isDebug) console.log(chalk.yellow(`[ ⚠️ Clave no encontrada ] Solicitud de reintento para mensaje no almacenado: ${key.remoteJid} (ID: ${key.id})`));
       return undefined;
     },
-    markOnlineOnConnect: false,
+    markOnlineOnConnect: true,
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
     fireInitQueries: false,
