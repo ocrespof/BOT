@@ -239,19 +239,30 @@ async function warmupGroups(sock) {
 let bootTime = Date.now();
 let botReady = false;
 
-function deepFixBuffers(obj) {
+function deepFixBuffers(obj, seen = new WeakSet()) {
   if (!obj || typeof obj !== 'object') return obj;
+  if (seen.has(obj)) return obj;
+
   if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
     return Buffer.from(obj.data);
   }
   if (obj instanceof Uint8Array && !Buffer.isBuffer(obj)) {
     return Buffer.from(obj);
   }
+
+  seen.add(obj);
+
   if (Array.isArray(obj)) {
-    return obj.map(item => deepFixBuffers(item));
+    for (let i = 0; i < obj.length; i++) {
+      obj[i] = deepFixBuffers(obj[i], seen);
+    }
+    return obj;
   }
+
   for (const key of Object.keys(obj)) {
-    obj[key] = deepFixBuffers(obj[key]);
+    try {
+      obj[key] = deepFixBuffers(obj[key], seen);
+    } catch { }
   }
   return obj;
 }
@@ -287,8 +298,32 @@ function wrapSignalKeyStore(keysStore) {
   };
 }
 
+const purgeSenderKeys = async () => {
+  try {
+    const sessionDir = path.resolve(global.sessionName || './Sessions/Owner');
+    if (fs.existsSync(sessionDir)) {
+      const files = await fs.promises.readdir(sessionDir);
+      let count = 0;
+      for (const file of files) {
+        if (file.startsWith('sender-key-') || file.startsWith('sender-key-memory-')) {
+          try {
+            await fs.promises.unlink(path.join(sessionDir, file));
+            count++;
+          } catch { }
+        }
+      }
+      if (count > 0) {
+        console.log(chalk.cyan(`[ 🔑 Session ] Se purgaron ${count} llaves sender-key para reiniciar el cifrado de grupos de forma limpia.`));
+      }
+    }
+  } catch (err) {
+    console.error('Error purgando sender keys:', err);
+  }
+};
+
 async function startBot() {
   cleanupSocket();
+  await purgeSenderKeys();
   const { state, saveCreds: saveCredsDB } = await useMultiFileAuthState(global.sessionName);
   state.creds = deepFixBuffers(state.creds);
   const version = await getVersion();
@@ -301,12 +336,15 @@ async function startBot() {
     saveCredsTimer = setTimeout(saveCredsDB, 2000);
   };
 
+  const cachedKeyStore = makeCacheableSignalKeyStore(wrapSignalKeyStore(state.keys), logger);
+  const safeKeyStore = wrapSignalKeyStore(cachedKeyStore);
+
   const sock = makeWASocket({
     version,
     logger,
     printQRInTerminal: false,
     browser: Browsers.macOS('Chrome'),
-    auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(wrapSignalKeyStore(state.keys), logger) },
+    auth: { creds: state.creds, keys: safeKeyStore },
     msgRetryCounterCache,
     cachedGroupMetadata: async (jid) => getCachedMeta(jid) ?? undefined,
     getMessage: async (key) => {
