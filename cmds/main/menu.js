@@ -165,17 +165,9 @@ export default {
 _abrazar, acurrucar, acurrucarse, amor, aplaudir, asustado, asustada, aburrido, aburrida, bañarse, bofetada, comer, nom, besar, muak, sonrojarse, morder, molestar, choca, golpear, golpe, llorar, bailar, tomar, lamer, cantar, reír, acariciar, puchero, presumir, sonreír, cosquillas, gritar, empujar, saltar, calor, llamar, beso, seducir, tímido, tímida, dormir, fumar, escupir, pisar, pensar, caminar, guiñar, enojado, enojada, mueca, drama, preñar, embarazar, correr, triste, asustado, curioso, curiosa, oler, tropezar, espiar_
 `.trim();
 
-      const pp = botSettings.icon && !botSettings.icon.includes('yuki-wabot.my.id') ? botSettings.icon : null;
-      const redes = botSettings.link || "https://whatsapp.com/channel/0029Vb64nWqLo4hb8cuxe23n";
-
-      await client.sendContextInfoIndex(m.chat, menu, {}, m, true, [m.sender], {
-        banner: pp,
-        title: namebot,
-        body: 'Menú de Comandos',
-        redes: redes
-      });
+      await client.sendMessage(m.chat, { text: menu, mentions: [m.sender] }, { quoted: m });
     } catch (e) {
-      await m.reply(`> Error al cargar el menú.\n[Error: *${e.message}*]`);
+      await client.sendMessage(m.chat, { text: `> Error al cargar el menú.\n[Error: *${e.message}*]` }, { quoted: m });
     }
   }
 };
