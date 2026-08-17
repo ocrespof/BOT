@@ -165,10 +165,10 @@ export default {
 _abrazar, acurrucar, acurrucarse, amor, aplaudir, asustado, asustada, aburrido, aburrida, bañarse, bofetada, comer, nom, besar, muak, sonrojarse, morder, molestar, choca, golpear, golpe, llorar, bailar, tomar, lamer, cantar, reír, acariciar, puchero, presumir, sonreír, cosquillas, gritar, empujar, saltar, calor, llamar, beso, seducir, tímido, tímida, dormir, fumar, escupir, pisar, pensar, caminar, guiñar, enojado, enojada, mueca, drama, preñar, embarazar, correr, triste, asustado, curioso, curiosa, oler, tropezar, espiar_
 `.trim();
 
-      const pp = botSettings.icon || "https://cdn.yuki-wabot.my.id/files/6n81.jpeg";
-      const redes = botSettings.link || "https://whatsapp.com/channel/0029ValxG7Z8F2pAh5n1lq1W";
+      const pp = botSettings.icon && !botSettings.icon.includes('yuki-wabot.my.id') ? botSettings.icon : null;
+      const redes = botSettings.link || "https://whatsapp.com/channel/0029Vb64nWqLo4hb8cuxe23n";
 
-      await client.sendContextInfoIndex(m.chat, menu, {}, m, false, [m.sender], {
+      await client.sendContextInfoIndex(m.chat, menu, {}, m, true, [m.sender], {
         banner: pp,
         title: namebot,
         body: 'Menú de Comandos',
