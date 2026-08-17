@@ -2,6 +2,7 @@ import { getMedia } from './downloader.js';
 import { extractUrl } from '../../utils/tools.js';
 import yts from 'yt-search';
 import { getBuffer } from '../../core/message.js';
+import axios from 'axios';
 
 export default {
   help: ['play', 'play2', 'ytsearch'],
@@ -55,20 +56,27 @@ export default {
         if (!media || !media.url) {
           return m.reply('> ❌ *Lo siento, no pude obtener el audio en este momento. Intenta de nuevo.*');
         }
+
+        let audioBuffer;
+        try {
+          const res = await axios.get(media.url, {
+            responseType: 'arraybuffer',
+            timeout: 60000,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': '*/*'
+            }
+          });
+          audioBuffer = Buffer.from(res.data);
+        } catch {
+          audioBuffer = { url: media.url };
+        }
+
         await client.sendMessage(m.chat, { 
-          audio: { url: media.url }, 
+          audio: audioBuffer, 
           mimetype: 'audio/mpeg',
           fileName: `${media.title || 'audio'}.mp3`,
-          contextInfo: {
-            externalAdReply: {
-              title: media.title || "YouTube Audio",
-              body: media.author || "Descargado vía YukiBot MD",
-              thumbnailUrl: media.thumbnail || "https://i.io/qpPn1K7.gif",
-              sourceUrl: url,
-              mediaType: 1,
-              renderLargerThumbnail: true
-            }
-          }
+          ptt: false
         }, { quoted: m });
       } catch (e) {
         await m.reply(`> ⚠️ *Ocurrió un error al procesar el audio.*\n[Causa: *${e.message}*]`);
@@ -84,8 +92,24 @@ export default {
           (media.title ? `• *Título:* ${media.title}\n` : '') +
           (media.author ? `• *Canal:* ${media.author}\n` : '') +
           (media.duration ? `• *Duración:* ${media.duration}\n` : '');
+
+        let videoBuffer;
+        try {
+          const res = await axios.get(media.url, {
+            responseType: 'arraybuffer',
+            timeout: 60000,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': '*/*'
+            }
+          });
+          videoBuffer = Buffer.from(res.data);
+        } catch {
+          videoBuffer = { url: media.url };
+        }
+
         await client.sendMessage(m.chat, { 
-          video: { url: media.url }, 
+          video: videoBuffer, 
           caption: caption.trim(),
           fileName: `${media.title || 'video'}.mp4`,
           mimetype: 'video/mp4'
