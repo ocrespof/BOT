@@ -225,7 +225,7 @@ export async function dbInitMiddleware(ctx, next) {
     }
     groupName = groupMetadata?.subject || "";
     groupAdmins =
-      groupMetadata?.participants.filter(
+      groupMetadata?.participants?.filter(
         (p) => p.admin === "admin" || p.admin === "superadmin",
       ) || [];
   }
