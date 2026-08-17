@@ -328,7 +328,30 @@ async function startBot() {
   state.creds = deepFixBuffers(state.creds);
   const version = await getVersion();
   const isDebug = process.env.DEBUG === 'true' || process.argv.includes('--debug');
-  const logger = pino({ level: isDebug ? "debug" : "warn" });
+  const logger = pino({
+    level: isDebug ? "debug" : "warn",
+    hooks: {
+      logMethod(inputArgs, method) {
+        if (!isDebug) {
+          const arg0 = inputArgs[0];
+          const msg = String(arg0?.msg || inputArgs[1] || arg0 || '');
+          const trace = String(arg0?.trace || arg0?.err?.message || '');
+          if (
+            msg.includes('failed to obtain extra info') ||
+            msg.includes('failed to decrypt message') ||
+            msg.includes('transaction failed') ||
+            trace.includes('No image processing library') ||
+            trace.includes('No session found') ||
+            trace.includes('old counter') ||
+            trace.includes('decode mutation')
+          ) {
+            return;
+          }
+        }
+        return method.apply(this, inputArgs);
+      }
+    }
+  });
 
   let saveCredsTimer = null;
   const saveCreds = () => {
