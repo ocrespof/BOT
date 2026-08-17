@@ -15,9 +15,9 @@ function initDB(m, client) {
   settings.prefix ??= ['/', '!', '.', '#']
   settings.commandsejecut ??= isNumber(settings.commandsejecut) ? settings.commandsejecut : 0
   settings.id ??= config.my.ch || '120363401404146384@newsletter'
-  settings.nameid ??= "'ೃ࿔ Pinkanema.ೃ࿐"
+  settings.nameid ??= "'ೃ࿔ el bot de wasa.ೃ࿐"
   settings.link ??= config.links.api || 'https://api.yuki-wabot.my.id'
-  settings.banner ??= 'https://vignette.wikia.nocookie.net/mlp/images/1/17/Pinkie_Pie_starts_rapping_EGS1.png/revision/latest?cb=20170811024135'
+  settings.banner ??= 'https://cdn.twibooru.org/img/2024/3/1/3173192/medium.jpeg'
   settings.icon ??= 'https://cdn.twibooru.org/img/2024/3/1/3173192/medium.jpeg'
   settings.currency ??= 'Yenes'
   settings.namebot ??= config.my.name || 'el bot de wasa'
