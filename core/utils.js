@@ -26,24 +26,30 @@ export async function resolveLidToRealJid(lid, client, groupChatId) {
   const lidBase = input.split('@')[0];
   let metadata = getCachedMetadata(groupChatId);
 
-  if (!metadata) {
+  if (!metadata && client && typeof client.groupMetadata === 'function') {
     try {
       metadata = await client.groupMetadata(groupChatId);
-      groupMetadataCache.set(groupChatId, metadata);
+      if (metadata) groupMetadataCache.set(groupChatId, metadata);
     } catch {
       lidCache.set(input, input);
       return input;
     }
   }
 
-  for (const p of metadata.participants || []) {
-    const idBase = p?.id?.split('@')[0]?.trim();
-    const phoneRaw = p?.phoneNumber;
-    const phone = normalizeToJid(phoneRaw);
-    if (!idBase || !phone) continue;
-    if (idBase === lidBase) {
-      lidCache.set(input, phone);
-      return phone;
+  if (metadata && Array.isArray(metadata.participants)) {
+    for (const p of metadata.participants) {
+      const idBase = p?.id?.split('@')[0]?.trim();
+      const lidIdBase = p?.lid?.split('@')[0]?.trim();
+      const phoneRaw = p?.phoneNumber || p?.jid;
+      const phone = normalizeToJid(phoneRaw);
+      if (phone && (idBase === lidBase || lidIdBase === lidBase)) {
+        lidCache.set(input, phone);
+        return phone;
+      }
+      if (p?.id && p.id.endsWith('@s.whatsapp.net') && (idBase === lidBase || lidIdBase === lidBase)) {
+        lidCache.set(input, p.id);
+        return p.id;
+      }
     }
   }
 
