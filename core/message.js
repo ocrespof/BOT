@@ -421,19 +421,31 @@ export function decorateClient(client, store) {
     const settings = global.db.data.settings[botId] || {};
     const botnam = config.title || settings.botname || settings.namebot || 'YukiBot';
     const mentions = Array.isArray(mentionedJid) ? mentionedJid.map(id => id.includes('@') ? id : id + '@s.whatsapp.net') : undefined;
-    const contextInfo = {
-      mentionedJid: mentions,
-      externalAdReply: {
-        title: botnam,
-        body: config.body || global.dev || 'YukiBot-MD',
-        mediaType: 1,
-        renderLargerThumbnail: false,
-        previewType: 'NONE',
-        thumbnailUrl: config.banner || settings.icon,
-        sourceUrl: config.redes || settings.link
-      }
-    };
-    return client.sendMessage(jid, { text, contextInfo, ...options }, { quoted: useQuoted ? quoted : undefined });
+
+    let bannerUrl = config.banner || settings.icon;
+    if (typeof bannerUrl === 'string' && bannerUrl.includes('yuki-wabot.my.id')) {
+      bannerUrl = null;
+    }
+
+    try {
+      const contextInfo = {
+        mentionedJid: mentions,
+        ...(bannerUrl ? {
+          externalAdReply: {
+            title: botnam,
+            body: config.body || global.dev || 'YukiBot-MD',
+            mediaType: 1,
+            renderLargerThumbnail: false,
+            previewType: 'NONE',
+            thumbnailUrl: bannerUrl,
+            sourceUrl: config.redes || settings.link
+          }
+        } : {})
+      };
+      return await client.sendMessage(jid, { text, contextInfo, mentions, ...options }, { quoted: useQuoted ? quoted : undefined });
+    } catch {
+      return await client.sendMessage(jid, { text, mentions, ...options }, { quoted: useQuoted ? quoted : undefined });
+    }
   };
 
   client.reply = async (jid, text = '', quoted, options) => {
