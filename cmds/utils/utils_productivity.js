@@ -11,14 +11,15 @@ const cmdReadViewOnce = {
   usage: '.viewonce (responder a un mensaje de vista única)',
   run: async (client, m) => {
     try {
-      const quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-      const viewOnceMsg = quoted?.viewOnceMessage?.message || quoted?.viewOnceMessageV2?.message || quoted?.viewOnceMessageV2Extension?.message || quoted;
+      const quoted = m.quoted?.message || m.message?.extendedTextMessage?.contextInfo?.quotedMessage || m.quoted;
+      const viewOnceMsg = quoted?.viewOnceMessage?.message || quoted?.viewOnceMessageV2?.message || quoted?.viewOnceMessageV2Extension?.message || quoted?.ephemeralMessage?.message || quoted;
 
-      const quotedImage = viewOnceMsg?.imageMessage;
-      const quotedVideo = viewOnceMsg?.videoMessage;
-      const quotedAudio = viewOnceMsg?.audioMessage;
+      const quotedImage = viewOnceMsg?.imageMessage || (quoted?.imageMessage?.viewOnce ? quoted.imageMessage : null);
+      const quotedVideo = viewOnceMsg?.videoMessage || (quoted?.videoMessage?.viewOnce ? quoted.videoMessage : null);
+      const quotedAudio = viewOnceMsg?.audioMessage || (quoted?.audioMessage?.viewOnce ? quoted.audioMessage : null);
 
-      if (quotedImage && quotedImage.viewOnce) {
+      if (quotedImage) {
+        await m.react?.('🕒');
         const stream = await downloadContentFromMessage(quotedImage, 'image');
         let buffer = Buffer.from([]);
         for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
@@ -26,36 +27,42 @@ const cmdReadViewOnce = {
           image: buffer,
           caption: quotedImage.caption || ''
         }, { quoted: m });
+        await m.react?.('✔️');
       }
-      else if (quotedVideo && quotedVideo.viewOnce) {
+      else if (quotedVideo) {
+        await m.react?.('🕒');
         const stream = await downloadContentFromMessage(quotedVideo, 'video');
         let buffer = Buffer.from([]);
         for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
         await client.sendMessage(m.chat, {
           video: buffer,
           caption: quotedVideo.caption || '',
-          mimetype: 'video/mp4'
+          mimetype: quotedVideo.mimetype || 'video/mp4'
         }, { quoted: m });
+        await m.react?.('✔️');
       }
-      else if (quotedAudio && quotedAudio.viewOnce) {
+      else if (quotedAudio) {
+        await m.react?.('🕒');
         const stream = await downloadContentFromMessage(quotedAudio, 'audio');
         let buffer = Buffer.from([]);
         for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
         await client.sendMessage(m.chat, {
           audio: buffer,
-          mimetype: 'audio/ogg; codecs=opus',
+          mimetype: quotedAudio.mimetype || 'audio/ogg; codecs=opus',
           ptt: quotedAudio.ptt || false
         }, { quoted: m });
+        await m.react?.('✔️');
       }
       else {
         await client.sendMessage(m.chat, {
-          text: ' Por favor, responde a un mensaje de "Ver una vez" (ViewOnce).'
+          text: '⚠️ Por favor, responde a un mensaje de "Ver una vez" (ViewOnce).'
         }, { quoted: m });
       }
     } catch(error) {
       console.error('Error in viewonceCommand:', error);
+      await m.react?.('❌');
       await client.sendMessage(m.chat, {
-        text: '❌ Falló al recuperar el archivo multimedia. Inténtalo de nuevo más tarde.'
+        text: `❌ Falló al recuperar el archivo multimedia: ${error.message || error}`
       }, { quoted: m });
     }
   }
