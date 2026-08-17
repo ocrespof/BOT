@@ -125,6 +125,35 @@ async function cleanCache() {
         const botFolder = path.join(sessionsFolder, 'Owner');
         if (fs.existsSync(botFolder)) await safeDeleteSync(botFolder);
       }
+
+      // Limpiar archivos de sesión corruptos (0 bytes o JSON inválido)
+      const cleanCorruptedFiles = async (dir) => {
+        const files = await fs.promises.readdir(dir);
+        for (const file of files) {
+          const filePath = path.join(dir, file);
+          try {
+            const stat = await fs.promises.stat(filePath);
+            if (stat.isDirectory()) {
+              await cleanCorruptedFiles(filePath);
+            } else if (file.endsWith('.json') && file !== 'creds.json') {
+              if (stat.size === 0) {
+                await fs.promises.unlink(filePath);
+                console.log(chalk.gray(`[ 🗑️ ] Archivo de sesión vacío eliminado: ${file}`));
+              } else {
+                const content = await fs.promises.readFile(filePath, 'utf-8');
+                try {
+                  JSON.parse(content);
+                } catch {
+                  await fs.promises.unlink(filePath);
+                  console.log(chalk.yellow(`[ ⚠️ ] Archivo de sesión corrupto eliminado: ${file}`));
+                }
+              }
+            }
+          } catch { }
+        }
+      };
+      const botFolder = path.join(sessionsFolder, 'Owner');
+      if (fs.existsSync(botFolder)) await cleanCorruptedFiles(botFolder);
     }
   } catch (e) {
     console.error(chalk.red('Error en cleanCache: '), e);
@@ -210,9 +239,58 @@ async function warmupGroups(sock) {
 let bootTime = Date.now();
 let botReady = false;
 
+function deepFixBuffers(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
+    return Buffer.from(obj.data);
+  }
+  if (obj instanceof Uint8Array && !Buffer.isBuffer(obj)) {
+    return Buffer.from(obj);
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => deepFixBuffers(item));
+  }
+  for (const key of Object.keys(obj)) {
+    obj[key] = deepFixBuffers(obj[key]);
+  }
+  return obj;
+}
+
+function wrapSignalKeyStore(keysStore) {
+  return {
+    get: async (type, ids) => {
+      const data = await keysStore.get(type, ids);
+      if (data && typeof data === 'object') {
+        for (const id of Object.keys(data)) {
+          if (data[id]) {
+            data[id] = deepFixBuffers(data[id]);
+          }
+        }
+      }
+      return data;
+    },
+    set: async (data) => {
+      if (data && typeof data === 'object') {
+        for (const type of Object.keys(data)) {
+          if (data[type] && typeof data[type] === 'object') {
+            for (const id of Object.keys(data[type])) {
+              if (data[type][id]) {
+                data[type][id] = deepFixBuffers(data[type][id]);
+              }
+            }
+          }
+        }
+      }
+      return keysStore.set(data);
+    },
+    clear: keysStore.clear ? keysStore.clear.bind(keysStore) : undefined
+  };
+}
+
 async function startBot() {
   cleanupSocket();
   const { state, saveCreds: saveCredsDB } = await useMultiFileAuthState(global.sessionName);
+  state.creds = deepFixBuffers(state.creds);
   const version = await getVersion();
   const isDebug = process.env.DEBUG === 'true' || process.argv.includes('--debug');
   const logger = pino({ level: isDebug ? "debug" : "warn" });
@@ -228,7 +306,7 @@ async function startBot() {
     logger,
     printQRInTerminal: false,
     browser: Browsers.macOS('Chrome'),
-    auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, logger) },
+    auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(wrapSignalKeyStore(state.keys), logger) },
     msgRetryCounterCache,
     cachedGroupMetadata: async (jid) => getCachedMeta(jid) ?? undefined,
     getMessage: async (key) => {
