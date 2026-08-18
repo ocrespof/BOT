@@ -25,15 +25,15 @@ function parseMarkdownToEntities(text) {
                 const length = content.length;
                 const diff = fullMatch.length - length;
                 const markerLen = fullMatch.indexOf(content);
-                
+
                 cleanText = cleanText.substring(0, startIdx) + content + cleanText.substring(startIdx + fullMatch.length);
-                
+
                 for (const ent of entities) {
                     if (ent.offset >= startIdx + fullMatch.length) ent.offset -= diff;
                     else if (ent.offset <= startIdx && ent.offset + ent.length >= startIdx + fullMatch.length) ent.length -= diff;
                     else if (ent.offset >= startIdx && ent.offset + ent.length <= startIdx + fullMatch.length) ent.offset -= markerLen;
                 }
-                
+
                 entities.push({ type, offset: startIdx, length });
                 changed = true;
                 break;
@@ -64,7 +64,7 @@ async function getUserName(client, jid, pushName, chatId) {
         try {
             const name = await client.getName(cleanJid);
             if (name && typeof name === 'string' && name.trim()) return name.trim();
-        } catch {}
+        } catch { }
     }
 
     const phone = cleanJid.split('@')[0];
@@ -103,7 +103,7 @@ async function uploadMedia(buffer, mime) {
         try {
             const url = await uploader();
             if (url) return url;
-        } catch {}
+        } catch { }
     }
     return null;
 }
@@ -156,12 +156,12 @@ async function extractReplyInfo(msgObj, client, chatId) {
     const parentJid = client?.decodeJid ? client.decodeJid(contextInfo.participant || contextInfo.remoteJid) : (contextInfo.participant || contextInfo.remoteJid);
     const parentMsg = contextInfo.quotedMessage;
     const parentText = parentMsg.conversation ||
-                       parentMsg.extendedTextMessage?.text ||
-                       parentMsg.imageMessage?.caption ||
-                       parentMsg.videoMessage?.caption ||
-                       (parentMsg.stickerMessage ? '🧩 Sticker' : '') ||
-                       (parentMsg.audioMessage ? '🎵 Audio' : '') ||
-                       (parentMsg.documentMessage ? '📄 Documento' : '') || '';
+        parentMsg.extendedTextMessage?.text ||
+        parentMsg.imageMessage?.caption ||
+        parentMsg.videoMessage?.caption ||
+        (parentMsg.stickerMessage ? '🧩 Sticker' : '') ||
+        (parentMsg.audioMessage ? '🎵 Audio' : '') ||
+        (parentMsg.documentMessage ? '📄 Documento' : '') || '';
 
     if (!parentText && !parentJid) return {};
 
@@ -339,8 +339,8 @@ export default {
             try {
                 const url = await client.profilePictureUrl(jid, 'image');
                 if (url) return url;
-            } catch {}
-            return 'https://cdn.twibooru.org/img/2024/3/1/3173192/medium.jpeg';
+            } catch { }
+            return 'https://telegra.ph/file/24fa902ead26340f3df2c.png';
         };
 
         // 5. Construir payloads para la API de Citas en PARALELO
