@@ -147,11 +147,37 @@ async function getMediaUploadUrl(msg) {
     return null;
 }
 
+// Extraer información del mensaje al que se responde para el bubble de respuesta (replyMessage)
+async function extractReplyInfo(msgObj, client, chatId) {
+    if (!msgObj) return {};
+    const contextInfo = msgObj.msg?.contextInfo || msgObj.message?.extendedTextMessage?.contextInfo || msgObj.contextInfo;
+    if (!contextInfo?.quotedMessage) return {};
+
+    const parentJid = client?.decodeJid ? client.decodeJid(contextInfo.participant || contextInfo.remoteJid) : (contextInfo.participant || contextInfo.remoteJid);
+    const parentMsg = contextInfo.quotedMessage;
+    const parentText = parentMsg.conversation ||
+                       parentMsg.extendedTextMessage?.text ||
+                       parentMsg.imageMessage?.caption ||
+                       parentMsg.videoMessage?.caption ||
+                       (parentMsg.stickerMessage ? '🧩 Sticker' : '') ||
+                       (parentMsg.audioMessage ? '🎵 Audio' : '') ||
+                       (parentMsg.documentMessage ? '📄 Documento' : '') || '';
+
+    if (!parentText && !parentJid) return {};
+
+    const parentName = parentJid ? await getUserName(client, parentJid, null, chatId) : 'Usuario';
+    return {
+        name: parentName,
+        text: parentText.length > 150 ? parentText.substring(0, 147) + '...' : (parentText || '...'),
+        chatId: parentJid ? parentJid.split('@')[0] : 1
+    };
+}
+
 export default {
-    command: ['quoted', 'q', 'fakereply', 'quote', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10'],
+    command: ['quoted', 'q', 'fakereply', 'quote', 'qreply', 'qr', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10'],
     category: 'stickers',
-    desc: 'Genera un sticker de cita a partir de texto o varios mensajes con alta legibilidad.',
-    usage: '.q [texto] o responde a un mensaje con .q, .q 2, .q 3 o usa atajos como .q2, .q3.',
+    desc: 'Genera un sticker de cita a partir de texto, respuestas (.q reply) o varios mensajes con alta legibilidad.',
+    usage: '.q [texto] | .q reply [texto] | responde a un mensaje con .q, .q reply, .q 2 o .q2.',
 
     run: async (client, m, args, usedPrefix, command) => {
         // 1. Extraer color de fondo (preset o código hex)
@@ -184,7 +210,18 @@ export default {
             }
         }
 
-        // 2. Determinar cantidad de mensajes (.q1-.q10 o argumento numérico)
+        // 2. Detectar si se solicitó modo respuesta (.q reply / .qr / .qreply / .q r)
+        const cmdLower = command.toLowerCase();
+        let isReplyMode = ['qreply', 'qr'].includes(cmdLower);
+        if (!isReplyMode && args.length > 0) {
+            const firstArg = args[0]?.toLowerCase();
+            if (['reply', 'r', '--reply', '-r'].includes(firstArg)) {
+                isReplyMode = true;
+                args.shift();
+            }
+        }
+
+        // 3. Determinar cantidad de mensajes (.q1-.q10 o argumento numérico)
         const qMatch = command.match(/^q([1-9]|10)$/i);
         let numMsgs = qMatch ? parseInt(qMatch[1]) : 1;
         let text = '';
@@ -200,11 +237,30 @@ export default {
             text = args.join(' ').trim();
         }
 
-        // 3. Recopilar mensajes a citar
+        // 4. Recopilar mensajes a citar
         let messagesToQuote = [];
         const buffer = global.msgBuffer?.[m.chat] || [];
 
-        if (m.quoted) {
+        if (isReplyMode && text && m.quoted) {
+            // Caso .q reply <texto>: La cita principal es el texto del usuario respondiendo al mensaje citado
+            const quotedSenderJid = client.decodeJid(m.quoted.sender || m.quoted.key?.participant || m.chat);
+            const quotedSenderName = await getUserName(client, quotedSenderJid, m.quoted.pushName, m.chat);
+            const quotedText = m.quoted.text || m.quoted.caption || m.quoted.body || (m.quoted.message?.imageMessage ? '📷 Imagen' : (m.quoted.message?.stickerMessage ? '🧩 Sticker' : '...'));
+
+            messagesToQuote = [{
+                sender: m.sender,
+                pushName: m.pushName,
+                text: text,
+                isMedia: false,
+                type: 'conversation',
+                msgObj: null,
+                customReply: {
+                    name: quotedSenderName,
+                    text: quotedText.length > 150 ? quotedText.substring(0, 147) + '...' : (quotedText || '...'),
+                    chatId: quotedSenderJid.split('@')[0]
+                }
+            }];
+        } else if (m.quoted) {
             const quotedId = m.quoted.id;
             const startIdx = buffer.findIndex(msg => (msg.key?.id || msg.id) === quotedId);
 
@@ -274,26 +330,27 @@ export default {
                 msgObj: null
             }];
         } else {
-            return m.reply(`📝 *Uso del comando Quote / Citas:*\n\n● Responde a un mensaje con *${usedPrefix}q* o *${usedPrefix}q2*, *${usedPrefix}q3*.\n● O escribe *${usedPrefix}q [texto]*.\n● Fondos opcionales: *--dark*, *--black*, *--white*, *--red*, *--blue*, *--green*, *--purple*, *--grey*, *--pink*, *--cyan* o código *#hex*.`);
+            return m.reply(`📝 *Uso del comando Quote / Citas:*\n\n● Responde a un mensaje con *${usedPrefix}q* o *${usedPrefix}q reply* para incluir la respuesta.\n● Responde a un mensaje con *${usedPrefix}q reply [tu respuesta]* para crear una cita respondiendo.\n● Con varios mensajes: *${usedPrefix}q 2*, *${usedPrefix}q3*.\n● O escribe *${usedPrefix}q [texto]*.\n● Fondos opcionales: *--dark*, *--black*, *--white*, *--red*, *--blue*, *--green*, *--purple*, *--grey*, *--pink*, *--cyan* o código *#hex*.`);
         }
 
         await m.react('🕒');
 
         const getPfp = async (jid) => {
             try {
-                return await client.profilePictureUrl(jid, 'image');
-            } catch {
-                return 'https://cdn.yuki-wabot.my.id/files/2PVh.jpeg';
-            }
+                const url = await client.profilePictureUrl(jid, 'image');
+                if (url) return url;
+            } catch {}
+            return 'https://cdn.twibooru.org/img/2024/3/1/3173192/medium.jpeg';
         };
 
-        // 4. Construir payloads para la API de Citas en PARALELO
+        // 5. Construir payloads para la API de Citas en PARALELO
         const apiMessages = await Promise.all(messagesToQuote.map(async (msg) => {
             const jid = client.decodeJid(msg.sender || m.sender);
-            const [name, pfp, mediaInfo] = await Promise.all([
+            const [name, pfp, mediaInfo, replyInfo] = await Promise.all([
                 getUserName(client, jid, msg.pushName, m.chat),
                 getPfp(jid),
-                msg.msgObj ? getMediaUploadUrl(msg.msgObj) : Promise.resolve(null)
+                msg.msgObj ? getMediaUploadUrl(msg.msgObj) : Promise.resolve(null),
+                msg.customReply ? Promise.resolve(msg.customReply) : (msg.msgObj ? extractReplyInfo(msg.msgObj, client, m.chat) : Promise.resolve({}))
             ]);
 
             let msgText = msg.text || '';
@@ -315,7 +372,7 @@ export default {
                 avatar: true,
                 from: { id: jid.split('@')[0], name, photo: { url: pfp } },
                 text: msgText,
-                replyMessage: {}
+                replyMessage: Object.keys(replyInfo).length > 0 ? replyInfo : {}
             };
 
             if (mediaInfo) {
@@ -326,41 +383,49 @@ export default {
             return apiMsg;
         }));
 
-        // 5. Dimensionamiento adaptativo para máxima legibilidad
+        // 6. Dimensionamiento adaptativo y optimizado para máxima legibilidad en stickers (512x512)
         const count = apiMessages.length;
         let width = 512;
         let height = 512;
-        let scale = 2.0;
+        let scale = 2.2;
 
         if (count === 1) {
             const textLen = (apiMessages[0]?.text || '').length;
-            if (textLen > 180) {
-                height = 650;
+            const hasReply = Boolean(apiMessages[0]?.replyMessage?.name);
+
+            if (textLen <= 60 && !hasReply) {
+                width = 512;
+                height = 380;
+                scale = 2.4;
+            } else if (textLen <= 140) {
+                width = 512;
+                height = hasReply ? 540 : 480;
                 scale = 2.2;
+            } else if (textLen <= 280) {
+                width = 580;
+                height = hasReply ? 620 : 560;
+                scale = 2.3;
+            } else if (textLen <= 550) {
+                width = 650;
+                height = hasReply ? 700 : 640;
+                scale = 2.5;
             } else {
-                height = 512;
-                scale = 2.0;
+                width = 720;
+                height = hasReply ? 780 : 720;
+                scale = 2.6;
             }
-        } else if (count === 2) {
-            height = 680;
-            scale = 2.3;
-        } else if (count === 3) {
-            height = 880;
-            scale = 2.5;
-        } else if (count <= 5) {
-            height = 1150;
-            scale = 2.8;
         } else {
-            height = 1450;
-            scale = 3.0;
+            width = 550 + Math.min(count * 15, 120);
+            height = Math.min(480 + (count * 110), 1100);
+            scale = 2.3 + (count * 0.08);
         }
 
-        // 6. Cadena de endpoints para Quotly
+        // 7. Cadena de endpoints para Quotly (priorizando el servidor activo)
         const QUOTE_ENDPOINTS = [
-            'https://bot.lyo.su/quote/generate',
             'https://quote.yuri.ly/generate',
-            'https://api.aggelos-007.xyz/qc',
-            'https://qc.botcahx.eu.org/generate'
+            'https://bot.lyo.su/quote/generate',
+            'https://qc.botcahx.eu.org/generate',
+            'https://api.aggelos-007.xyz/qc'
         ];
 
         try {
@@ -379,7 +444,7 @@ export default {
             for (const endpoint of QUOTE_ENDPOINTS) {
                 try {
                     res = await axios.post(endpoint, quoteObj, {
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0' },
                         timeout: 10000
                     });
                     if (res.data?.result?.image) {
