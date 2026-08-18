@@ -5,12 +5,12 @@
 **Bot de WhatsApp de Alta Velocidad con Motor SQLite · Baileys Multi-Device · Pure ESM**
 
 [![Termux Ready](https://img.shields.io/badge/Optimized_for-Termux-7e57c2?style=for-the-badge&logo=android)](https://termux.com/)
-[![Baileys](https://img.shields.io/badge/Powered_by-Baileys-25D366?style=for-the-badge&logo=whatsapp)](https://github.com/WhiskeySockets/Baileys)
+[![Baileys](https://img.shields.io/badge/Powered_by-Baileys_v7-25D366?style=for-the-badge&logo=whatsapp)](https://github.com/WhiskeySockets/Baileys)
 [![NodeJS](https://img.shields.io/badge/Node.js-%3E%3D22.5.0-43853D?style=for-the-badge&logo=node.js)](https://nodejs.org/)
-[![Database](https://img.shields.io/badge/Database-SQLite-003B57?style=for-the-badge&logo=sqlite)](https://www.sqlite.org/)
-[![Giphy](https://img.shields.io/badge/Reactions-Giphy_API-FF6600?style=for-the-badge&logo=giphy)](https://giphy.com/)
+[![Database](https://img.shields.io/badge/Database-SQLite_WAL-003B57?style=for-the-badge&logo=sqlite)](https://www.sqlite.org/)
+[![Quotly](https://img.shields.io/badge/Stickers-Telegram_Quotly-0088cc?style=for-the-badge&logo=telegram)](https://telegram.org/)
 
-*BOT es un framework de bot de WhatsApp de última generación optimizado para alto rendimiento en Termux y VPS de bajos recursos. Cuenta con base de datos transaccional SQLite en modo WAL, motor híbrido de reacciones (Giphy + Stellar), suite de juegos interactivos, economía RPG con banco y títulos equipables, comandos académicos asistidos por IA y moderación inteligente de comunidades.*
+*BOT es un framework de bot de WhatsApp de última generación optimizado para alto rendimiento en Termux (Android) y servidores VPS de bajos recursos. Cuenta con base de datos transaccional SQLite en modo WAL, auto-reparación de llaves de cifrado Signal, motor híbrido de reacciones, suite de juegos interactivos en tiempo real, economía RPG completa, herramientas académicas con IA y moderación inteligente de grupos.*
 
 </div>
 
@@ -20,11 +20,13 @@
 
 ```
 BOT-main/
-├── index.js              # Arranque del bot, SQLite sync, reconexión limpia y anti-crash
+├── index.js              # Arranque del bot, SQLite sync, Signal Key Store wrapper y auto-reconexión
 ├── main.js               # Pipeline de middlewares y enrutamiento principal de comandos
 ├── config.js             # Configuración centralizada de APIs, APIKeys y accesos
+├── package.json          # Dependencias y configuración ESM
 ├── core/
-│   ├── message.js        # Shimming de mensajes (m.reply, m.quoted.download, JID decoder)
+│   ├── message.js        # Serialización de mensajes, JID decoders y helpers de envío seguro
+│   ├── utils.js          # Resolución segura de LIDs a números de WhatsApp reales
 │   ├── exif.js           # Generación de metadatos EXIF para Stickers WebP
 │   └── system/
 │       ├── commandLoader.js   # Carga y descubrimiento automático de plugins en /cmds
@@ -37,14 +39,14 @@ BOT-main/
 │   ├── academia/         # Herramientas académicas asistidas por IA (APA, Solver, Wiki, etc.)
 │   ├── downloads/        # Descargas multimedia (YouTube, IG, TikTok, FB, Pinterest, Docs)
 │   ├── economia/         # Sistema RPG, Banco, Tienda, Trabajo, Títulos y Trueques
-│   ├── group/            # Configuración, foto de grupo, expulsión masiva y moderación
-│   ├── herramientas/     # Utilidades de red, traducción, IA, captura web y OCR
-│   ├── juegos/           # Juegos interactivos (TicTacToe 2.0, Ahorcado 2.0, Wordle, C4, Trivia)
-│   ├── main/             # Menú principal interactivo (.menu) e información del bot
-│   ├── owner/            # Comandos administrativos y de gestión del bot
-│   ├── profile/          # Perfiles de usuario, fotos de perfil (.getpic) y nivelación
-│   ├── reactions/        # Motor híbrido de 60+ reacciones animadas (Giphy + Stellar Anime)
-│   └── stickers/         # Creación de stickers (básico, cita .q, brat, bratv, getpack)
+│   ├── group/            # Configuración grupal, foto de grupo, expulsiones y moderación
+│   ├── herramientas/     # Utilidades de red, traducción, IA, captura web, ViewOnce (.read) y OCR
+│   ├── juegos/           # Juegos interactivos (TicTacToe 2.0, Ahorcado 2.0, Wordle, C4, Blackjack)
+│   ├── main/             # Menú principal (.menu) e información del bot
+│   ├── owner/            # Comandos de mantenimiento y administración del bot
+│   ├── profile/          # Perfiles de usuario, fotos de perfil (.getpic), matrimonios y nivelación
+│   ├── reactions/        # Motor de 60+ reacciones animadas híbridas
+│   └── stickers/         # Creación de stickers (básico, citas .q, .q reply, brat, getpack)
 └── utils/
     ├── ai.js             # Cliente de IA con cadena de fallbacks
     ├── gameEngine.js     # Motor transaccional de juegos concurrentes en tiempo real
@@ -58,29 +60,43 @@ BOT-main/
 
 | Optimización | Descripción e Impacto |
 |:---|:---|
-| **Base de Datos SQLite (WAL)** | Persistencia ultrarrápida usando `node:sqlite` en modo WAL (`journal_mode = WAL`). Los datos de usuarios y chats se sincronizan de forma atómica y sin bloquear el hilo principal de ejecución en Node.js. |
-| **Motor Híbrido de Reacciones** | Consulta en tiempo real a **Giphy API** para GIFs animados variados (personas reales, cine, memes y caricaturas), con fallback automático a **Stellar API** (Anime). |
-| **TicTacToe 2.0 (`.ttt`)** | Tablero HD con casillas numéricas `1️⃣..9️⃣`, soporte para salas públicas de espera, desafíos directos y comando de rendición (`surrender` / `rendirme`). |
-| **Ahorcado 2.0 (`.ahorcado`)** | Adivinanza de palabras con historial de letras usadas (`.guess <letra>`), etapas visuales descargables y bonus por adivinar la palabra completa. |
-| **Banca y Economía RPG** | Separación entre **Cartera** (susceptible a robos `.steal`) y **Banco** (protección 100%). Tienda con **Títulos equipables** que otorgan beneficios pasivos (+15% trabajo, inmunidad a robo, etc.). |
-| **Limpieza Autolimpiante** | Tarea programada cada 15 minutos que purga archivos temporales expirados de la carpeta `./tmp`, manteniendo el consumo de espacio en disco al mínimo en Termux. |
-| **Descargas Resilientes (Quote-to-Download)** | Todos los comandos de descarga (`.play`, `.ig`, `.tt`, `.pin`) permiten citar un mensaje que contenga un enlace sin requerir pegar la URL nuevamente. |
+| **Signal Keystore Auto-Repair** | Envoltorio bidireccional sobre `makeCacheableSignalKeyStore` que convierte automáticamente objetos deserializados de JSON a `Buffer` nativo de Node.js, eliminando fallos criptográficos (`Expected Buffer instead of: Object`). |
+| **Limpieza de Ratchets Antiguos** | Función de auto-purga en arranque (`purgeSenderKeys`) para resolver desfases de descifrado en sesiones inactivas sin perder las credenciales principales (`creds.json`). |
+| **Base de Datos SQLite (WAL)** | Persistencia ultrarrápida usando `node:sqlite` en modo WAL (`journal_mode = WAL`). Los datos de usuarios y chats se sincronizan de forma atómica y sin bloquear el hilo principal. |
+| **Pipeline de Descargas con Buffering** | Descarga previa en memoria a través de `Buffer` para evitar fallos de streaming y rechazos de CDN en WhatsApp (`.play`, `.play2`, `.ig`, `.tt`, `.fb`, `.pin`). |
+| **Stickers de Citas (.q & .q reply)** | Generación de citas estilo Telegram con dimensionamiento adaptativo en 5 niveles para textos largos y soporte de burbujas de respuesta con `.q reply` / `.qr`. |
+| **Recuperador ViewOnce (.read)** | Desencriptación de fotos, videos y audios de vista única vinculando los IDs con la memoria en tiempo real (`msgBuffer` y `msgStore`) para extraer la `mediaKey` original. |
+| **Limpieza Autolimpiante** | Tarea en segundo plano que purga archivos temporales expirados de la carpeta `./tmp`, manteniendo el consumo de espacio en disco al mínimo en Termux. |
 
 ---
 
-## ✨ Funcionalidades Destacadas
+## ✨ Módulos y Funcionalidades Destacadas
 
-### 🎭 Reacciones Animadas (60+ Disparadores)
-Soporta más de 60 reacciones dinámicas tanto en español como en inglés (`.abrazar`, `.besar`, `.bofetada`, `.dormir`, `.sonrojarse`, `.bailar`, `.hug`, `.kiss`, `.slap`, etc.).
+### 📥 Descargas Multimedia & Documentos
+- **YouTube (`.play` / `.play2` / `.mp3` / `.mp4`)**: Descarga directa de audios y videos con multi-proveedor y fallback a scrapers internos.
+- **Redes Sociales**: TikTok sin marca de agua (`.tt`), Instagram Reels y Carruseles (`.ig`), Facebook Videos (`.fb`), Pinterest (`.pin`) y Twitter/X (`.x`).
+- **Documentos Académicos**: Studocu (`.studocu`), Scribd (`.scribd`), Google Drive (`.gdrive`) y Mediafire (`.mf`).
 
-### 👥 Administración Grupal
-- **Foto de Grupo (`.setgpbanner` / `.grouppicture`)**: Cambia la foto del grupo respondiendo a una imagen.
-- **Moderación Inteligente**: Anti-Link, Anti-Phishing y Anti-Status.
+### 🎨 Stickers & Citas Personalizadas
+- **Citas Telegram (`.q` / `.qr`)**: Genera citas individuales o grupales (`.q2` a `.q10`) con fondos personalizables (`--dark`, `--red`, `--blue`, etc.).
+- **Modo Respuesta (`.q reply [texto]`)**: Agrega el recuadro superior del mensaje citado para conversaciones contextualizadas.
+- **Stickers Brat (`.brat` / `.bratv`)**: Generador de stickers con la estética característica en versiones estática y animada.
+
+### 👥 Administración Grupal & Moderación
+- **Foto de Grupo (`.setgpbanner`)**: Cambia la foto del grupo respondiendo a una imagen.
+- **Obtener Foto (`.getpic`)**: Descarga la foto de perfil en alta resolución de cualquier miembro o grupo.
+- **Moderación Automática**: Anti-Link, Anti-Phishing y Anti-Status.
+- **Advertencias (`.warn` / `.delwarn` / `.warns`)**: Control de sanciones con límite configurable.
+
+### 💰 Economía RPG & Juegos
+- **Finanzas**: Cartera, Banco (`.deposit` / `.withdraw`), empleos (`.work`, `.mine`, `.hunt`, `.fish`) y retos matemáticos (`.math`).
+- **Juegos**: TicTacToe 2.0 (`.ttt`), Ahorcado 2.0 (`.ahorcado`), Conecta 4 (`.c4`), Blackjack 21 (`.bj`), Wordle y Trivia.
+- **Aventuras**: Mazmorras (`.dungeon`), Incursiones de Jefe (`.raid`) y Títulos equipables con mejoras pasivas (`.settitle`).
 
 ### 🎓 Academia Asistida por IA
-- `.apa`: Generador de referencias bibliográficas en formato APA 7ma edición.
-- `.solve`: Resolución matemática detallada paso a paso.
-- `.res` / `.corr` / `.hum`: Resumidor de textos, corrector ortográfico y humanizador de redacción.
+- **Referencias Bibliográficas (`.apa`)**: Generación en formato APA 7ma edición.
+- **Resolución Matemática (`.solve`)**: Paso a paso de ecuaciones y problemas.
+- **Herramientas de Texto**: Resumidor (`.res`), corrector (`.corr`), humanizador (`.hum`) y detector de IA (`.detia`).
 
 ---
 
@@ -92,7 +108,7 @@ Soporta más de 60 reacciones dinámicas tanto en español como en inglés (`.ab
 
 ### Instalación en Termux (Android)
 ```bash
-# 1. Actualizar paquetes y conceder almacenamiento
+# 1. Actualizar paquetes y conceder permisos de almacenamiento
 termux-setup-storage
 apt update && apt upgrade -y
 pkg install -y git nodejs ffmpeg
@@ -101,8 +117,10 @@ pkg install -y git nodejs ffmpeg
 git clone https://github.com/ocrespof/BOT.git
 cd BOT
 
-# 3. Instalar dependencias e iniciar
+# 3. Instalar dependencias
 npm install
+
+# 4. Iniciar el bot
 npm start
 ```
 
@@ -116,7 +134,7 @@ pm2 save
 
 ---
 
-## 🛠️ Comandos PM2 Útiles
+## 🛠️ Comandos de Gestión y Mantenimiento
 
 ```bash
 pm2 logs BOT      # Ver logs en tiempo real
