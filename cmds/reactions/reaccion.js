@@ -209,9 +209,9 @@ export default {
     let mentionedJid = m.mentionedJid;
     let who2 = mentionedJid.length > 0 ? mentionedJid[0] : (m.quoted ? m.quoted.sender : m.sender);
     const who = who2.endsWith('@lid') ? await resolveLidToRealJid(who2, client, m.chat) : who2;
-    const fromName = global.db.data.users[m.sender]?.name || '@' + m.sender.split('@')[0];
-    const toName = global.db.data.users[who]?.name || '@' + who.split('@')[0];
-    const genero = global.db.data.users[m.sender]?.genre || 'Oculto';
+    const fromName = m.pushName || global.db?.data?.users?.[m.sender]?.name || '@' + m.sender.split('@')[0];
+    const toName = (who === m.sender ? fromName : (global.db?.data?.users?.[who]?.name || '@' + who.split('@')[0]));
+    const genero = global.db?.data?.users?.[m.sender]?.genre || 'Oculto';
     const captionText = captions[currentCommand](fromName, toName, genero);
     const caption = who !== m.sender
       ? `\`${fromName}\` ${captionText} \`${toName}\` ${getRandomSymbol()}.`

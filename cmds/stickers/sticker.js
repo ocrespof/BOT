@@ -18,14 +18,18 @@ export default {
       }
       const quoted = m.quoted ? m.quoted : m;
       const mime = (quoted.msg || quoted).mimetype || '';
-      const db = global.db.data
+      const db = global.db.data;
       const senderToUse = m.quoted ? m.quoted.sender : m.sender;
-      const user = db.users[senderToUse] || {}
-      const name = user.name || (m.quoted ? (m.quoted.pushName || 'Usuario') : m.pushName);
+      const user = db.users[senderToUse] || {};
+
+      // Prioridad a pushName real de WhatsApp
+      const rawPushName = (m.pushName && m.pushName.trim()) || (m.quoted?.pushName && m.quoted.pushName.trim()) || user.name || m.sender.split('@')[0];
+      const displayName = rawPushName.startsWith('@') ? rawPushName : `@${rawPushName}`;
+
       const meta1 = user.metadatos ? String(user.metadatos).trim() : '';
       const meta2 = user.metadatos2 ? String(user.metadatos2).trim() : '';
-      let texto1 = meta1 ? meta1 : `ʏᴜᴋɪ 🧠 Wᴀʙᴏᴛ`;
-      let texto2 = meta1 ? (meta2 ? meta2 : '') : (name.startsWith('@') ? name : `@${name}`);
+      let texto1 = meta1 ? meta1 : 'YukiBot Stickers';
+      let texto2 = meta1 ? (meta2 ? meta2 : '') : displayName;
       let urlArg = null;
       let argsWithoutUrl = [];
       for (let arg of args) {

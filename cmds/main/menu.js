@@ -12,74 +12,77 @@ export default {
       const namebot = botSettings.namebot || 'YukiBot';
       const prefix = Array.isArray(botSettings.prefix) ? botSettings.prefix[0] : (botSettings.prefix || usedPrefix || '.');
       const time = client.uptime ? formatearMs(Date.now() - client.uptime) : 'Desconocido';
-      const senderName = global.db?.data?.users?.[m.sender]?.name || m.sender.split('@')[0];
+      const senderName = m.pushName || global.db?.data?.users?.[m.sender]?.name || m.sender.split('@')[0];
 
       const menu = `
 ──「  *${namebot}*  」─── 
 │
-├ 👑 *Usuario:* @${m.sender.split('@')[0]}
+├ 👑 *Usuario:* ${senderName} (@${m.sender.split('@')[0]})
 ├ 🤖 *Prefijo:* [ ${prefix} ]
 ├ ⏱️ *Actividad:* ${time}
 │
  ─────────────────
 
 > 📥  *D E S C A R G A S*
-> _Multimedia y Documentos_
- ⊳ *${prefix}play* / *${prefix}p* ➭ Audio de YouTube (.mp3)
+> _Redes y Multimedia_
+ ⊳ *${prefix}play* / *${prefix}mp3* ➭ Audio de YouTube (.mp3)
  ⊳ *${prefix}play2* / *${prefix}mp4* ➭ Video de YouTube (.mp4)
  ⊳ *${prefix}fb* ➭ Videos y Reels de Facebook
- ⊳ *${prefix}fbsearch* ➭ Buscar videos/fotos en FB
- ⊳ *${prefix}tt* / *${prefix}tiktok* ➭ Videos de TikTok sin marca
- ⊳ *${prefix}ig* / *${prefix}reels* ➭ Posts, Reels y Carruseles de IG
+ ⊳ *${prefix}fbsearch* ➭ Buscar videos/fotos en Facebook
+ ⊳ *${prefix}tt* / *${prefix}tiktok* ➭ Videos de TikTok sin marca de agua
+ ⊳ *${prefix}ig* / *${prefix}reels* ➭ Posts, Reels y Carruseles de Instagram
  ⊳ *${prefix}pin* ➭ Imágenes y videos de Pinterest
  ⊳ *${prefix}twitter* / *${prefix}x* ➭ Videos de Twitter/X
  ⊳ *${prefix}img* ➭ Búsqueda de imágenes en Google
- ⊳ *${prefix}apk* ➭ Descargar aplicaciones Android
- ⊳ *${prefix}studocu* ➭ Documentos de Studocu
- ⊳ *${prefix}scribd* ➭ Documentos de Scribd
- ⊳ *${prefix}gdrive* ➭ Archivos de Google Drive
- ⊳ *${prefix}mf* ➭ Archivos de Mediafire
- _Tip: Cita un mensaje con enlace para descargar_
+ _Tip: Cita un mensaje con enlace para descargar automáticamente_
 
 > 🎨  *S T I C K E R S*
 > _Creación Interactiva_
  ⊳ *${prefix}s* ➭ Crear sticker de foto, video o GIF
+ ⊳ *${prefix}emojimix* / *${prefix}mix* ➭ Combinar 2 emojis en sticker
+ ⊳ *${prefix}qc* ➭ Sticker de burbuja de chat
  ⊳ *${prefix}q* ➭ Sticker de cita estilo Telegram
  ⊳ *${prefix}q reply* / *${prefix}qr* ➭ Cita con recuadro de respuesta
- ⊳ *${prefix}q2* ... *${prefix}q10* ➭ Citar múltiples mensajes
+ ⊳ *${prefix}q2* ... *${prefix}q10* ➭ Citar múltiples mensajes continuos
  ⊳ *${prefix}brat* ➭ Sticker estilo Brat
  ⊳ *${prefix}bratv* ➭ Sticker Brat animado
  ⊳ *${prefix}getpack* ➭ Bajar pack completo de stickers
 
 > 🛠️  *H E R R A M I E N T A S*
-> _Utilidades y Productividad_
- ⊳ *${prefix}ia* ➭ Asistente de Inteligencia Artificial
+> _Utilidades y Multimedia_
+ ⊳ *${prefix}ia* ➭ Asistente Inteligente (ChatGPT/Gemini)
  ⊳ *${prefix}read* / *${prefix}vv* ➭ Desbloquear fotos/videos ViewOnce
  ⊳ *${prefix}ocr* ➭ Extraer texto de una imagen
- ⊳ *${prefix}ss* ➭ Captura de pantalla de sitio web
+ ⊳ *${prefix}hd* ➭ Mejorar calidad de imagen
+ ⊳ *${prefix}toimg* ➭ Convertir sticker a imagen
+ ⊳ *${prefix}tourl* ➭ Subir archivo y obtener enlace web
+ ⊳ *${prefix}music* ➭ Reconocimiento musical Shazam
  ⊳ *${prefix}clima* ➭ Consulta meteorológica en tiempo real
  ⊳ *${prefix}tiny* ➭ Acortador de URLs
  ⊳ *${prefix}tr* ➭ Traductor multilingüe
  ⊳ *${prefix}qr* ➭ Generador de códigos QR
+ ⊳ *${prefix}inspect* ➭ Inspeccionar enlace de grupo
  ⊳ *${prefix}rec* ➭ Recordatorios automáticos
- ⊳ *${prefix}music* ➭ Reconocimiento musical Shazam
- ⊳ *${prefix}yts* ➭ Búsqueda de videos en YouTube
+ ⊳ *${prefix}say* ➭ Hacer que el bot repita un texto
 
-> 🎓  *A C A D E M I A*
-> _Asistencia Académica con IA_
- ⊳ *${prefix}wiki* ➭ Búsqueda enciclopédica en Wikipedia
- ⊳ *${prefix}vis* ➭ Análisis visual y resolución con IA
- ⊳ *${prefix}pdf* ➭ Lector y analizador de PDFs
+> 🎓  *A C A D E M I A   E   I A*
+> _Estudio e Investigación_
+ ⊳ *${prefix}imagine* / *${prefix}dibujar* ➭ Generar imágenes con IA
+ ⊳ *${prefix}vis* ➭ Análisis visual y resolución de ejercicios con IA
+ ⊳ *${prefix}pdf* ➭ Lector y analizador interactivo de PDFs
  ⊳ *${prefix}solve* ➭ Resolución matemática paso a paso
  ⊳ *${prefix}res* ➭ Resumidor de textos largos
  ⊳ *${prefix}pomo* ➭ Temporizador Pomodoro de estudio
  ⊳ *${prefix}corr* ➭ Corrector ortográfico y gramatical
- ⊳ *${prefix}hum* / *${prefix}parf* ➭ Humanizar / Parafrasear
- ⊳ *${prefix}apa* ➭ Generador de citas APA 7ma edición
+ ⊳ *${prefix}hum* / *${prefix}parf* ➭ Humanizar / Parafrasear textos
+ ⊳ *${prefix}apa* ➭ Generador de citas y referencias APA 7ma edición
+ ⊳ *${prefix}wiki* ➭ Búsqueda enciclopédica en Wikipedia
  ⊳ *${prefix}def* ➭ Diccionario de la RAE
  ⊳ *${prefix}frase* ➭ Frase célebre motivacional
+ ⊳ *${prefix}ruleta* ➭ Sorteo aleatorio de temas o participantes
  ⊳ *${prefix}detia* ➭ Detector de texto generado por IA
  ⊳ *${prefix}plagio* ➭ Detector de plagio en textos
+
 
 > 👥  *A D M I N I S T R A C I Ó N*
 > _Gestión y Moderación Grupal_
@@ -98,18 +101,19 @@ export default {
  ⊳ *${prefix}setwelcome* / *${prefix}setgoodbye* ➭ Mensajes de bienvenida
  ⊳ *${prefix}welcome* / *${prefix}goodbye* ➭ Activar o desactivar avisos
  ⊳ *${prefix}antilink* ➭ Filtro automático de enlaces
+ ⊳ *${prefix}antistatus* ➭ Filtro contra menciones de estado
  ⊳ *${prefix}adminonly* ➭ Modo exclusivo para administradores
  ⊳ *${prefix}economy* ➭ Habilitar/deshabilitar economía en el grupo
 
-> 👤  *P E R F I L   Y   N I V E L*
-> _Cuenta, Rangos y Parejas_
+> 👤  *P E R F I L   Y   P A R E J A S*
+> _Cuenta, Rangos y Relaciones_
  ⊳ *${prefix}profile* ➭ Ver ficha de perfil de usuario
  ⊳ *${prefix}getpic* ➭ Obtener foto de perfil en alta calidad
  ⊳ *${prefix}setdesc* / *${prefix}setgenre* / *${prefix}sethobby* ➭ Personalizar
  ⊳ *${prefix}setbirth* ➭ Registrar fecha de cumpleaños
+ ⊳ *${prefix}deldesc* / *${prefix}delgenre* / *${prefix}delhobby* / *${prefix}delbirth* ➭ Eliminar datos
  ⊳ *${prefix}marry* / *${prefix}divorce* ➭ Sistema de matrimonio
  ⊳ *${prefix}cita* / *${prefix}mimos* / *${prefix}regalo* ➭ Acciones de pareja
- ⊳ *${prefix}afk* ➭ Modo ausente con aviso automático
  ⊳ *${prefix}level* / *${prefix}lboard* ➭ Nivel actual y ranking global
 
 > 💰  *E C O N O M Í A*
@@ -118,7 +122,7 @@ export default {
  ⊳ *${prefix}work* / *${prefix}mine* / *${prefix}hunt* / *${prefix}fish* ➭ Empleos
  ⊳ *${prefix}math* ➭ Resolver retos matemáticos por monedas
  ⊳ *${prefix}balance* / *${prefix}deposit* / *${prefix}withdraw* ➭ Banco
- ⊳ *${prefix}slots* / *${prefix}roulette* / *${prefix}casino* ➭ Apuestas
+ ⊳ *${prefix}slots* / *${prefix}roulette* / *${prefix}casino* / *${prefix}cf* ➭ Apuestas
  ⊳ *${prefix}steal* / *${prefix}crime* / *${prefix}slut* ➭ Acciones de riesgo
  ⊳ *${prefix}economyboard* ➭ Tabla de líderes financieros
  ⊳ *${prefix}givecoins* ➭ Transferir dinero a otro usuario
@@ -139,6 +143,7 @@ export default {
 > 🎮  *E N T R E T E N I M I E N T O*
 > _Juegos Interactivos_
  ⊳ *${prefix}ahorcado* ➭ Ahorcado Visual 2.0 (en español)
+ ⊳ *${prefix}guess* ➭ Adivinar letra o palabra en el ahorcado
  ⊳ *${prefix}tictactoe* / *${prefix}ttt* ➭ Tres en raya con tablero HD
  ⊳ *${prefix}connect4* / *${prefix}c4* ➭ Conecta 4 interactivo
  ⊳ *${prefix}blackjack* / *${prefix}bj* ➭ Blackjack 21 con apuestas
@@ -148,13 +153,8 @@ export default {
  ⊳ *${prefix}adivinanza* ➭ Acertijos y adivinanzas en español
  ⊳ *${prefix}dado* ➭ Tirar un dado del 1 al 6
  ⊳ *${prefix}gameboard* ➭ Clasificación de jugadores
+ ⊳ *${prefix}gamestats* ➭ Estadísticas personales de juego
  ⊳ *${prefix}delgame* ➭ Cancelar partida activa
-
-> 📖  *B I B L I A*
-> _Versículos automáticos_
- _Escribe cualquier cita como_ *Juan 3:16* _o_ *Salmos 23:1-4*
- _y el bot responderá con el texto bíblico (NBLA / LBLA)._
- ⊳ *${prefix}bible* ➭ Activar, desactivar o cambiar versión
 
 > 📊  *M O N I T O R E O*
 > _Estado del Sistema_
@@ -167,6 +167,12 @@ export default {
 > 🎭  *R E A C C I O N E S   D I S P O N I B L E S*
 > _Usa ${prefix}<reacción> [@tag / responder]_
 _abrazar, acurrucar, acurrucarse, amor, aplaudir, asustado, asustada, aburrido, aburrida, bañarse, bofetada, comer, nom, besar, muak, sonrojarse, morder, molestar, choca, golpear, golpe, llorar, bailar, tomar, lamer, cantar, reír, acariciar, puchero, presumir, sonreír, cosquillas, gritar, empujar, saltar, calor, llamar, beso, seducir, tímido, tímida, dormir, fumar, escupir, pisar, pensar, caminar, guiñar, enojado, enojada, mueca, drama, preñar, embarazar, correr, triste, curioso, curiosa, oler, tropezar, espiar_
+
+> 📖  *B I B L I A*
+> _Versículos automáticos_
+ _Escribe cualquier cita como_ *Juan 3:16* _o_ *Salmos 23:1-4*
+ _y el bot responderá con el texto bíblico (NBLA / LBLA)._
+ ⊳ *${prefix}bible* ➭ Activar, desactivar o cambiar versión
 `.trim();
 
       await client.sendMessage(m.chat, { text: menu, mentions: [m.sender] }, { quoted: m });

@@ -57,11 +57,12 @@ export default {
           return m.reply('> ❌ *Lo siento, no pude obtener el audio en este momento. Intenta de nuevo.*');
         }
 
+        const cleanTitle = (media.title || 'audio').replace(/[\\/:*?"<>|]/g, '').trim() || 'audio';
         let audioBuffer;
         try {
           const res = await axios.get(media.url, {
             responseType: 'arraybuffer',
-            timeout: 60000,
+            timeout: 25000,
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
               'Accept': '*/*'
@@ -75,7 +76,7 @@ export default {
         await client.sendMessage(m.chat, { 
           audio: audioBuffer, 
           mimetype: 'audio/mpeg',
-          fileName: `${media.title || 'audio'}.mp3`,
+          fileName: `${cleanTitle}.mp3`,
           ptt: false
         }, { quoted: m });
       } catch (e) {
@@ -93,11 +94,12 @@ export default {
           (media.author ? `• *Canal:* ${media.author}\n` : '') +
           (media.duration ? `• *Duración:* ${media.duration}\n` : '');
 
+        const cleanVideoTitle = (media.title || 'video').replace(/[\\/:*?"<>|]/g, '').trim() || 'video';
         let videoBuffer;
         try {
           const res = await axios.get(media.url, {
             responseType: 'arraybuffer',
-            timeout: 60000,
+            timeout: 25000,
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
               'Accept': '*/*'
@@ -111,7 +113,7 @@ export default {
         await client.sendMessage(m.chat, { 
           video: videoBuffer, 
           caption: caption.trim(),
-          fileName: `${media.title || 'video'}.mp4`,
+          fileName: `${cleanVideoTitle}.mp4`,
           mimetype: 'video/mp4'
         }, { quoted: m });
       } catch (e) {

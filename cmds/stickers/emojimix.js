@@ -1,40 +1,101 @@
-import fs from 'fs';
+const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
+const isEmoji = (str) => /\p{Extended_Pictographic}/u.test(str);
 
-const fetchJson = (url, options) => new Promise((resolve, reject) => { fetch(url, options).then(res => res.json()).then(json => resolve(json)).catch(err => reject(err)) });
+// Extraer dos emojis soportando formatos: "👻+👀", "👻 👀", "👻👀" o con separadores
+function extractTwoEmojis(input) {
+  if (!input) return null;
+
+  // 1. Si incluye el símbolo '+'
+  if (input.includes('+')) {
+    const parts = input.split('+').map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 2) return [parts[0], parts[1]];
+  }
+
+  // 2. Extraer grafemas Unicode completos (soporta modificadores y selectores de variación)
+  const graphemes = [...segmenter.segment(input)].map(s => s.segment).filter(isEmoji);
+  if (graphemes.length >= 2) {
+    return [graphemes[0], graphemes[1]];
+  }
+
+  // 3. Fallback: separación por espacios
+  const words = input.trim().split(/\s+/);
+  if (words.length >= 2) {
+    return [words[0], words[1]];
+  }
+
+  return null;
+}
+
+// Obtener buffer de imagen combinada con fallback inverso (e1_e2 y e2_e1)
+async function fetchEmojiMixBuffer(e1, e2) {
+  const attempts = [
+    `https://emojik.vercel.app/s/${encodeURIComponent(e1)}_${encodeURIComponent(e2)}?size=512`,
+    `https://emojik.vercel.app/s/${encodeURIComponent(e2)}_${encodeURIComponent(e1)}?size=512`,
+  ];
+
+  for (const url of attempts) {
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WhatsAppBot/2.0)' },
+        signal: AbortSignal.timeout(5000)
+      });
+      if (res.ok) {
+        const arrayBuf = await res.arrayBuffer();
+        if (arrayBuf && arrayBuf.byteLength > 500) {
+          return Buffer.from(arrayBuf);
+        }
+      }
+    } catch {}
+  }
+
+  return null;
+}
 
 export default {
-  command: ['emojimix'],
+  command: ['emojimix', 'mixemoji', 'emojikitchen'],
   category: 'stickers',
-  desc: 'Fusionar emojis.',
+  desc: 'Fusiona dos emojis en un único sticker (Emoji Kitchen).',
+  usage: '.emojimix 👻+👀  (o .emojimix 👻 👀 o .emojimix 👻👀)',
+  cooldown: 4,
   run: async (client, m, args, usedPrefix, command, text) => {
     try {
-      if (!args[0]) {
-        return m.reply(` Ingresa 2 emojis para combinar.\nEjemplo: *${usedPrefix + command}* 👻+👀`);
+      const emojis = extractTwoEmojis(text || args.join(' '));
+      if (!emojis) {
+        return m.reply(
+          `🎨 *Ingresa 2 emojis para fusionar.*\n\n` +
+          `• Con signo más: \`${usedPrefix + command} 👻+👀\`\n` +
+          `• Con espacio: \`${usedPrefix + command} 👻 👀\`\n` +
+          `• Juntos: \`${usedPrefix + command} 👻👀\``
+        );
       }
-      let [emoji1, emoji2] = text.split('+');
+
+      const [emoji1, emoji2] = emojis;
       await m.react('🕒');
-      const db = global.db.data
-      const user = db.users[m.sender] || {}
-      const name = user.name || m.sender.split('@')[0];
+
+      const buffer = await fetchEmojiMixBuffer(emoji1, emoji2);
+      if (!buffer) {
+        await m.react('✖️');
+        return m.reply(`❌ No existe una combinación oficial de Emoji Kitchen para *${emoji1}* y *${emoji2}*. Prueba con otros emojis.`);
+      }
+
+      // Configuración de metadatos con prioridad a pushName
+      const db = global.db.data;
+      const user = db.users[m.sender] || {};
       const meta1 = user.metadatos ? String(user.metadatos).trim() : '';
       const meta2 = user.metadatos2 ? String(user.metadatos2).trim() : '';
-      let texto1 = meta1 ? meta1 : 'ʏᴜᴋɪ 🧠 Wᴀʙᴏᴛ';
-      let texto2 = meta1 ? (meta2 ? meta2 : '') : `@${name}`;
-      const res = await fetchJson(`https://tenor.googleapis.com/v2/featured?key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&contentfilter=high&media_filter=png_transparent&component=proactive&collection=emoji_kitchen_v5&q=${encodeURIComponent(emoji1)}_${encodeURIComponent(emoji2)}`);
-      if (!res.results || res.results.length === 0) {
-        throw new Error(' No se encontraron stickers para esos emojis.');
-      }
-      for (let result of res.results) {
-        const tmpFile = `./tmp/emojimix-${Date.now()}.webp`;
-        const buffer = await (await fetch(result.url)).arrayBuffer();
-        fs.writeFileSync(tmpFile, Buffer.from(buffer));
-        await client.sendImageAsSticker(m.chat, tmpFile, m, { packname: texto1, author: texto2 });
-        fs.unlinkSync(tmpFile);
-      }
+
+      const pushName = (m.pushName && m.pushName.trim()) || user.name || m.sender.split('@')[0];
+      const authorDisplay = pushName.startsWith('@') ? pushName : `@${pushName}`;
+
+      const packname = meta1 || 'YukiBot Stickers';
+      const author = meta1 ? (meta2 || '') : authorDisplay;
+
+      // Envío en memoria sin tocar el disco
+      await client.sendImageAsSticker(m.chat, buffer, m, { packname, author });
       await m.react('✔️');
     } catch (e) {
       await m.react('✖️');
-      return m.reply(`> Error al ejecutar el comando.\n[Error: *${e.message}*]`);
+      return m.reply(`> ❌ Error al generar el EmojiMix.\n[Error: *${e.message}*]`);
     }
   }
 };

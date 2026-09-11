@@ -131,7 +131,7 @@ async function executeWithFallback(platform, identifier, apis, customOptions = {
     try {
       const isPost = api.method === 'POST';
       const options = {
-        timeout: customOptions.timeout || 12000,
+        timeout: customOptions.timeout || 7500,
         headers: api.headers || {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
@@ -778,17 +778,6 @@ export async function getPinterestData(input, isUrl) {
   }
 }
 
-export async function getStudocuData(url) {
-  const apis = [
-    { endpoint: `https://api.ryzendesu.vip/api/downloader/studocu?url=${encodeURIComponent(url)}`, extractor: res => (res.success || res.url || res.data) ? { title: res.title || res.data?.title || 'Documento', url: res.url || res.data?.url || res.download || res.data } : null },
-    { endpoint: `${config.APIs.vreden.url}/api/v1/download/studocu?url=${encodeURIComponent(url)}`, extractor: res => (res.status && res.result?.url) ? { title: res.result.title || 'Documento', url: res.result.url } : null },
-    { endpoint: `https://api.siputzx.my.id/api/d/studocu?url=${encodeURIComponent(url)}`, extractor: res => (res.status && res.data) ? { title: res.data?.title || 'Documento', url: res.data?.url || res.data } : null },
-    { endpoint: `https://api.agatz.xyz/api/studocu?url=${encodeURIComponent(url)}`, extractor: res => (res.status && res.data) ? { title: 'Documento', url: res.data?.url || res.data } : null },
-    { endpoint: `https://deliriusapi-official.vercel.app/download/studocu?url=${encodeURIComponent(url)}`, extractor: res => (res.status && res.data) ? { title: res.data.title || 'Documento', url: res.data.download || res.data.url } : null }
-  ];
-  return executeWithFallback('studocu', url, apis);
-}
-
 async function getAudioFromOpik(url) {
   try {
     const opik_api = 'https://dlp.opik.net/api/download';
@@ -999,23 +988,17 @@ export async function getGoogleImageData(query) {
   return executeWithFallback('google_image', query, apis) || [];
 }
 
-export async function getScribdData(url) {
-  const apis = [
-    { endpoint: `https://api.vreden.my.id/api/v1/download/scribd?url=${encodeURIComponent(url)}`, extractor: res => (res.status && res.result?.download) ? { title: res.result.title || 'Scribd Document', url: res.result.download } : null },
-    { endpoint: `https://api.ryzendesu.vip/api/downloader/scribd?url=${encodeURIComponent(url)}`, extractor: res => (res.success || res.url || res.data) ? { title: res.title || 'Scribd Document', url: res.url || res.data || res.download } : null },
-    { endpoint: `https://api.siputzx.my.id/api/d/scribd?url=${encodeURIComponent(url)}`, extractor: res => (res.status && res.data) ? { title: res.data.title || 'Scribd Document', url: res.data.url || res.data.download || res.data } : null },
-    { endpoint: `https://api.agatz.xyz/api/scribd?url=${encodeURIComponent(url)}`, extractor: res => (res.status && res.data) ? { title: 'Scribd Document', url: res.data } : null },
-    { endpoint: `https://deliriusapi-official.vercel.app/download/scribd?url=${encodeURIComponent(url)}`, extractor: res => (res.status && res.data) ? { title: res.data.title || 'Scribd Document', url: res.data.download || res.data.url } : null }
-  ];
-  return executeWithFallback('scribd', url, apis);
-}
-
 export async function isImageUrl(url) {
   try {
-    const res = await axios.head(url);
-    return res.headers['content-type']?.startsWith('image/');
+    const res = await axios.head(url, {
+      timeout: 3500,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    return res.status < 400 && res.headers['content-type']?.startsWith('image/');
   } catch {
-    return false;
+    return /\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(url);
   }
 }
 
@@ -1069,8 +1052,6 @@ export async function getMedia(platform, url, options = {}) {
     case 'instagram': return await getInstagramMedia(url);
     case 'tiktok': return await getTikTokData(url, options.isUrl);
     case 'pinterest': return await getPinterestData(url, options.isUrl);
-    case 'studocu': return await getStudocuData(url);
-    case 'scribd': return await getScribdData(url);
     case 'youtube_audio': return await getYouTubeAudioData(url);
     case 'youtube_video': return await getYouTubeVideoData(url);
     case 'google_image': return await getGoogleImageData(url);

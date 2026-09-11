@@ -64,17 +64,14 @@ export default {
             const formattedText = formatBratText(input);
             const buffer = await fetchStickerBuffer(formattedText);
 
-            // Metadata & privacy check
+            // Metadata con prioridad pushName
             const userDb = global.db?.data?.users?.[m.sender] || {};
-            const isPhone = (str) => !str || /^\+?[0-9\s\-()@]+$/.test(str.trim()) || !/[a-zA-Z\u00C0-\u024F]/.test(str);
-            
             const meta1 = userDb.metadatos?.trim();
             const meta2 = userDb.metadatos2?.trim();
-            const rawName = m.pushName || userDb.name;
-            const validName = (rawName && !isPhone(rawName)) ? rawName.trim() : 'Sticker';
+            const pushName = (m.pushName && m.pushName.trim()) || userDb.name || `@${m.sender.split('@')[0]}`;
 
-            const packname = meta1 || 'YukiBot Quotes';
-            const author = meta1 ? (meta2 || '') : validName;
+            const packname = meta1 || 'YukiBot Stickers';
+            const author = meta1 ? (meta2 || '') : (pushName.startsWith('@') ? pushName : `@${pushName}`);
 
             await client.sendImageAsSticker(m.chat, buffer, m, { packname, author });
             await m.react('✔️');

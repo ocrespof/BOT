@@ -462,8 +462,13 @@ export default {
 
             const bufferImage = Buffer.from(res.data.result.image, 'base64');
             const userDb = global.db?.data?.users?.[m.sender] || {};
-            const packname = userDb.metadatos?.trim() || 'YukiBot Quotes';
-            const author = userDb.metadatos2?.trim() || (apiMessages[0]?.from?.name || 'Usuario');
+            const meta1 = userDb.metadatos?.trim();
+            const meta2 = userDb.metadatos2?.trim();
+            const pushName = (m.pushName && m.pushName.trim()) || userDb.name || (apiMessages[0]?.from?.name || 'Usuario');
+            const authorDisplay = pushName.startsWith('@') ? pushName : `@${pushName}`;
+
+            const packname = meta1 || 'YukiBot Quotes';
+            const author = meta1 ? (meta2 || '') : authorDisplay;
 
             if (typeof client.sendImageAsSticker === 'function') {
                 await client.sendImageAsSticker(m.chat, bufferImage, m, { packname, author });

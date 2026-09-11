@@ -53,21 +53,26 @@ const sendMediaItem = async (client, chatId, url, type, caption, quoted, fileNam
     ? validation.contentType.startsWith('video/') 
     : isVideoSuggested;
 
-  // 3. Descargar a buffer para evitar bloqueos por hotlinking y fallos en Baileys
-  const response = await axios.get(url, {
-    responseType: 'arraybuffer',
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': '*/*'
-    },
-    timeout: 30000
-  });
-  const buffer = Buffer.from(response.data);
+  // 3. Descargar a buffer con fallback transparente a streaming de URL si hay timeout o saturación de RAM
+  let mediaPayload;
+  try {
+    const response = await axios.get(url, {
+      responseType: 'arraybuffer',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': '*/*'
+      },
+      timeout: 20000
+    });
+    mediaPayload = Buffer.from(response.data);
+  } catch {
+    mediaPayload = { url };
+  }
 
   if (isVideo) {
-    await client.sendMessage(chatId, { video: buffer, caption, mimetype: 'video/mp4', fileName: fileName || 'video.mp4' }, { quoted });
+    await client.sendMessage(chatId, { video: mediaPayload, caption, mimetype: 'video/mp4', fileName: fileName || 'video.mp4' }, { quoted });
   } else {
-    await client.sendMessage(chatId, { image: buffer, caption }, { quoted });
+    await client.sendMessage(chatId, { image: mediaPayload, caption }, { quoted });
   }
 };
 
@@ -342,21 +347,6 @@ const handlers = {
     });
 
     await sendMediaItem(client, m.chat, data.url, data.type, caption, m, 'twitter.mp4');
-  },
-
-  studocu: async (client, m, text) => {
-    const url = extractUrl(m, text);
-    if (!url || !/studocu\.com/.test(url)) throw new Error('Enlace de Studocu inválido. Envía un enlace o cita un mensaje que contenga uno.');
-    await m.reply('⏳ Procesando documento, por favor espere...');
-    const data = await getMedia('studocu', url);
-    if (!data) throw new Error('No se pudo obtener el documento. Servidor caído o enlace inválido.');
-
-    // Validar tamaño del documento
-    const validation = await validateMediaUrl(data.url, 'document');
-    if (!validation.valid) throw new Error(validation.reason);
-
-    const caption = buildCaption('𝐒𝐓𝐔𝐃𝐎𝐂𝐔 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃', { title: data.title || 'Documento Studocu' });
-    await client.sendMessage(m.chat, { document: { url: data.url }, caption, mimetype: 'application/pdf', fileName: `${data.title || 'studocu'}.pdf` }, { quoted: m });
   }
 };
 
@@ -365,17 +355,16 @@ const aliasMap = {
   ig: 'instagram', instagram: 'instagram',
   tiktok: 'tiktok', tt: 'tiktok', tiktoksearch: 'tiktok', ttsearch: 'tiktok', tts: 'tiktok',
   pinterest: 'pinterest', pin: 'pinterest',
-  twitter: 'twitter', x: 'twitter', xdl: 'twitter',
-  studocu: 'studocu', studoc: 'studocu'
+  twitter: 'twitter', x: 'twitter', xdl: 'twitter'
 };
 
 export default {
-  help: ['fb', 'fbsearch', 'ig', 'tiktok', 'tiktoksearch', 'pinterest', 'twitter', 'studocu'],
+  help: ['fb', 'fbsearch', 'ig', 'tiktok', 'tiktoksearch', 'pinterest', 'twitter'],
   command: Object.keys(aliasMap),
   category: 'downloads',
   heavy: true,
   cooldown: 5,
-  desc: 'Descarga contenido de múltiples redes sociales (Facebook, Instagram, TikTok, Pinterest, Twitter, Studocu) o realiza búsquedas.',
+  desc: 'Descarga contenido de múltiples redes sociales (Facebook, Instagram, TikTok, Pinterest, Twitter) o realiza búsquedas.',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ');
     const platform = aliasMap[command.toLowerCase()];

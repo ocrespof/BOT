@@ -3,7 +3,7 @@ import { getMedia, isImageUrl } from './downloader.js'
 export default {
   command: ['imagen', 'img', 'image'],
   category: 'downloads',
-  desc: 'Crear imágenes con IA.',
+  desc: 'Buscar imágenes en Google y enviarlas como álbum o imagen única.',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ')
     if (!text) {
@@ -46,22 +46,46 @@ export default {
       return m.reply(' Este comando no *permite* búsquedas de contenido *+18* o *NSFW*')
     }
     try {
-      const results = await getMedia('google_image', text)
-      const checked = []
-      for (const r of results) {
-        if (r.url && r.url.startsWith('http') && /\.(jpe?g|png|gif|webp)$/i.test(r.url)) {
-          if (await isImageUrl(r.url)) {
-            checked.push(r)
-          }
-        }
+      const results = await getMedia('google_image', text);
+      const rawCandidates = (results || []).filter(r => r.url && r.url.startsWith('http')).slice(0, 15);
+      
+      const validationPromises = rawCandidates.map(async (r) => {
+        const valid = await isImageUrl(r.url);
+        return valid ? r : null;
+      });
+      const checkedSettled = await Promise.allSettled(validationPromises);
+      const checked = checkedSettled
+        .filter(p => p.status === 'fulfilled' && p.value)
+        .map(p => p.value);
+
+      if (checked.length === 0) {
+        return m.reply('❌ No se encontraron imágenes válidas para tu búsqueda.');
       }
-      if (checked.length < 2) { 
-      return client.reply(m.chat, ` Se requieren al menos 2 imágenes válidas para mostrar un álbum.`, m)
+
+      const formatCaption = (r) =>
+        `ㅤ۟∩　ׅ　★　ׅ　🅖oogle 🅘mage 🅢earch　ׄᰙ　\n\n` +
+        `${r.title ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Título* › ${r.title}\n` : ''}` +
+        `${r.domain ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Fuente* › ${r.domain}\n` : ''}` +
+        `${r.resolution ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Resolución* › ${r.resolution}\n` : ''}` +
+        `𖣣ֶㅤ֯⌗ ☆  ⬭ *Búsqueda* › ${text}`;
+
+      // Si solo hay 1 imagen válida o el cliente no soporta álbumes, enviar directamente
+      if (checked.length === 1 || typeof client.sendAlbumMessage !== 'function') {
+        return client.sendMessage(
+          m.chat,
+          { image: { url: checked[0].url }, caption: formatCaption(checked[0]) },
+          { quoted: m }
+        );
       }
-      const medias = checked.slice(0, 10).map(r => ({ type: 'image', data: { url: r.url }, caption: `ㅤ۟∩　ׅ　★　ׅ　🅖oogle 🅘mage 🅢earch　ׄᰙ　\n\n` + `${r.title ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Título* › ${r.title}\n` : ''}` + `${r.domain ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Fuente* › ${r.domain}\n` : ''}` + `${r.resolution ? `𖣣ֶㅤ֯⌗ ☆  ⬭ *Resolución* › ${r.resolution}\n` : ''}` + `𖣣ֶㅤ֯⌗ ☆  ⬭ *Búsqueda* › ${text}` }))
-      await client.sendAlbumMessage(m.chat, medias, { quoted: m })
+
+      const medias = checked.slice(0, 10).map(r => ({
+        type: 'image',
+        data: { url: r.url },
+        caption: formatCaption(r)
+      }));
+      await client.sendAlbumMessage(m.chat, medias, { quoted: m });
     } catch (e) {
-      await m.reply(`> Error al ejecutar el comando.\n[Error: *${e.message}*]`)
+      await m.reply(`> Error al ejecutar el comando.\n[Error: *${e.message}*]`);
     }
   }
 }

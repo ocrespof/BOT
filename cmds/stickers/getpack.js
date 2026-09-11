@@ -161,13 +161,12 @@ export default {
       const selected = validStickers.slice(0, MAX_STICKERS)
       const cover = selected[0]
 
-      const packOwnerUser = db.users[packOwner] || {}
-      const userId = packOwnerUser
-      const name = userId?.name || packOwner.split('@')[0]
-      const ownerMeta1 = packOwnerUser?.metadatos ? String(packOwnerUser.metadatos).trim() : ''
-      const ownerMeta2 = packOwnerUser?.metadatos2 ? String(packOwnerUser.metadatos2).trim() : ''
-      const stickerPackname = ownerMeta1 ? ownerMeta1 : pack.name
-      const stickerAuthor = ownerMeta1 ? (ownerMeta2 ? ownerMeta2 : '') : pack.desc
+      const packOwnerUser = db.users[packOwner] || {};
+      const pushName = (packOwner === m.sender && m.pushName?.trim()) || packOwnerUser.name || packOwner.split('@')[0];
+      const ownerMeta1 = packOwnerUser?.metadatos ? String(packOwnerUser.metadatos).trim() : '';
+      const ownerMeta2 = packOwnerUser?.metadatos2 ? String(packOwnerUser.metadatos2).trim() : '';
+      const stickerPackname = ownerMeta1 ? ownerMeta1 : pack.name;
+      const stickerAuthor = ownerMeta1 ? (ownerMeta2 ? ownerMeta2 : '') : (pushName.startsWith('@') ? pushName : `@${pushName}`);
 
       const webp = await import('node-webpmux')
       const stickerResults = await Promise.all(selected.map(async (buffer) => {
@@ -190,7 +189,7 @@ export default {
         }
       }))
 
-      await client.sendMessage(m.chat, { stickerPack: { name: pack.name, publisher: `${pack.author} (${name})`, description: pack.desc, cover, stickers: stickerResults } }, { quoted: m })
+      await client.sendMessage(m.chat, { stickerPack: { name: pack.name, publisher: `${pack.author} (${pushName})`, description: pack.desc, cover, stickers: stickerResults } }, { quoted: m })
       await m.react('✔️')
     } catch (e) {
       await m.react('✖️')
