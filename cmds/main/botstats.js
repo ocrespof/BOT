@@ -31,19 +31,21 @@ export default {
     const uptimeStr = `${hours}h ${mins}m ${secs}s`;
     
     // Users & Chats
-    const totalUsers = Object.keys(global.db.data.users).length;
-    const totalChats = Object.keys(global.db.data.chats).length;
+    const totalUsers = Object.keys(global.db?.data?.users || {}).length;
+    const totalChats = Object.keys(global.db?.data?.chats || {}).length;
     
     // Commands today
     const today = new Date().toLocaleDateString('es-CO', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-');
     let cmdToday = 0;
     let msgsToday = 0;
-    for (const chatData of Object.values(global.db.data.chats)) {
-      if (!chatData.users) continue;
-      for (const userData of Object.values(chatData.users)) {
-        if (userData.stats && userData.stats[today]) {
-          cmdToday += userData.stats[today].cmds || 0;
-          msgsToday += userData.stats[today].msgs || 0;
+    if (global.db?.data?.chats) {
+      for (const chatData of Object.values(global.db.data.chats)) {
+        if (!chatData?.users) continue;
+        for (const userData of Object.values(chatData.users)) {
+          if (userData?.stats?.[today]) {
+            cmdToday += userData.stats[today].cmds || 0;
+            msgsToday += userData.stats[today].msgs || 0;
+          }
         }
       }
     }
@@ -51,12 +53,20 @@ export default {
     // DB sizes
     const dbDir = path.join(process.cwd(), 'core');
     let dbSize = 0;
-    for (const file of ['db_users.json', 'db_chats.json', 'db_settings.json', 'database.json']) {
+    const dbFiles = ['database.sqlite', 'database.sqlite-wal', 'db_users.json', 'db_chats.json', 'db_settings.json', 'database.json'];
+    for (const file of dbFiles) {
       try {
-        const stat = fs.statSync(path.join(dbDir, file));
-        dbSize += stat.size;
+        const fullPath = path.join(dbDir, file);
+        if (fs.existsSync(fullPath)) {
+          dbSize += fs.statSync(fullPath).size;
+        }
       } catch {}
     }
+    // Also check root for database.sqlite
+    try {
+      const rootDb = path.join(process.cwd(), 'database.sqlite');
+      if (fs.existsSync(rootDb)) dbSize += fs.statSync(rootDb).size;
+    } catch {}
     const dbSizeKB = (dbSize / 1024).toFixed(1);
     
     // Total commands

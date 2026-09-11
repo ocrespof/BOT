@@ -12,7 +12,7 @@ export default {
       const namebot = botSettings.namebot || 'YukiBot';
       const prefix = Array.isArray(botSettings.prefix) ? botSettings.prefix[0] : (botSettings.prefix || usedPrefix || '.');
       const time = client.uptime ? formatearMs(Date.now() - client.uptime) : 'Desconocido';
-      const senderName = global.db.data.users[m.sender]?.name || m.sender.split('@')[0];
+      const senderName = global.db?.data?.users?.[m.sender]?.name || m.sender.split('@')[0];
 
       const menu = `
 ──「  *${namebot}*  」─── 
@@ -91,7 +91,7 @@ export default {
  ⊳ *${prefix}warn* / *${prefix}delwarn* ➭ Añadir o quitar advertencias
  ⊳ *${prefix}warns* ➭ Ver lista de usuarios advertidos
  ⊳ *${prefix}setwarnlimit* ➭ Establecer límite de advertencias
- ⊳ *${prefix}tagall* / *${prefix}tag* ➭ Mención a todos los miembros
+ ⊳ *${prefix}admins* ➭ Notificar a los administradores del grupo
  ⊳ *${prefix}link* / *${prefix}revoke* ➭ Ver o restablecer enlace
  ⊳ *${prefix}setgpname* / *${prefix}setgpdesc* ➭ Modificar datos
  ⊳ *${prefix}setgpbanner* ➭ Cambiar foto de perfil del grupo
@@ -138,27 +138,31 @@ export default {
 
 > 🎮  *E N T R E T E N I M I E N T O*
 > _Juegos Interactivos_
- ⊳ *${prefix}ahorcado* ➭ Ahorcado Visual 2.0
+ ⊳ *${prefix}ahorcado* ➭ Ahorcado Visual 2.0 (en español)
  ⊳ *${prefix}tictactoe* / *${prefix}ttt* ➭ Tres en raya con tablero HD
  ⊳ *${prefix}connect4* / *${prefix}c4* ➭ Conecta 4 interactivo
  ⊳ *${prefix}blackjack* / *${prefix}bj* ➭ Blackjack 21 con apuestas
  ⊳ *${prefix}wordle* ➭ Adivina la palabra de 5 letras
  ⊳ *${prefix}trivia* ➭ Preguntas de cultura general
  ⊳ *${prefix}ppt* ➭ Piedra, papel o tijeras
- ⊳ *${prefix}adivinanza* ➭ Acertijos y adivinanzas
+ ⊳ *${prefix}adivinanza* ➭ Acertijos y adivinanzas en español
+ ⊳ *${prefix}dado* ➭ Tirar un dado del 1 al 6
  ⊳ *${prefix}gameboard* ➭ Clasificación de jugadores
  ⊳ *${prefix}delgame* ➭ Cancelar partida activa
 
 > 📖  *B I B L I A*
 > _Versículos automáticos_
  _Escribe cualquier cita como_ *Juan 3:16* _o_ *Salmos 23:1-4*
- _y el bot responderá con el texto bíblico (RV 1909)._
- ⊳ *${prefix}bible* ➭ Activar/desactivar en el grupo
+ _y el bot responderá con el texto bíblico (NBLA / LBLA)._
+ ⊳ *${prefix}bible* ➭ Activar, desactivar o cambiar versión
 
 > 📊  *M O N I T O R E O*
 > _Estado del Sistema_
- ⊳ *${prefix}botstats* ➭ RAM, uptime, base de datos y tareas
+ ⊳ *${prefix}botstats* / *${prefix}status* ➭ RAM, CPU, base de datos y uptime
+ ⊳ *${prefix}infobot* ➭ Información técnica y versión del bot
  ⊳ *${prefix}ping* ➭ Latencia y velocidad de respuesta
+ ⊳ *${prefix}suggest* / *${prefix}report* ➭ Enviar sugerencia o reporte
+ ⊳ *${prefix}invite* ➭ Invitar al bot a tu grupo
 
 > 🎭  *R E A C C I O N E S   D I S P O N I B L E S*
 > _Usa ${prefix}<reacción> [@tag / responder]_

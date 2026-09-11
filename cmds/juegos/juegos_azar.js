@@ -58,14 +58,15 @@ const cmdBlackjack = {
       onTimeout: () => client.sendMessage(m.chat, { text: `⏰ Tiempo agotado. Perdiste tu apuesta de ${bet} XP.` }),
     });
 
-    await client.sendMessage(m.chat, { text: `🃏 *B L A C K J A C K* 🃏\n\n${renderHand(playerHand, '🧑 Tú')}\n${renderHand(dealerHand, '🤖 Dealer', true)}\n\n💰 *Apuesta:* ${bet} XP\n\nEscribe *hit* para pedir carta o *stand* para plantarte.` });
+    await client.sendMessage(m.chat, { text: `🃏 *B L A C K J A C K* 🃏\n\n${renderHand(playerHand, '🧑 Tú')}\n${renderHand(dealerHand, '🤖 Dealer', true)}\n\n💰 *Apuesta:* ${bet} XP\n\nEscribe *pedir* (o *hit*) para otra carta, o *plantar* (o *stand*) para quedarte.` });
   }
 };
 
 const cmdDado = {
   command: ['dado', 'dados', 'roll', 'dice'],
-  category: 'juegos', desc: 'Tira un dado del 1 al 6 (sticker)', cooldown: 2,
+  category: 'juegos', desc: 'Tira un dado del 1 al 6.', cooldown: 2,
   run: async (client, m) => {
+    const DICE_EMOJIS = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
     const diceLinks = [
       'https://tinyurl.com/gdd01',
       'https://tinyurl.com/gdd02',
@@ -75,17 +76,18 @@ const cmdDado = {
       'https://tinyurl.com/gdd006'
     ];
 
-    const randomDice = diceLinks[Math.floor(Math.random() * diceLinks.length)];
+    const idx = Math.floor(Math.random() * 6);
+    const roll = idx + 1;
+    const stickerUrl = diceLinks[idx];
+    const diceEmoji = DICE_EMOJIS[idx];
 
     try {
       await client.sendMessage(m.chat, {
-        sticker: { url: randomDice }
+        sticker: { url: stickerUrl }
       }, { quoted: m });
-    } catch(e) {
-      console.error('Dado Plugin Error:', e);
+    } catch (e) {
       await client.sendMessage(m.chat, {
-        image: { url: randomDice },
-        caption: '🎲 ¡El dado ha caído!'
+        text: `🎲 *¡DADO LANZADO!* 🎲\n\nResultado: *[ ${diceEmoji} ] — ¡Número ${roll}!*`
       }, { quoted: m });
     }
   }
@@ -99,8 +101,9 @@ export const before = async (client, m) => {
   if (!game || game.jugador !== m.sender) return false;
 
   const action = m.text.trim().toLowerCase();
-  if (!['hit', 'stand', 'h', 's', 'pedir', 'plantar', 'plantarse'].includes(action)) return false;
-  const isHit = ['hit', 'h', 'pedir'].includes(action);
+  const validActions = ['hit', 'stand', 'h', 's', 'pedir', 'plantar', 'plantarse', 'carta', 'pasar'];
+  if (!validActions.includes(action)) return false;
+  const isHit = ['hit', 'h', 'pedir', 'carta'].includes(action);
 
   if (isHit) {
     game.playerHand.push(game.deck.pop());
@@ -109,7 +112,7 @@ export const before = async (client, m) => {
     if (pt > 21) {
       gameEngine.end(m.chat, 'blackjack', m.sender);
       gameEngine.loss(m.sender);
-      await client.sendMessage(m.chat, { text: `🃏 *B L A C K J A C K* 🃏\n\n${renderHand(game.playerHand, '🧑 Tú')}\n${renderHand(game.dealerHand, '🤖 Dealer')}\n\n💥 *¡TE PASASTE!* Perdiste ${game.apuesta} XP.` }, { quoted: m });
+      await client.sendMessage(m.chat, { text: `🃏 *B L A C K J A C K* 🃏\n\n${renderHand(game.playerHand, '🧑 Tú')}\n${renderHand(game.dealerHand, '🤖 Dealer')}\n\n💥 *¡TE PASASTE!* (${pt}) Perdiste ${game.apuesta} XP.` }, { quoted: m });
       return true;
     }
 
@@ -125,11 +128,11 @@ export const before = async (client, m) => {
       return true;
     }
 
-    await client.sendMessage(m.chat, { text: `🃏 *B L A C K J A C K* 🃏\n\n${renderHand(game.playerHand, '🧑 Tú')}\n${renderHand(game.dealerHand, '🤖 Dealer', true)}\n\nEscribe *hit* o *stand*.` });
+    await client.sendMessage(m.chat, { text: `🃏 *B L A C K J A C K* 🃏\n\n${renderHand(game.playerHand, '🧑 Tú')}\n${renderHand(game.dealerHand, '🤖 Dealer', true)}\n\nEscribe *pedir* (o *hit*) o *plantar* (o *stand*).` });
     return true;
   }
 
-  // STAND
+  // STAND / PLANTARSE
   resolveDealer(game);
   gameEngine.end(m.chat, 'blackjack', m.sender);
   const pt = handTotal(game.playerHand), dt = handTotal(game.dealerHand);

@@ -50,7 +50,7 @@ export default {
 ❐ *Versión ›* ${global.version}`;    
     if (typeof sugg !== 'string' || !sugg.trim()) return;
     if (isOficialBot) {
-      const lista = dueño ? [dueño] : global.owner.map(num => `${num}@s.whatsapp.net`);
+      const lista = dueño ? [dueño] : (global.owner || []).map(num => `${num}@s.whatsapp.net`);
       for (const destino of lista) {
         try {
           await global.client.sendContextInfoIndex(destino, sugg, {}, null, false, null, { banner: pp, title: 'Invitación', body: '✿ New invitation to the Sokect.', redes: botSettings.link });
@@ -62,8 +62,8 @@ export default {
         await global.client.sendContextInfoIndex(destino, sugg, {}, null, false, null, { banner: pp, title: 'Invitación', body: '✿ New invitation to the Sokect.', redes: botSettings.link });
       } catch {}
     }    
-    await client.reply(m.chat, 'El enlace fue enviado correctamente. ¡Gracias por tu invitación! ฅ^•ﻌ•^ฅ', m);
-    user.jointime = new Date() * 1;
+    await m.reply('El enlace fue enviado correctamente. ¡Gracias por tu invitación! ฅ^•ﻌ•^ฅ');
+    user.jointime = Date.now();
   },
 };
 

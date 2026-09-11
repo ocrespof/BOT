@@ -11,7 +11,7 @@ function getDefaultHostId() {
 const format = bytesToSize
 
 export default {
-  command: ['status', 'estado'],
+  command: ['status', 'server', 'servidor'],
   category: 'info',
   desc: 'Muestra el estado del servidor y del bot.',
   run: async (client, m) => {

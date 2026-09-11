@@ -12,7 +12,7 @@ export default {
     const botname = botSettings.botname
     const namebot = botSettings.namebot
     const monedas = botSettings.currency
-    const banner = botSettings.banner
+    const banner = botSettings.banner || ''
     const prefijo = botSettings.prefix
     const owner = botSettings.owner
     const canalId = botSettings.id
@@ -20,7 +20,7 @@ export default {
     const link = botSettings.link
     let desar = 'Oculto'
     if (owner && !isNaN(owner.replace(/@s\.whatsapp\.net$/, ''))) {
-      const userData = global.db.data.users[owner]
+      const userData = global.db.data?.users?.[owner]
       desar = userData?.genre || 'Oculto'
     }
     const platform = os.type()
@@ -56,7 +56,8 @@ export default {
 
 \`Enlace:\` ${link}`.trim()
       const safeCanalId = (canalId && canalId.endsWith('@newsletter')) ? canalId : '120363401404146384@newsletter';
-      await client.sendMessage(m.chat, banner.includes('.mp4') || banner.includes('.webm') ? {
+      const isVideo = banner && (banner.includes('.mp4') || banner.includes('.webm'));
+      await client.sendMessage(m.chat, isVideo ? {
             video: { url: banner },
             gifPlayback: true,
             caption: message,
@@ -83,7 +84,7 @@ export default {
                 title: botname,
                 body: `${namebot}, mᥲძᥱ ᥕі𝗍һ ᑲᥡ ⁱᵃᵐ|𝔇ĕ𝐬†𝓻⊙γ𒆜`,
                 showAdAttribution: false,
-                thumbnailUrl: banner,
+                thumbnailUrl: banner || 'https://cdn.yuki-wabot.my.id/files/2PVh.jpeg',
                 mediaType: 1,
                 previewType: 0,
                 renderLargerThumbnail: true

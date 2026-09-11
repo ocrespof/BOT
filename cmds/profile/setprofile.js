@@ -98,20 +98,22 @@ export default {
   category: 'profile',
   desc: 'Configura campos de tu perfil (descripción, género, pasatiempo, cumpleaños).',
   run: async (client, m, args, usedPrefix, command) => {
+    if (!global.db.data.users[m.sender]) global.db.data.users[m.sender] = {};
     const user = global.db.data.users[m.sender];
     const field = Object.values(FIELDS).find(f => f.aliases.includes(command));
     if (!field) return;
 
     const input = args.join(' ').trim();
     if (!input) {
-      return m.reply(` Debes especificar un valor.\n*Ejemplo:* ${usedPrefix + command} ${field.example}`);
+      return m.reply(`❌ Debes especificar un valor.\n*Ejemplo:* ${usedPrefix + command} ${field.example}`);
     }
 
     const error = field.validate(input);
-    if (error) return m.reply(` ${error}`);
+    if (error) return m.reply(`❌ ${error}`);
 
     const value = field.transform ? field.transform(input) : input;
     user[field.key] = value;
+    global.saveDatabaseAsync?.();
 
     return m.reply(field.success(value, usedPrefix));
   },

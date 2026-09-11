@@ -132,18 +132,24 @@ export default [
           // 2. Es el creador/iniciador del juego
           if (session.sender === m.sender || session.iniciadoPor === m.sender) canCancel = true;
           
-          // 3. Es un jugador activo (Ej. TicTacToe players)
-          if (session.players && (session.players.X === m.sender || session.players.O === m.sender)) canCancel = true;
+          // 3. Es un jugador activo (Ej. TicTacToe players, Connect4 players, Blackjack jugador)
+          if (session.players) {
+            if (session.players.X === m.sender || session.players.O === m.sender) canCancel = true;
+            if (session.players.R === m.sender || session.players.Y === m.sender) canCancel = true;
+          }
           if (session.jugador === m.sender) canCancel = true;
 
           if (canCancel) {
-            // Reembolsar apuestas si es necesario (Ej. TicTacToe)
+            // Reembolsar apuestas según el tipo de juego
             if (session.apuesta > 0) {
               if (session.players) {
-                gameEngine.refundBet(session.players.X, session.apuesta);
-                gameEngine.refundBet(session.players.O, session.apuesta);
-              } else if (session.sender || session.iniciadoPor) {
-                gameEngine.refundBet(session.sender || session.iniciadoPor, session.apuesta);
+                if (session.players.X) gameEngine.refundBet(session.players.X, session.apuesta);
+                if (session.players.O) gameEngine.refundBet(session.players.O, session.apuesta);
+                if (session.players.R) gameEngine.refundBet(session.players.R, session.apuesta);
+                if (session.players.Y) gameEngine.refundBet(session.players.Y, session.apuesta);
+              } else {
+                const target = session.jugador || session.sender || session.iniciadoPor;
+                if (target) gameEngine.refundBet(target, session.apuesta);
               }
             }
 

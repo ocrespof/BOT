@@ -36,11 +36,13 @@ export default {
     const field = Object.values(FIELDS).find(f => f.aliases.includes(command));
     if (!field) return;
 
+    if (!user) return;
     if (!user[field.key] || user[field.key] === field.empty) {
-      return m.reply(` No tienes un(a) ${field.label} establecido(a).`);
+      return m.reply(`❌ No tienes un(a) ${field.label} establecido(a).`);
     }
 
     user[field.key] = field.empty;
-    return m.reply(`Tu ${field.label} ha sido eliminado(a).`);
+    global.saveDatabaseAsync?.();
+    return m.reply(`✅ Tu ${field.label} ha sido eliminado(a).`);
   },
 };

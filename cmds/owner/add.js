@@ -1,61 +1,99 @@
-import { resolveLidToRealJid } from "../../core/utils.js"
-import { getBotSettings } from '../../utils/tools.js';
+import { resolveLidToRealJid } from "../../core/utils.js";
+import { getBotSettings } from "../../utils/tools.js";
 
 export default {
-  command: ['addcoin', 'addxp'],
+  command: ['addcoin', 'addxp', 'delcoin', 'delxp', 'setcoin', 'setxp'],
+  category: 'owner',
+  desc: 'Añade, remueve o establece monedas (coins) y experiencia (XP) de cualquier usuario.',
+  usage: '[@usuario / responder] [cantidad]',
   isOwner: true,
   run: async (client, m, args, usedPrefix, command) => {
     try {
-      const mentioned = m.mentionedJid
-      const who2 = mentioned.length > 0 ? mentioned[0] : (m.quoted ? m.quoted.sender : null)
-      const who = await resolveLidToRealJid(who2, client, m.chat)
-      const bot = getBotSettings(client)
-      const currency = bot.currency || '$'     
-      if (command === 'addcoin') {
-        if (!who) return client.reply(m.chat, 'Por favor, menciona al usuario o cita un mensaje.', m)       
-        const coinTxt = args.find(arg => !isNaN(arg) && !arg.includes('@'))
-        if (!coinTxt) return client.reply(m.chat, 'Por favor, ingresa la cantidad que deseas añadir.\nEjemplo: !addcoin @usuario 100', m)        
-        if (isNaN(coinTxt)) return client.reply(m.chat, 'Solo se permiten números.', m)       
-        await m.react('🕒')
-        const dmt = parseInt(coinTxt)
-        if (dmt < 1) {
-          await m.react('✖️')
-          return client.reply(m.chat, 'Mínimo es *1*', m)
-        }        
-        if (!global.db.data.chats[m.chat]) global.db.data.chats[m.chat] = { users: {} }
-        if (!global.db.data.chats[m.chat].users) global.db.data.chats[m.chat].users = {}
-        const userData = global.db.data.chats[m.chat].users
-        if (!userData[who]) {
-          userData[who] = { coins: 0 }
-        }       
-        userData[who].coins += dmt
-        await m.react('✔️')
-        return client.reply(m.chat, `*Añadido:*\n${dmt} ${currency}\n@${who.split('@')[0]}, recibiste ${dmt} ${currency}`, m, { mentions: [who] })
+      const mentioned = m.mentionedJid;
+      let who2 = mentioned && mentioned.length > 0
+        ? mentioned[0]
+        : (m.quoted ? m.quoted.sender : null);
+
+      // Si no hay mención ni quoted, intentar con argumento de número telefónico
+      if (!who2 && args[0] && /^@?[0-9]{7,16}$/.test(args[0].replace(/@s\.whatsapp\.net$/, ''))) {
+        who2 = args[0].replace(/[^0-9]/g, '') + '@s.whatsapp.net';
       }
-      if (command === 'addxp') {
-        if (!who) return client.reply(m.chat, 'Por favor, menciona al usuario o cita un mensaje.', m)
-        const xpTxt = args.find(arg => !isNaN(arg) && !arg.includes('@'))
-        if (!xpTxt) return client.reply(m.chat, 'Ingresa la cantidad de experiencia (XP) que deseas añadir.\nEjemplo: !addxp @usuario 50', m)
-        if (isNaN(xpTxt)) return client.reply(m.chat, 'Solo números son permitidos.', m)
-        await m.react('🕒')
-        const xp = parseInt(xpTxt)
-        if (xp < 1) {
-          await m.react('✖️')
-          return client.reply(m.chat, 'El mínimo de experiencia (XP) es *1*', m)
-        }
-        if (!global.db.data.users) global.db.data.users = {}
-        const userData = global.db.data.users
-        if (!userData[who]) {
-          userData[who] = { exp: 0 }
-        }
-        userData[who].exp += xp
-        await m.react('✔️')
-        return client.reply(m.chat, `XP Añadido: *${xp}*\n@${who.split('@')[0]}, recibiste ${xp} XP`, m, { mentions: [who] })
+
+      if (!who2) {
+        return m.reply(`⚠️ Por favor, menciona al usuario o cita un mensaje.\n*Ejemplo:* \`${usedPrefix + command} @usuario 1000\``);
       }
+
+      const who = await resolveLidToRealJid(who2, client, m.chat);
+      if (!who) return m.reply('❌ No se pudo resolver el usuario.');
+
+      const bot = getBotSettings(client);
+      const currency = bot.currency || '$';
+
+      const numTxt = args.find((arg) => !isNaN(arg) && !arg.includes('@'));
+      if (!numTxt) {
+        return m.reply(`⚠️ Ingresa una cantidad válida.\n*Ejemplo:* \`${usedPrefix + command} @usuario 1000\``);
+      }
+
+      const val = parseInt(numTxt);
+      if (isNaN(val) || val < 0) {
+        return m.reply('❌ Solo se permiten números enteros positivos.');
+      }
+
+      await m.react('🕒');
+
+      if (!global.db.data.users) global.db.data.users = {};
+      if (!global.db.data.users[who]) {
+        global.db.data.users[who] = { coins: 0, exp: 0, bank: 0 };
+      }
+
+      const user = global.db.data.users[who];
+      user.coins = typeof user.coins === 'number' ? user.coins : 0;
+      user.exp = typeof user.exp === 'number' ? user.exp : 0;
+
+      const userTag = `@${who.split('@')[0]}`;
+      let responseText = '';
+
+      switch (command) {
+        case 'addcoin':
+          user.coins += val;
+          responseText = `💰 *Monedas Añadidas*\nSe añadieron *+${val.toLocaleString()} ${currency}* a ${userTag}.\nSaldo actual: *${user.coins.toLocaleString()} ${currency}*`;
+          break;
+
+        case 'delcoin':
+          user.coins = Math.max(0, user.coins - val);
+          responseText = `💸 *Monedas Retiradas*\nSe retiraron *-${val.toLocaleString()} ${currency}* a ${userTag}.\nSaldo actual: *${user.coins.toLocaleString()} ${currency}*`;
+          break;
+
+        case 'setcoin':
+          user.coins = val;
+          responseText = `💵 *Saldo Establecido*\nEl saldo de ${userTag} se ha fijado en *${val.toLocaleString()} ${currency}*.`;
+          break;
+
+        case 'addxp':
+          user.exp += val;
+          responseText = `✨ *XP Añadida*\nSe añadieron *+${val.toLocaleString()} XP* a ${userTag}.\nXP actual: *${user.exp.toLocaleString()} XP*`;
+          break;
+
+        case 'delxp':
+          user.exp = Math.max(0, user.exp - val);
+          responseText = `🔻 *XP Retirada*\nSe retiraron *-${val.toLocaleString()} XP* a ${userTag}.\nXP actual: *${user.exp.toLocaleString()} XP*`;
+          break;
+
+        case 'setxp':
+          user.exp = val;
+          responseText = `🎯 *XP Establecida*\nLa experiencia de ${userTag} se ha fijado en *${val.toLocaleString()} XP*.`;
+          break;
+      }
+
+      // Persistir inmediatamente en SQLite
+      global.saveDatabaseAsync?.();
+
+      await m.react('✔️');
+      return client.sendMessage(m.chat, { text: responseText, mentions: [who] }, { quoted: m });
     } catch (error) {
-      console.error(error)
-      await m.react('✖️')
-      return client.reply(m.chat, `⚠︎ Se ha producido un problema.\n${error.message}`, m)
+      console.error('[Owner Add Error]:', error);
+      await m.react('✖️');
+      return m.reply(`⚠️ Se produjo un error al procesar el comando:\n${error.message}`);
     }
-  }
-}
+  },
+};

@@ -1,7 +1,7 @@
 import { getBotSettings } from '../../utils/tools.js';
 
 export default {
-  command: ['ping', 'p'],
+  command: ['ping', 'speed', 'latencia'],
   category: 'info',
   desc: 'Muestra la latencia actual del bot.',
   run: async (client, m) => {

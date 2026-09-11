@@ -24,8 +24,10 @@ export default {
       config.id = info.id;
       config.nameid = info.thread_metadata?.name?.text || "Canal sin nombre";
       config.link = value; // Guardar el link por si otros comandos lo necesitan
-      
-      return m.reply(`❀ Se cambió el canal del Socket a *"${config.nameid}"* correctamente.`)
+
+      global.saveDatabaseAsync?.();
+
+      return m.reply(`❀ Se cambió el canal del Socket a *"${config.nameid}"* correctamente.`);
     } catch (e) {
       return m.reply(`❌ Error al procesar el canal.\n[Error: *${e.message}*]`)
     }

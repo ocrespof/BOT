@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { UI } from '../../utils/ui.js';
 import { resetAllApis } from '../../utils/healthChecker.js';
 
@@ -6,19 +5,27 @@ export default {
   command: ['health', 'api', 'apis'],
   category: 'owner',
   isOwner: true,
-  desc: 'Verifica o restablece el estado de las APIs externas',
-  run: async (client, m, args, usedPrefix, command) => {
+  desc: 'Verifica o restablece el estado de salud de los servicios y APIs externas.',
+  run: async (client, m, args) => {
     if (args[0] === 'reset' || args[0] === 'reactivar' || args[0] === 'clear') {
       resetAllApis();
       return m.reply('✅ Todas las APIs externas han sido restablecidas manualmente a **ONLINE** en el HealthChecker y Circuit Breaker.');
     }
-    const key = (await client.sendMessage(m.chat, { text: `> ${UI.symbols.loading} Comprobando el estado de las APIs, por favor espera...` }, { quoted: m })).key;
+
+    const key = (
+      await client.sendMessage(
+        m.chat,
+        { text: `> ${UI?.symbols?.loading || '⏳'} Comprobando el estado de los servicios, por favor espera...` },
+        { quoted: m }
+      )
+    ).key;
 
     const endpoints = [
-      { name: 'Ryzen (Gemini Pro)', url: 'https://api.ryzendesu.vip/api/ai/gemini-pro' },
-      { name: 'Siputzx (Gemini)', url: 'https://api.siputzx.my.id/api/ai/gemini' },
-      { name: 'Siputzx (GPT-4)', url: 'https://api.siputzx.my.id/api/ai/gpt4' },
-      { name: 'Stellar (GPTPrompt)', url: global?.APIs?.stellar?.url ? `${global.APIs.stellar.url}/ai/gptprompt` : 'https://api.yuki-wabot.my.id/ai/gptprompt' }
+      { name: 'Pollinations AI (Image/Text)', url: 'https://image.pollinations.ai/prompt/test?width=10&height=10' },
+      { name: 'Siputzx API', url: 'https://api.siputzx.my.id/api/ai/gemini' },
+      { name: 'Ryzen VIP API', url: 'https://api.ryzendesu.vip/api/ai/gemini-pro' },
+      { name: 'Midvash (Bible API)', url: 'https://api.midvash.com/api/v1/bible/es/rvr1960/juan/3/16' },
+      { name: 'TinyURL Service', url: 'https://tinyurl.com/api-create.php?url=https://google.com' },
     ];
 
     let resultsText = '';
@@ -26,47 +33,39 @@ export default {
     let checkedCount = 0;
 
     for (const ep of endpoints) {
-      if (!ep.url) {
-        resultsText += `\n${UI.symbols.warn} *${ep.name}* \n⚠️ No configurada (Falta API Key)`;
-        continue;
-      }
+      if (!ep.url) continue;
       checkedCount++;
+      const start = Date.now();
       try {
-        const start = Date.now();
-        if (ep.method === 'POST' && ep.isOfficial) {
-          // Send a dummy request to check if it's reachable and auth works
-          const headers = { 'Content-Type': 'application/json' };
-          if (ep.name.includes('Gemini')) {
-            const keys = global?.APIs?.gemini?.keys;
-            if (!keys || keys.length === 0) throw new Error('No keys');
-            headers['X-goog-api-key'] = keys[0];
-          }
-          await axios.post(ep.url, { contents: [{ role: 'user', parts: [{ text: 'hi' }] }] }, { headers, timeout: 5000 });
-        } else {
-          await axios.get(ep.url, { timeout: 5000 });
-        }
-        
+        const res = await fetch(ep.url, {
+          method: 'GET',
+          signal: AbortSignal.timeout(4000),
+        });
         const ms = Date.now() - start;
-        resultsText += `\n${UI.symbols.success} *${ep.name}* \n⏱️ ${ms}ms`;
-        onlineCount++;
-      } catch (err) {
-        // A 400 Bad Request from an Official API usually means it's online but our dummy payload was slightly off or requires specific params, so it's technically online. 401/403 means auth error.
-        if (err.response && (err.response.status === 400 || err.response.status === 403)) {
-          const ms = 150; // estimate
-          resultsText += `\n${UI.symbols.success} *${ep.name}* \n⏱️ ${ms}ms (Online, Auth/Req Info: ${err.response.status})`;
+
+        // Códigos 200, 400, o 401 indican que el servidor está alcanzable
+        if (res.ok || res.status === 400 || res.status === 401 || res.status === 403) {
+          const succSymbol = UI?.symbols?.success || '🟢';
+          resultsText += `\n${succSymbol} *${ep.name}*\n⏱️ ${ms}ms · Status: ${res.status}`;
           onlineCount++;
         } else {
-          resultsText += `\n${UI.symbols.error} *${ep.name}* \n❌ Inactiva / Error`;
+          const warnSymbol = UI?.symbols?.warn || '🟡';
+          resultsText += `\n${warnSymbol} *${ep.name}*\n⚠️ Inestable (${res.status})`;
         }
+      } catch (err) {
+        const errSymbol = UI?.symbols?.error || '🔴';
+        resultsText += `\n${errSymbol} *${ep.name}*\n❌ Fuera de línea (${err.name === 'TimeoutError' ? 'Timeout' : 'Error'})`;
       }
     }
 
-    const messageContent = UI.box(
-      'Estado del Sistema (APIs)',
-      `Total APIs verificadas: ${checkedCount}\nEn línea: ${onlineCount}\nFuera de línea: ${checkedCount - onlineCount}\n${resultsText}`,
-      `Powered by YukiBot`
-    );
+    const report =
+      `╭━━━━ 🌐 *ESTADO DE SERVICIOS* ━━━━╮\n` +
+      `│ Total verificados: ${checkedCount}\n` +
+      `│ En línea: ${onlineCount} | Fuera de línea: ${checkedCount - onlineCount}\n` +
+      `├──────────────────────────┤` +
+      `${resultsText}\n` +
+      `╰━━━━━━━━━━━━━━━━━━━━━━━━━━╯`;
 
-    await client.sendMessage(m.chat, { text: messageContent, edit: key });
-  }
+    await client.sendMessage(m.chat, { text: report, edit: key });
+  },
 };

@@ -274,7 +274,7 @@ const cmdConnect4 = {
     );
 
     await client.sendMessage(m.chat, {
-      text: `🔴🟡 *C O N E C T A  4* 🟡🔴\n\n@${m.sender.split("@")[0]} 🔴 vs @${opponent.split("@")[0]} 🟡\n💰 *Apuesta:* ${apuesta} XP por jugador\n\n${renderC4Board(board)}\nTurno de @${m.sender.split("@")[0]} 🔴\n*Escribe un número del 1 al 7* para soltar tu ficha.`,
+      text: `🔴🟡 *C O N E C T A  4* 🟡🔴\n\n@${m.sender.split("@")[0]} 🔴 vs @${opponent.split("@")[0]} 🟡\n💰 *Apuesta:* ${apuesta} XP por jugador\n\n${renderC4Board(board)}\nTurno de @${m.sender.split("@")[0]} 🔴\n• *Escribe un número del 1 al 7* para soltar tu ficha.\n• Escribe *rendirme* para abandonar.`,
       mentions: [m.sender, opponent],
     });
   },
@@ -381,18 +381,50 @@ async function handleTtt(client, m) {
 async function handleC4(client, m) {
   const game = gameEngine.get(m.chat, "connect4");
   if (!game) return false;
-  if (!/^[1-7]$/.test(m.text.trim())) return false;
+
+  const text = m.text.trim().toLowerCase();
+  const senderJid = client.decodeJid(m.sender);
+
+  // Rendirse en Conecta 4
+  const isSurrender = /^(surrender|rendirme|rendirse|me rindo|salir|abandonar)$/i.test(text);
+  if (isSurrender) {
+    if (senderJid !== game.players.R && senderJid !== game.players.Y) return false;
+
+    const winnerId = senderJid === game.players.R ? game.players.Y : game.players.R;
+    gameEngine.end(m.chat, "connect4");
+
+    const ganancia = game.apuesta * 2;
+    gameEngine.reward(winnerId, { xp: ganancia, win: true });
+    gameEngine.loss(senderJid);
+    await client.sendMessage(m.chat, {
+      text: `🏳️ *@${senderJid.split("@")[0]}* se ha rendido en Conecta 4.\n🏆 ¡@${winnerId.split("@")[0]} gana la partida y se lleva *${ganancia} XP*!`,
+      mentions: [senderJid, winnerId],
+    });
+    return true;
+  }
+
+  if (!/^[1-7]$/.test(text)) return false;
 
   const currentPlayer = client.decodeJid(game.players[game.turn]);
-  const senderJid = client.decodeJid(m.sender);
-  if (senderJid !== currentPlayer) return false;
+  if (senderJid !== currentPlayer) {
+    if (senderJid === game.players.R || senderJid === game.players.Y) {
+      const turnEmoji = game.turn === "R" ? "🔴" : "🟡";
+      await client.sendMessage(
+        m.chat,
+        { text: `❌ ¡No es tu turno! Turno de @${currentPlayer.split("@")[0]} ${turnEmoji}.`, mentions: [currentPlayer] },
+        { quoted: m }
+      );
+      return true;
+    }
+    return false;
+  }
 
-  const col = parseInt(m.text.trim()) - 1;
+  const col = parseInt(text) - 1;
   const row = dropPiece(game.board, col, game.turn);
   if (row === -1) {
     await client.sendMessage(
       m.chat,
-      { text: `⚠️ La columna ${col + 1} está llena.` },
+      { text: `⚠️ La columna ${col + 1} está llena. Elige otra columna (1-7).` },
       { quoted: m },
     );
     return true;
@@ -431,7 +463,7 @@ async function handleC4(client, m) {
   const nextPlayer = game.players[game.turn],
     nextEmoji = game.turn === "R" ? "🔴" : "🟡";
   await client.sendMessage(m.chat, {
-    text: `🔴🟡 *C O N E C T A  4* 🟡🔴\n\n${renderC4Board(game.board)}\nTurno de @${nextPlayer.split("@")[0]} ${nextEmoji}`,
+    text: `🔴🟡 *C O N E C T A  4* 🟡🔴\n\n${renderC4Board(game.board)}\nTurno de @${nextPlayer.split("@")[0]} ${nextEmoji}\n• Escribe (1-7) o *rendirme*`,
     mentions: [nextPlayer],
   });
   return true;

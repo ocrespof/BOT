@@ -1,234 +1,348 @@
 /**
  * 🎓 ia_academia.js — Comandos de ayuda académica, generación y procesamiento de textos e imágenes por IA.
- * Reúne: solve, resumir, corregir, humanizar, apa, imagine
+ * Reúne: solve, resumir, corregir, humanizar, apa, imagine, vis (análisis visual), pomo (pomodoro)
  */
 import { getAIResponse } from '../../utils/ai.js';
 import { formatAPA } from '../../utils/apaHelper.js';
-import axios from 'axios';
+import { downloadContentFromMessage } from '@whiskeysockets/baileys';
 
-const IMAGE_APIS = [
+// Proveedores de generación de imágenes con fallback
+const IMAGE_PROVIDERS = [
   (p) => `https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=1024&height=1024&nologo=true&enhance=true`,
-  (p) => `https://api.siputzx.my.id/api/ai/text2img?prompt=${encodeURIComponent(p)}`,
-  (p) => `https://dalle.stacktoy.workers.dev/?apikey=Suhail&prompt=${encodeURIComponent(p)}`
+  (p) => `https://api.siputzx.my.id/api/ai/text2img?prompt=${encodeURIComponent(p)}`
 ];
+
+// Almacén en memoria para temporizadores Pomodoro activos
+const activePomodoros = new Map();
 
 const cmdSolve = {
   command: ['solve', 'solucionar', 'resolver'],
-  category: 'academia', desc: 'Resuelve ecuaciones.',
+  category: 'academia',
+  desc: 'Resuelve problemas matemáticos, físicos o lógicos con desarrollo paso a paso.',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ').trim();
     if (!text) {
-      return m.reply(` Por favor, ingresa el problema matemático que deseas resolver.\n*Ejemplo:* ${usedPrefix + command} 2x + 5 = 15`);
+      return m.reply(`📐 Ingresa la ecuación o problema que deseas resolver.\n*Ejemplo:* \`${usedPrefix + command} 2x + 5 = 15\``);
     }
 
     try {
       await m.react('🕒');
-      const { key } = await client.sendMessage(m.chat, { text: `*Procesando solución paso a paso...*` }, { quoted: m });
-      
-      const systemPrompt = `Eres un experto matemático con formación doctoral. Resuelve el problema con rigor académico. Estructura obligatoria: 1) Identificar el tipo de problema y los datos. 2) Plantear la estrategia de resolución. 3) Desarrollar cada paso con justificación algebraica. 4) Verificar el resultado sustituyendo en la ecuación original. 5) Enunciar la respuesta final con notación precisa. No uses emojis. No agregues comentarios motivacionales. Usa negritas solo para el resultado final. Idioma: español.`;
-      
-      const responseText = await getAIResponse({ content: text, prompt: systemPrompt, user: m.sender, memory: false });
+      const { key } = await client.sendMessage(m.chat, { text: `📐 *Analizando y resolviendo problema paso a paso...*` }, { quoted: m });
 
-      await client.sendMessage(m.chat, { text: responseText, edit: key });
+      const prompt = `Eres un tutor doctoral de matemáticas y ciencias exactas. Resuelve el problema planteado con máximo rigor pedagógico.
+Estructura obligatoria:
+1. Planteamiento e identificación de incógnitas/datos.
+2. Procedimiento algebraico detallado paso a paso.
+3. Verificación o comprobación del resultado.
+4. Resultado final destacado con notación clara.
+Idioma: Español. No agregues comentarios innecesarios.`;
+
+      const responseText = await getAIResponse({ content: text, prompt, user: m.sender });
+      await client.sendMessage(m.chat, { text: responseText.trim(), edit: key });
       await m.react('✔️');
     } catch (error) {
-      console.error("[Solve] Error:", error.message || error);
-      await m.react('✖️');
-      await m.reply(`> Ocurrió un error al intentar resolver el problema.\n[Error: *${error.message || 'Desconocido'}*]`);
+      await m.react('❌');
+      return m.reply(`> ⚠️ Error al resolver el problema: ${error.message || 'Servidor saturado'}`);
     }
   }
 };
 
 const cmdResumir = {
   command: ['resumir', 'res', 'resumen'],
-  category: 'academia', desc: 'Resumir textos largos.',
+  category: 'academia',
+  desc: 'Sintetiza y resume textos extensos destacando ideas clave.',
   run: async (client, m, args, usedPrefix, command) => {
-    const text = args.join(' ').trim();
-    if (!text) return m.reply(` Escribe o pega el texto que deseas resumir.\n*Ejemplo:* ${usedPrefix + command} La mitocondria es...`);
-    
+    let text = args.join(' ').trim();
+    if (m.quoted && (m.quoted.text || m.quoted.caption)) {
+      text = m.quoted.text || m.quoted.caption;
+    }
+
+    if (!text) {
+      return m.reply(`📝 Escribe o responde al texto que deseas resumir.\n*Ejemplo:* \`${usedPrefix + command} La fotosíntesis es el proceso...\``);
+    }
+
     try {
-      const { key } = await client.sendMessage(m.chat, { text: `*IA* está leyendo tu texto para resumirlo...` }, { quoted: m });
       await m.react('🕒');
-      const logic = "Eres un asistente académico de alto rendimiento. Analiza el texto proporcionado y extrae las ideas principales con precisión quirúrgica. Estructura: 1) Tesis o idea central (1 oración). 2) Ideas secundarias (3-5 viñetas concisas). 3) Datos clave o cifras mencionadas. Elimina información redundante o decorativa. No uses emojis. No agregues opiniones. Devuelve solo el resumen estructurado.";
-      
-      const responseText = await getAIResponse({ content: text, prompt: logic, user: m.sender });
-      if (!responseText) return client.reply(m.chat, ' No se ha podido generar el resumen en este momento.');
-      
-      await client.sendMessage(m.chat, { text: `*📝 RESUMEN ESTUDIANTIL*\n\n${responseText.trim()}`, edit: key });
+      const { key } = await client.sendMessage(m.chat, { text: `📑 *Leyendo y abstrayendo ideas clave...*` }, { quoted: m });
+
+      const prompt = `Eres un asistente de investigación académica. Resume el texto destacando:
+1. Tesis o concepto central (1-2 oraciones).
+2. Puntos clave e ideas secundarias (viñetas claras y concisas).
+3. Conclusiones o implicaciones.
+Elimina paja y redundancias. Devuelve el resumen estructurado en limpio.`;
+
+      const responseText = await getAIResponse({ content: text, prompt, user: m.sender });
+      await client.sendMessage(m.chat, {
+        text: `📝 *RESUMEN ACADÉMICO*\n\n${responseText.trim()}`,
+        edit: key
+      });
       await m.react('✔️');
     } catch (e) {
       await m.react('❌');
-      m.reply(` Error al comunicarse con el motor de Inteligencia Artificial:\n${e.message}`);
+      return m.reply(`> ⚠️ Error al generar el resumen: ${e.message}`);
     }
   }
 };
 
 const cmdCorregir = {
   command: ['corregir', 'corr', 'ortografia'],
-  category: 'academia', desc: 'Corrector ortográfico.',
+  category: 'academia',
+  desc: 'Corrector ortográfico, gramatical y sintáctico avanzado.',
   run: async (client, m, args, usedPrefix, command) => {
     let text = args.join(' ').trim();
-    if (m.quoted && m.quoted.text) text = m.quoted.text;
-    if (!text) return m.reply(` Escribe o responde a un mensaje para corregirlo.\n*Ejemplo:* ${usedPrefix + command} Ola como ezta el profe`);
-    
+    if (m.quoted && (m.quoted.text || m.quoted.caption)) {
+      text = m.quoted.text || m.quoted.caption;
+    }
+
+    if (!text) {
+      return m.reply(`✍️ Escribe o responde al mensaje que deseas corregir.\n*Ejemplo:* \`${usedPrefix + command} ola komo estas\``);
+    }
+
     try {
-      const { key } = await client.sendMessage(m.chat, { text: `*Autocorrector* analizando...` }, { quoted: m });
       await m.react('🕒');
-      
-      const logic = "Actúa como un corrector de estilo profesional con nivel de publicación editorial. Corrige ortografía, gramática, puntuación, concordancia y sintaxis. Mantén el significado y tono original del autor. Devuelve ÚNICAMENTE el texto corregido en limpio, listo para copiar. No agregues notas, explicaciones, saludos ni comentarios sobre los errores encontrados.";
-      const responseText = await getAIResponse({ content: text, prompt: logic, user: m.sender });
-      if (!responseText) throw new Error("Vacio");
-      
-      await client.sendMessage(m.chat, { text: `*📝 TEXTO CORREGIDO*\n\n${responseText.trim()}`, edit: key });
+      const { key } = await client.sendMessage(m.chat, { text: `✍️ *Revisando gramática, concordancia y ortografía...*` }, { quoted: m });
+
+      const prompt = `Actúa como un corrector de estilo editorial profesional. Corrige ortografía, tildes, signos de puntuación, sintaxis y concordancia. Mantén el sentido y vocabulario original del autor. Devuelve ÚNICAMENTE el texto corregido en limpio sin notas ni explicaciones.`;
+      const responseText = await getAIResponse({ content: text, prompt, user: m.sender });
+
+      await client.sendMessage(m.chat, {
+        text: `✍️ *TEXTO CORREGIDO*\n\n${responseText.trim()}`,
+        edit: key
+      });
       await m.react('✔️');
     } catch (e) {
       await m.react('❌');
-      m.reply(` Error al corregir el texto. Intenta de nuevo.`);
+      return m.reply(`> ⚠️ Error al corregir el texto: ${e.message}`);
     }
   }
 };
 
 const cmdHumanizar = {
   command: ['humanizar', 'hum', 'humanize', 'parafrasear', 'parf', 'reescribir'],
-  category: 'academia', desc: 'Humanizar texto IA.',
+  category: 'academia',
+  desc: 'Reescribe o humaniza textos para reducir la detección de IA o mejorar el estilo.',
   run: async (client, m, args, usedPrefix, command) => {
     let text = args.join(' ').trim();
-    if (m.quoted && m.quoted.text) text = m.quoted.text;
-
-    const isParafrasear = ['parafrasear', 'parf', 'reescribir'].includes(command);
-    if (text.length > 2000) {
-      return m.reply('⚠️ El texto supera los 2000 caracteres permitidos. Por favor, divídelo en partes más pequeñas.');
+    if (m.quoted && (m.quoted.text || m.quoted.caption)) {
+      text = m.quoted.text || m.quoted.caption;
     }
 
+    const isParafrasear = ['parafrasear', 'parf', 'reescribir'].includes(command.toLowerCase());
     if (!text) {
-      if (isParafrasear) {
-        return m.reply(` Escribe o responde a un mensaje para parafrasearlo.\n*Ejemplo:* ${usedPrefix + command} La fotosíntesis es fundamental...`);
-      }
-      return m.reply(` Por favor, ingresa o responde al texto que deseas humanizar.\nEjemplo: *${usedPrefix + command}* La inteligencia artificial es un área multidisciplinaria...`);
+      const mode = isParafrasear ? 'parafrasear' : 'humanizar';
+      return m.reply(`📝 Ingresa o responde al texto que deseas ${mode}.\n*Ejemplo:* \`${usedPrefix + command} La inteligencia artificial es...\``);
+    }
+
+    if (text.length > 2500) {
+      return m.reply('⚠️ El texto supera los 2,500 caracteres recomendados. Divídelo en partes más breves.');
     }
 
     try {
-      const initMsg = isParafrasear
-        ? `*Reescritura Inteligente* procesando la semántica...`
-        : `⚙️ *Analizando y humanizando texto...* (Procesamiento avanzado anti-detección)`;
-      const { key } = await client.sendMessage(m.chat, { text: initMsg }, { quoted: m });
       await m.react('⏳');
+      const initMsg = isParafrasear
+        ? `🔄 *Parafraseando texto y enriqueciendo estructura...*`
+        : `🧬 *Humanizando redacción y optimizando naturalidad...*`;
+      const { key } = await client.sendMessage(m.chat, { text: initMsg }, { quoted: m });
 
-      const logicHum = `Eres un especialista en lingüística computacional y evasión de detectores de IA. Reescribe el texto para hacerlo indetectable como IA.
-TÉCNICAS OBLIGATORIAS:
-1. Variar longitud de oraciones (3-25 palabras) para maximizar burstiness.
-2. Insertar conectores naturales del habla académica española (no obstante, cabe señalar, en efecto).
-3. Sustituir vocabulario genérico de IA por terminología específica del dominio.
-4. Eliminar patrones paralelos y estructuras repetitivas.
-5. Mantener hechos, datos y significado original intactos.
-6. Tono: académico profesional, no conversacional.
-DEVUELVE ÚNICAMENTE JSON VÁLIDO:
-{
-  "original_ai_score": "Ej: 98%",
-  "new_ai_score": "Ej: 0%",
-  "humanized_text": "Texto reescrito aquí"
-}`;
+      const promptParf = `Eres un editor académico. Parafrasea el texto manteniendo el significado original exacto pero cambiando la estructura sintáctica, usando sinónimos formales y variando la longitud de oraciones. Devuelve únicamente el texto parafraseado sin notas.`;
+      const promptHum = `Eres un especialista en estilística y lingüística aplicada. Reescribe el texto para darle un tono completamente humano, natural y fluido en español. Varía el ritmo de las oraciones, añade conectores naturales y elimina frases cliché típicas de modelos de lenguaje. Devuelve únicamente el texto reescrito en limpio.`;
 
-      const logicParf = `Eres un editor académico profesional. Parafrasea el texto con transformación estructural profunda. Técnicas: 1) Inversión sintáctica de cláusulas. 2) Sustitución por sinónimos de registro equivalente. 3) Conversión entre voz activa y pasiva. 4) Reestructuración de párrafos manteniendo coherencia lógica. Mantener hechos y datos intactos. Devuelve ÚNICAMENTE el texto parafraseado final sin notas, saludos ni bloques de código.`;
+      const prompt = isParafrasear ? promptParf : promptHum;
+      const responseText = await getAIResponse({ content: text, prompt, user: m.sender });
 
-      const prompt = isParafrasear ? logicParf : logicHum;
-      const aiResponse = await getAIResponse({ content: text, prompt, user: m.sender });
-
-      let finalMessage = '';
-      if (isParafrasear) {
-        finalMessage = `*🔄 TEXTO PARAFRASEADO*\n\n${aiResponse.trim()}`;
-      } else {
-        const cleaned = aiResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
-        let parsedData;
-        try {
-          const match = cleaned.match(/\{[\s\S]*\}/);
-          parsedData = match ? JSON.parse(match[0]) : {};
-        } catch (e) {
-          parsedData = { original_ai_score: '?%', new_ai_score: '?%', humanized_text: cleaned };
-        }
-        finalMessage = `⚙️ 𝗔𝗡𝗔́𝗟𝗜𝗦𝗜𝗦 𝗗𝗘 𝗛𝗨𝗠𝗔𝗡𝗜𝗭𝗔𝗖𝗜𝗢́𝗡 ⚙️\n\n` +
-          `📊 *Resultado de Pruebas:*\n` +
-          `🔴 Huella IA Original: *${parsedData.original_ai_score || '?%'}*\n` +
-          `🟢 Huella IA Humanizada: *${parsedData.new_ai_score || '?%'}*\n` +
-          `──────────────────\n\n` +
-          `📝 *Texto Modificado:*\n${parsedData.humanized_text || parsedData}`;
-      }
-
-      await client.sendMessage(m.chat, { text: finalMessage, edit: key });
+      const header = isParafrasear ? '🔄 *TEXTO PARAFRASEADO*' : '🧬 *TEXTO HUMANIZADO*';
+      await client.sendMessage(m.chat, {
+        text: `${header}\n\n${responseText.trim()}`,
+        edit: key
+      });
       await m.react('✔️');
     } catch (e) {
       await m.react('❌');
-      const errMsg = e.response ? `Servidor saturado (Status: ${e.response.status})` : e.message;
-      m.reply(`> ⚠️ Error al procesar el texto: ${errMsg}\nSi el texto es muy largo, divídelo en partes.`);
+      return m.reply(`> ⚠️ Error al procesar el texto: ${e.message}`);
     }
   }
 };
 
 const cmdApa = {
   command: ['apa', 'bibguru', 'citar'],
-  category: 'academia', desc: 'Genera una cita APA 7ma edición de un enlace.', usage: '[url]',
-  run: async (client, m, args) => {
+  category: 'academia',
+  desc: 'Genera una cita bibliográfica en formato APA 7ma edición a partir de un enlace.',
+  usage: '<url>',
+  run: async (client, m, args, usedPrefix, command) => {
     const url = args.join(' ').trim();
     if (!url) {
-      return m.reply(` Por favor, proporciona el enlace completo (URL) del artículo que deseas citar.`);
+      return m.reply(`🎓 Ingresa la URL del artículo o sitio web a citar.\n*Ejemplo:* \`${usedPrefix + command} https://es.wikipedia.org/wiki/Ciencia\``);
     }
     if (!/^https?:\/\/\S+$/i.test(url)) {
-      return m.reply(' La URL proporcionada no parece válida. Asegúrate de incluir http/https.');
+      return m.reply('⚠️ La URL no es válida. Debe iniciar con `http://` o `https://`.');
     }
+
     try {
       await m.react('⏳');
       const citation = await formatAPA(url, client, m);
-      await m.reply(`┌───「 🎓 *CITA APA (7ma)* 🎓 」───┐\n│\n│ ${citation}\n│\n└───────────────────────────┘`);
+      const text = `┌───「 🎓 *REFERENCIA APA (7ª ED.)* 🎓 」───┐\n│\n│ ${citation}\n│\n└──────────────────────────────────────────┘`;
+      await m.reply(text);
       await m.react('✔️');
     } catch (e) {
-      await m.react('✖️');
-      m.reply(`> ⚠️ Error al generar la cita: ${e.message}`);
+      await m.react('❌');
+      return m.reply(`> ⚠️ Error al generar la cita APA: ${e.message}`);
     }
   }
 };
 
 const cmdImagine = {
-  command: ['imagine', 'dibujar', 'dibuja'],
-  category: 'academia', desc: 'Genera una imagen usando Inteligencia Artificial.', usage: '.imagine <texto>',
+  command: ['imagine', 'dibujar', 'dibuja', 'aiimage'],
+  category: 'academia',
+  desc: 'Genera ilustraciones e imágenes a partir de una descripción con IA.',
+  usage: '<descripción>',
   run: async (client, m, args, usedPrefix, command) => {
     const text = args.join(' ').trim();
     if (!text) {
-      return m.reply(` Escribe lo que deseas que la IA dibuje.\nEjemplo: *${usedPrefix + command} un gato astronauta en marte*`);
+      return m.reply(`🎨 Escribe lo que deseas que la IA dibuje.\n*Ejemplo:* \`${usedPrefix + command} Un astronauta leyendo un libro en la luna, arte digital 4k\``);
     }
 
     await m.react('🕒');
     let imageBuffer = null;
 
-    try {
-      for (const apiFn of IMAGE_APIS) {
-        try {
-          const url = apiFn(text);
-          const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 30000 });
-          if (res.data && res.data.length > 0) {
-            imageBuffer = res.data;
+    for (const provider of IMAGE_PROVIDERS) {
+      try {
+        const url = provider(text);
+        const res = await fetch(url, { signal: AbortSignal.timeout(18000) });
+        if (res.ok) {
+          const ab = await res.arrayBuffer();
+          if (ab && ab.byteLength > 1000) {
+            imageBuffer = Buffer.from(ab);
             break;
           }
-        } catch (e) {
-          console.log(`Fallo un proveedor de imagen, intentando el siguiente...`);
         }
-      }
+      } catch {}
+    }
 
-      if (!imageBuffer) {
-        throw new Error('Todos los proveedores de generación de imágenes fallaron.');
-      }
-
-      await client.sendMessage(
-        m.chat, 
-        { image: imageBuffer, caption: `🎨 *IMAGINE IA*\nPrompt: ${text}` }, 
-        { quoted: m }
-      );
-      await m.react('✔️');
-    } catch (err) {
-      console.error('[IMAGINE]', err);
+    if (!imageBuffer) {
       await m.react('❌');
-      await m.reply(`> Ha ocurrido un error al generar la imagen.\n[Error: ${err.message}]`);
+      return m.reply('❌ No se pudo generar la imagen en este momento. Intenta con otra descripción.');
+    }
+
+    await client.sendMessage(
+      m.chat,
+      { image: imageBuffer, caption: `🎨 *IMAGEN GENERADA POR IA*\n_Prompt:_ "${text}"` },
+      { quoted: m }
+    );
+    await m.react('✔️');
+  }
+};
+
+const cmdVis = {
+  command: ['vis', 'iavisual', 'leerimagen', 'analizarfoto'],
+  category: 'academia',
+  desc: 'Análisis visual de imágenes, problemas matemáticos, esquemas o diagramas.',
+  usage: '<pregunta> (adjuntando o respondiendo a una imagen)',
+  run: async (client, m, args, usedPrefix, command) => {
+    const q = m.quoted ? m.quoted : m;
+    const mime = (q.msg || q).mimetype || q.mediaType || '';
+    const isImage = /image/.test(mime) || q.type === 'imageMessage';
+
+    if (!isImage) {
+      return m.reply(`📸 Envía o responde a una imagen con tu pregunta.\n*Ejemplo:* \`${usedPrefix + command} Resuelve el ejercicio matemático de esta foto.\``);
+    }
+
+    const question = args.join(' ').trim() || 'Describe y resuelve detalladamente lo que aparece en la imagen con rigor académico.';
+
+    try {
+      await m.react('🕒');
+      const { key } = await client.sendMessage(m.chat, { text: `👁️ *Analizando imagen con visión computacional...*` }, { quoted: m });
+
+      let imageBuffer = null;
+      if (typeof q.download === 'function') {
+        imageBuffer = await q.download();
+      } else {
+        const stream = await downloadContentFromMessage(q.msg || q, 'image');
+        const chunks = [];
+        for await (const chunk of stream) chunks.push(chunk);
+        imageBuffer = Buffer.concat(chunks);
+      }
+
+      if (!imageBuffer || imageBuffer.length === 0) {
+        await m.react('❌');
+        return m.reply('❌ No se pudo descargar la imagen para el análisis.');
+      }
+
+      const prompt = `Eres un tutor académico con capacidades de visión por computadora. Analiza la imagen suministrada (fórmulas, problemas, gráficos o diagramas) y responde la consulta con precisión pedagógica. Pregunta: "${question}"`;
+
+      const aiResponse = await getAIResponse({
+        content: question,
+        prompt,
+        imageBuffer,
+        user: m.sender
+      });
+
+      await client.sendMessage(m.chat, {
+        text: `👁️ *ANÁLISIS VISUAL ACADÉMICO*\n\n${aiResponse.trim()}`,
+        edit: key
+      });
+      await m.react('✔️');
+    } catch (e) {
+      await m.react('❌');
+      return m.reply(`> ⚠️ Error en el análisis visual: ${e.message}`);
     }
   }
 };
 
-export default [cmdSolve, cmdResumir, cmdCorregir, cmdHumanizar, cmdApa, cmdImagine];
+const cmdPomo = {
+  command: ['pomo', 'pomodoro', 'estudio'],
+  category: 'academia',
+  desc: 'Temporizador Pomodoro para sesiones de estudio enfocadas.',
+  usage: '[minutos / stop]',
+  run: async (client, m, args, usedPrefix, command) => {
+    const sessionKey = `${m.sender}_${m.chat}`;
+    const sub = (args[0] || '').toLowerCase();
+
+    if (sub === 'stop' || sub === 'cancel' || sub === 'parar') {
+      const active = activePomodoros.get(sessionKey);
+      if (!active) {
+        return m.reply('ℹ️ No tienes ningún temporizador Pomodoro activo.');
+      }
+      clearTimeout(active.timer);
+      activePomodoros.delete(sessionKey);
+      return m.reply('🛑 *Sesión Pomodoro cancelada.*');
+    }
+
+    if (activePomodoros.has(sessionKey)) {
+      const active = activePomodoros.get(sessionKey);
+      const remainingMs = active.endsAt - Date.now();
+      const remainingMin = Math.max(1, Math.ceil(remainingMs / 60000));
+      return m.reply(`⏳ Ya tienes un Pomodoro en curso. Faltan aproximadamente *${remainingMin} minutos*.\nUsa \`${usedPrefix + command} stop\` si deseas detenerlo.`);
+    }
+
+    let studyMinutes = parseInt(args[0]) || 25;
+    if (studyMinutes < 1 || studyMinutes > 120) {
+      return m.reply('⚠️ Por favor ingresa un tiempo entre 1 y 120 minutos (por defecto 25).');
+    }
+
+    const durationMs = studyMinutes * 60 * 1000;
+    const endsAt = Date.now() + durationMs;
+
+    const timer = setTimeout(async () => {
+      activePomodoros.delete(sessionKey);
+      const endMessage =
+        `⏰ *¡TIEMPO POMODORO CUMPLIDO!* ⏰\n\n` +
+        `@${m.sender.split('@')[0]}, completaste tu sesión de estudio de *${studyMinutes} minutos*.\n` +
+        `☕ Es momento de un descanso de *5 minutos*.\n` +
+        `_Usa \`${usedPrefix + command} 5\` para cronometrar tu descanso._`;
+
+      await client.sendMessage(m.chat, { text: endMessage, mentions: [m.sender] });
+    }, durationMs);
+
+    activePomodoros.set(sessionKey, { timer, endsAt, studyMinutes });
+
+    const startMessage =
+      `🍅 *SESIÓN POMODORO INICIADA* 🍅\n\n` +
+      `⏱️ *Tiempo de enfoque:* ${studyMinutes} minutos\n` +
+      `🎯 *Consejo:* Silencia distracciones y concéntrate en una sola tarea.\n\n` +
+      `_Te avisaré cuando termine el bloque. Para cancelar: \`${usedPrefix + command} stop\`_`;
+
+    return client.sendMessage(m.chat, { text: startMessage }, { quoted: m });
+  }
+};
+
+export default [cmdSolve, cmdResumir, cmdCorregir, cmdHumanizar, cmdApa, cmdImagine, cmdVis, cmdPomo];
