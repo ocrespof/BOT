@@ -2,14 +2,13 @@
 import config from '../config.js';
 import axios from 'axios';
 import https from 'https';
-import { isApiOnline, setApiOffline } from './healthChecker.js';
 
 /**
  * Centralized AI client with fallback chain.
  * Timeout-optimized for Termux: aggressive timeouts, no wasted cycles.
  */
 
-const AI_TIMEOUT = 12000;
+const AI_TIMEOUT = 8000;
 
 // Agente HTTPS para ignorar certificados autofirmados (ej. Ryzen)
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });

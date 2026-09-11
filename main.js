@@ -14,11 +14,16 @@ import {
 import { dbStorage, DbSession } from "./core/system/database.js";
 import Logger from "./utils/logger.js";
 
+let initPromise = null;
 export const initCommands = async () => {
-  await seeCommands();
+  if (initPromise) return initPromise;
+  initPromise = seeCommands().catch((err) => {
+    initPromise = null;
+    Logger.error("Error al cargar comandos:", err);
+    throw err;
+  });
+  return initPromise;
 };
-
-initCommands().catch((err) => Logger.error("Error al cargar comandos:", err));
 
 const middlewares = [
   dbInitMiddleware,

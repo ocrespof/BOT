@@ -155,6 +155,7 @@ export function canLevelUp(level, xp, multiplier = global.multiplier || 2) {
 }
 
 // ── Group Meta (cached) ──
+const localGroupMetaCache = new NodeCache({ stdTTL: 300, checkperiod: 60, useClones: false });
 
 export async function getGroupMeta(client, chatId) {
   if (!chatId?.endsWith('@g.us')) return null;
@@ -162,9 +163,15 @@ export async function getGroupMeta(client, chatId) {
     const cached = global.groupMetaCache.get(chatId);
     if (cached) return cached;
   }
-  const metadata = await client.groupMetadata(chatId).catch(() => null);
-  if (metadata && global.groupMetaCache) {
-    global.groupMetaCache.set(chatId, metadata);
+  const localCached = localGroupMetaCache.get(chatId);
+  if (localCached) return localCached;
+
+  const metadata = await client?.groupMetadata?.(chatId).catch(() => null);
+  if (metadata) {
+    localGroupMetaCache.set(chatId, metadata);
+    if (global.groupMetaCache) {
+      global.groupMetaCache.set(chatId, metadata);
+    }
   }
   return metadata;
 }

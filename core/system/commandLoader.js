@@ -52,6 +52,7 @@ class CommandRegistry {
       for (const cmd of cmds) {
         if (cmd) {
           this.comandos.set(cmd.toLowerCase(), {
+            ...comando,
             pluginName,
             run: comando.run,
             category: comando.category || 'uncategorized',
@@ -59,6 +60,7 @@ class CommandRegistry {
             isAdmin: comando.isAdmin || false,
             botAdmin: comando.botAdmin || false,
             isPrivate: comando.isPrivate || false,
+            heavy: comando.heavy || false,
             economy: comando.economy || false,
             desc: comando.desc || comando.description || '',
             usage: comando.usage || '',

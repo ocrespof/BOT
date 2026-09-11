@@ -117,12 +117,18 @@ export default async (client, m) => {
           await client.sendMessage(anu.id, { image: { url: pp }, caption, mentions: [jid], ...fakeContext });
         }
         if (anu.action === 'promote' && chat?.alerts && (!primaryBotId || primaryBotId === botId)) {
-          const usuario = anu.author
-          await client.sendMessage(anu.id, { text: `「」 *@${phone}* ha sido promovido a Administrador por *@${usuario.split('@')[0]}.*`, mentions: [jid, usuario, ...groupAdmins.map(v => v.id)] })
+          const usuario = anu.author || anu.actor || ''
+          const byStr = usuario ? ` por *@${usuario.split('@')[0]}*` : ''
+          const adminMentions = groupAdmins.map(v => v.id || v.jid).filter(Boolean)
+          const mentions = [jid, ...(usuario ? [usuario] : []), ...adminMentions]
+          await client.sendMessage(anu.id, { text: `「」 *@${phone}* ha sido promovido a Administrador${byStr}.`, mentions }).catch(() => {})
         }
         if (anu.action === 'demote' && chat?.alerts && (!primaryBotId || primaryBotId === botId)) {
-          const usuario = anu.author
-          await client.sendMessage(anu.id, { text: `「」 *@${phone}* ha sido degradado de Administrador por *@${usuario.split('@')[0]}.*`, mentions: [jid, usuario, ...groupAdmins.map(v => v.id)] })
+          const usuario = anu.author || anu.actor || ''
+          const byStr = usuario ? ` por *@${usuario.split('@')[0]}*` : ''
+          const adminMentions = groupAdmins.map(v => v.id || v.jid).filter(Boolean)
+          const mentions = [jid, ...(usuario ? [usuario] : []), ...adminMentions]
+          await client.sendMessage(anu.id, { text: `「」 *@${phone}* ha sido degradado de Administrador${byStr}.`, mentions }).catch(() => {})
         }
       }
     } catch (err) {
@@ -132,36 +138,39 @@ export default async (client, m) => {
   // Remove previous stub handler to prevent duplication on reconnect
   if (client._stubHandler) client.ev.off('messages.upsert', client._stubHandler);
   client._stubHandler = async ({ messages }) => {
-    const m = messages[0]
-    if (!m.messageStubType) return
-    const id = m.key.remoteJid
+    const m = messages?.[0]
+    if (!m || !m.messageStubType) return
+    const id = m.key?.remoteJid
+    if (!id) return
     const chat = global.db.data.chats[id]
     const botId = getBotId(client)
     const primaryBotId = chat?.primaryBot
     if (!chat?.alerts || (primaryBotId && primaryBotId !== botId)) return
     const isSelf = getBotSettings(client)?.self ?? false
     if (isSelf) return
-    const actor = m.key?.participant || m.participant || m.key?.remoteJid
-    const phone = actor.split('@')[0]
+    const actor = m.key?.participant || m.participant || m.key?.remoteJid || ''
+    const phone = actor.split('@')[0] || ''
     const groupMetadata = await getGroupMeta(client, id)
-    const groupAdmins = groupMetadata?.participants.filter(p => (p.admin === 'admin' || p.admin === 'superadmin')) || []
+    const groupAdmins = groupMetadata?.participants?.filter(p => (p.admin === 'admin' || p.admin === 'superadmin')) || []
+    const adminMentions = groupAdmins.map(v => v.id || v.jid).filter(Boolean)
+    const mentions = [actor, ...adminMentions].filter(Boolean)
     if (m.messageStubType == 21) {
-      await client.sendMessage(id, { text: `「」 @${phone} cambió el nombre del grupo a *${m.messageStubParameters[0]}*`, mentions: [actor, ...groupAdmins.map(v => v.id)] })
+      await client.sendMessage(id, { text: `「」 @${phone} cambió el nombre del grupo a *${m.messageStubParameters?.[0] || ''}*`, mentions }).catch(() => {})
     }
     if (m.messageStubType == 22) {
-      await client.sendMessage(id, { text: `「」 @${phone} cambió el icono del grupo.`, mentions: [actor, ...groupAdmins.map(v => v.id)] })
+      await client.sendMessage(id, { text: `「」 @${phone} cambió el icono del grupo.`, mentions }).catch(() => {})
     }
     if (m.messageStubType == 23) {
-      await client.sendMessage(id, { text: `「」 @${phone} restableció el enlace del grupo.`, mentions: [actor, ...groupAdmins.map(v => v.id)] })
+      await client.sendMessage(id, { text: `「」 @${phone} restableció el enlace del grupo.`, mentions }).catch(() => {})
     }
     if (m.messageStubType == 24) {
-      await client.sendMessage(id, { text: `「」 @${phone} cambió la descripción del grupo.`, mentions: [actor, ...groupAdmins.map(v => v.id)] })
+      await client.sendMessage(id, { text: `「」 @${phone} cambió la descripción del grupo.`, mentions }).catch(() => {})
     }
     if (m.messageStubType == 25) {
-      await client.sendMessage(id, { text: `「」 @${phone} cambió los ajustes del grupo para permitir que ${m.messageStubParameters[0] == 'on' ? 'solo admins' : 'todos'} puedan configurar el grupo.`, mentions: [actor, ...groupAdmins.map(v => v.id)] })
+      await client.sendMessage(id, { text: `「」 @${phone} cambió los ajustes del grupo para permitir que ${m.messageStubParameters?.[0] == 'on' ? 'solo admins' : 'todos'} puedan configurar el grupo.`, mentions }).catch(() => {})
     }
     if (m.messageStubType == 26) {
-      await client.sendMessage(id, { text: `「」 @${phone} cambió los ajustes del grupo para permitir que ${m.messageStubParameters[0] === 'on' ? 'solo los administradores puedan enviar mensajes al grupo.' : 'todos los miembros puedan enviar mensajes al grupo.'}`, mentions: [actor, ...groupAdmins.map(v => v.id)] })
+      await client.sendMessage(id, { text: `「」 @${phone} cambió los ajustes del grupo para permitir que ${m.messageStubParameters?.[0] === 'on' ? 'solo los administradores puedan enviar mensajes al grupo.' : 'todos los miembros puedan enviar mensajes al grupo.'}`, mentions }).catch(() => {})
     }
   }
   client.ev.on('messages.upsert', client._stubHandler);

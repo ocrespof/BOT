@@ -180,11 +180,13 @@ export async function getFile(PATH, saveToFile = false) {
   if (!Buffer.isBuffer(data)) throw new TypeError('Result is not a buffer');
   const type = (await FileType.fromBuffer(data)) || { mime: 'application/octet-stream', ext: '.bin' };
   if (data && saveToFile && !filename) {
-    filename = path.join(__dirname, '../tmp/' + new Date() * 1 + '.' + type.ext);
+    const tmpDir = path.join(__dirname, '../tmp');
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+    filename = path.join(tmpDir, new Date() * 1 + '.' + type.ext);
     await fs.promises.writeFile(filename, data);
   }
   return { res, filename, ...type, data, deleteFile() {
-      return filename && fs.promises.unlink(filename);
+      return filename && fs.promises.unlink(filename).catch(() => {});
     },
   };
 }
@@ -495,8 +497,15 @@ export async function smsg(client, m, store) {
         }
       }
     }
-    m.command = m.body && m.body.replace(m.usedPrefix, '').trim().split(/ +/).shift();
-    m.args = m.body ?.trim().replace(new RegExp('^' + (m.usedPrefix || '').replace(/[.*=+:\-?^${}()|[\]\\]|\s/g, '\\$&'), 'i'), '').replace(m.command, '').split(/ +/).filter((a) => a) || [];
+    const trimmedBody = m.body ? m.body.slice(m.usedPrefix.length).trim() : '';
+    const firstSpace = trimmedBody.search(/\s/);
+    if (firstSpace === -1) {
+      m.command = trimmedBody;
+      m.args = [];
+    } else {
+      m.command = trimmedBody.slice(0, firstSpace);
+      m.args = trimmedBody.slice(firstSpace).trim().split(/\s+/).filter(Boolean);
+    }
     m.device = getDevice(m.id);
     m.expiration = m.msg?.contextInfo?.expiration || m?.metadata?.ephemeralDuration || client?.messages?.[m.chat]?.array?.slice(-1)[0]?.metadata?.ephemeralDuration || 0;
     m.timestamp = (typeof m.messageTimestamp === 'number' ? m.messageTimestamp : m.messageTimestamp.low ? m.messageTimestamp.low : m.messageTimestamp.high) || m.msg.timestampMs * 1000;
@@ -560,7 +569,7 @@ export async function smsg(client, m, store) {
       m.quoted.fakeObj = proto.WebMessageInfo.fromObject({ key: { remoteJid: m.quoted.chat, fromMe: m.quoted.fromMe, id: m.quoted.id }, message: m.quoted, ...(m.isGroup ? { participant: m.quoted.sender } : {}) });
       m.quoted.download = () => client.downloadMediaMessage(m.quoted);
       m.quoted.delete = () => {
-        client.sendMessage(m.quoted.chat, { delete: { remoteJid: m.quoted.chat, fromMe: m.isBotAdmin ? false : true, id: m.quoted.id, participant: m.quoted.sender }});
+        client.sendMessage(m.quoted.chat, { delete: { remoteJid: m.quoted.chat, fromMe: m.isBotAdmin ? false : true, id: m.quoted.id, participant: m.quoted.sender }}).catch(() => {});
       };
     }
   }
@@ -580,17 +589,14 @@ export async function smsg(client, m, store) {
       return client.sendMessage(chat, content, { ...options, quoted, ephemeralExpiration });
     } else if (typeof content === 'string') {
       try {
-        if (/^https?:\/\//.test(content)) {
+        if (/^https?:\/\/[^\s]+\.(jpe?g|png|gif|webp|mp4|mp3|ogg|wav|pdf)($|\?)/i.test(content.trim())) {
           const data = await axios.get(content, { responseType: 'arraybuffer' });
-          const mime = data.headers['content-type'] || (await FileType.fromBuffer(data.data)).mime;
+          const mime = data.headers['content-type'] || (await FileType.fromBuffer(data.data))?.mime || '';
           if (/gif|image|video|audio|pdf|stream/i.test(mime)) {
             return client.sendFile(chat, data.data, '', caption, quoted, false, options);
-          } else {
-            return client.sendMessage(chat, { text: content, mentions, ...options }, { quoted, ephemeralExpiration });
           }
-        } else {
-          return client.sendMessage(chat, { text: content, mentions, ...options }, { quoted, ephemeralExpiration });
         }
+        return client.sendMessage(chat, { text: content, mentions, ...options }, { quoted, ephemeralExpiration });
       } catch (e) {
         return client.sendMessage(chat, { text: content, mentions, ...options }, { quoted, ephemeralExpiration });
       }

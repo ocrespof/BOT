@@ -23,7 +23,7 @@ export async function resolveLidToRealJid(lid, client, groupChatId) {
 
   if (lidCache.has(input)) return lidCache.get(input);
 
-  const lidBase = input.split('@')[0];
+  const lidBase = input.includes(':') ? input.split(':')[0] : input.split('@')[0];
   let metadata = getCachedMetadata(groupChatId);
 
   if (!metadata && client && typeof client.groupMetadata === 'function') {
@@ -31,28 +31,31 @@ export async function resolveLidToRealJid(lid, client, groupChatId) {
       metadata = await client.groupMetadata(groupChatId);
       if (metadata) groupMetadataCache.set(groupChatId, metadata);
     } catch {
-      lidCache.set(input, input);
+      lidCache.set(input, input, 30); // Negative TTL corto (30s) ante fallo transitorio
       return input;
     }
   }
 
   if (metadata && Array.isArray(metadata.participants)) {
     for (const p of metadata.participants) {
-      const idBase = p?.id?.split('@')[0]?.trim();
-      const lidIdBase = p?.lid?.split('@')[0]?.trim();
+      const rawId = p?.id || '';
+      const rawLid = p?.lid || '';
+      const idBase = rawId.includes(':') ? rawId.split(':')[0] : rawId.split('@')[0]?.trim();
+      const lidIdBase = rawLid.includes(':') ? rawLid.split(':')[0] : rawLid.split('@')[0]?.trim();
       const phoneRaw = p?.phoneNumber || p?.jid;
       const phone = normalizeToJid(phoneRaw);
       if (phone && (idBase === lidBase || lidIdBase === lidBase)) {
         lidCache.set(input, phone);
         return phone;
       }
-      if (p?.id && p.id.endsWith('@s.whatsapp.net') && (idBase === lidBase || lidIdBase === lidBase)) {
-        lidCache.set(input, p.id);
-        return p.id;
+      if (rawId && rawId.endsWith('@s.whatsapp.net') && (idBase === lidBase || lidIdBase === lidBase)) {
+        const cleanId = rawId.includes(':') ? rawId.split(':')[0] + '@s.whatsapp.net' : rawId;
+        lidCache.set(input, cleanId);
+        return cleanId;
       }
     }
   }
 
-  lidCache.set(input, input);
+  lidCache.set(input, input, 120); // 2 min negative TTL si no se encontró en metadata actual
   return input;
 }

@@ -94,19 +94,19 @@ async function cleanCache() {
     }
     const sessionsFolder = './Sessions';
     if (fs.existsSync(sessionsFolder)) {
-      const getFolderSizeMB = async (dir) => {
+      const getFolderSizeBytes = async (dir) => {
         let total = 0;
         const files = await fs.promises.readdir(dir);
         for (const file of files) {
           try {
             const filePath = path.join(dir, file);
             const stat = await fs.promises.stat(filePath);
-            total += stat.isDirectory() ? await getFolderSizeMB(filePath) : stat.size;
+            total += stat.isDirectory() ? await getFolderSizeBytes(filePath) : stat.size;
           } catch { }
         }
-        return total / (1024 * 1024);
+        return total;
       };
-      const sizeMB = await getFolderSizeMB(sessionsFolder);
+      const sizeMB = (await getFolderSizeBytes(sessionsFolder)) / (1024 * 1024);
       if (sizeMB > maxCache) {
         console.log(chalk.yellow(`[ ⚠ ] Sessions ${sizeMB.toFixed(1)}MB — purgando sync temporal...`));
         // Solo purgar archivos de sincronización temporal app-state, NUNCA llaves criptográficas (pre-keys, sender-keys, session)
@@ -495,7 +495,11 @@ async function startBot() {
           const sid = msg.key.remoteJid + ':' + msg.key.id;
           msgStore.set(sid, msg.message);
           msgStore.set(msg.key.id, msg.message);
-          if (msgStore.size > msgLimit * 2) msgStore.delete(msgStore.keys().next().value);
+          while (msgStore.size > msgLimit * 2) {
+            const firstKey = msgStore.keys().next().value;
+            if (firstKey !== undefined) msgStore.delete(firstKey);
+            else break;
+          }
         }
 
         if (msg.pushName) {
@@ -535,7 +539,8 @@ async function startBot() {
   };
 }
 
-setInterval(cleanCache, 5 * 60 * 1000);
+const cacheInterval = setInterval(cleanCache, 5 * 60 * 1000);
+if (cacheInterval.unref) cacheInterval.unref();
 cleanCache();
 
 

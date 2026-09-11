@@ -13,16 +13,18 @@ function getTimestamp() {
 }
 
 function writeLog(level, message, error = null) {
-  const timestamp = getTimestamp();
-  let logLine = `[${timestamp}] [${level}] ${message}`;
-  if (error && error.stack) {
-    logLine += `\n${error.stack}`;
-  } else if (error) {
-    logLine += `\n${error}`;
-  }
-  
-  const logFile = path.join(logDir, level === 'ERROR' ? 'error.log' : 'combined.log');
-  fs.appendFileSync(logFile, logLine + '\n', 'utf8');
+  try {
+    const timestamp = getTimestamp();
+    let logLine = `[${timestamp}] [${level}] ${message}`;
+    if (error && error.stack) {
+      logLine += `\n${error.stack}`;
+    } else if (error) {
+      logLine += `\n${error}`;
+    }
+    
+    const logFile = path.join(logDir, level === 'ERROR' ? 'error.log' : 'combined.log');
+    fs.appendFileSync(logFile, logLine + '\n', 'utf8');
+  } catch {}
 }
 
 const Logger = {

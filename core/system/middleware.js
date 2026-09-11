@@ -129,6 +129,22 @@ const ALLOWED_IN_PRIVATE = new Set([
   "inv",
   "inventory",
   "inventario",
+  // Stickers
+  "s",
+  "sticker",
+  "wm",
+  "take",
+  "brat",
+  "bratv",
+  "qc",
+  "emojimix",
+  // Descargas adicionales
+  "twitter",
+  "x",
+  "threads",
+  "ytmp3",
+  "ytmp4",
+  "media",
 ]);
 
 // Recalculates Colombia today date string
@@ -449,17 +465,34 @@ export async function commandParserMiddleware(ctx, next) {
   const { m, match, settings } = ctx;
 
   let usedPrefix = (match[0] || [])[0] || "";
-  let args = m.text.slice(usedPrefix.length).trim().split(" ").filter(Boolean);
+  const body = m.text.slice(usedPrefix.length).trim();
   let command;
+  let text = "";
+  let args = [];
+
   if (ctx.customCmd) {
     command = ctx.customCmd;
+    text = body;
+    args = body.split(/\s+/).filter(Boolean);
   } else {
-    command = (args.shift() || "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+    const firstSpaceIdx = body.search(/\s/);
+    if (firstSpaceIdx === -1) {
+      command = body
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      text = "";
+      args = [];
+    } else {
+      command = body
+        .slice(0, firstSpaceIdx)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      text = body.slice(firstSpaceIdx).trim();
+      args = text.split(/\s+/).filter(Boolean);
+    }
   }
-  let text = args.join(" ");
 
   if (!command) return;
 
@@ -499,7 +532,7 @@ export async function restrictionGuardsMiddleware(ctx, next) {
   if (!isOwners && settings.self) return;
 
   if (m.chat && !m.chat.endsWith("g.us") && !isOwners) {
-    if (!ALLOWED_IN_PRIVATE.has(command)) return;
+    if (!ALLOWED_IN_PRIVATE.has(command) && !cmdData?.isPrivate) return;
   }
 
   if (chat?.isBanned && !(command === "bot" && text === "on") && !isOwners) {

@@ -65,7 +65,8 @@ function toStore(val) {
 const TEXT_COLUMNS = [
   'name', 'pasatiempo', 'description', 'marry', 'genre', 'birth',
   'sWelcome', 'sGoodbye', 'afkReason', 'primaryBot', 'newsletter_id',
-  'nameid', 'link', 'banner', 'icon', 'currency', 'namebot', 'botname', 'owner'
+  'nameid', 'link', 'banner', 'icon', 'currency', 'namebot', 'botname', 'owner',
+  'title', 'bannedReason', 'bibleVersion'
 ];
 
 function parseRow(row, jsonFields) {
@@ -129,7 +130,19 @@ export const defUser = {
   monthlyStreak: 0,
   lastMonthlyGlobal: 0,
   banned: 0,
-  bannedReason: ''
+  bannedReason: '',
+  marryAnime: null,
+  lastDate: 0,
+  title: '',
+  xpBoost: null,
+  shield: null,
+  luckBuff: null,
+  fortuneBuff: null,
+  triviaBuff: null,
+  dungeonBuff: null,
+  fenixRevive: 0,
+  extraDaily: 0,
+  cooldownSkip: 0
 };
 
 export const defChat = {
@@ -148,10 +161,13 @@ export const defChat = {
   antistatus: 0,
   rolls: '{}',
   warnLimit: 3,
-  expulsar: 1
+  expulsar: 1,
+  bible: 1,
+  bibleVersion: 'NBLA'
 };
 
 export const defChatUser = {
+  name: '',
   coins: 0,
   bank: 0,
   lastCmd: 0,
@@ -162,7 +178,8 @@ export const defChatUser = {
   stamina: 100,
   magic: 100,
   characters: '[]',
-  stats: '{}'
+  stats: '{}',
+  warnings: '[]'
 };
 
 export const defSets = {
@@ -185,9 +202,12 @@ export const defStickerPack = {
   packs: '[]'
 };
 
-const userJsonFields = ['metadatos', 'metadatos2', 'inventory', 'luckBuff', 'fortuneBuff', 'xpBoost', 'shield'];
+const userJsonFields = [
+  'metadatos', 'metadatos2', 'inventory', 'luckBuff', 'fortuneBuff',
+  'xpBoost', 'shield', 'triviaBuff', 'dungeonBuff', 'marryAnime'
+];
 const chatJsonFields = ['rolls'];
-const chatUserJsonFields = ['characters', 'stats'];
+const chatUserJsonFields = ['characters', 'stats', 'warnings'];
 const settingsJsonFields = ['prefix'];
 
 export function initDB() {
@@ -696,12 +716,16 @@ try {
       else if (typeof defaultValue === 'boolean') sqlType = 'BOOLEAN';
       const defaultStr = defaultValue === null ? 'NULL' : JSON.stringify(defaultValue);
       db.exec(`ALTER TABLE ${table.name} ADD COLUMN ${col} ${sqlType} DEFAULT ${defaultStr}`);
+      for (const k of Object.keys(stmts).filter(k => k.includes(table.name))) {
+        try { stmts[k].finalize?.(); } catch { }
+        delete stmts[k];
+      }
       if (table.name === 'chat_users') {
         for (const row of stmt(`SELECT chat_id, user_id FROM ${table.name}`).all())
-          stmt(`UPDATE ${table.name} SET ${col} = ? WHERE chat_id = ? AND user_id = ?`).run(defaultValue, row.chat_id, row.user_id);
+          stmt(`UPDATE ${table.name} SET ${col} = ? WHERE chat_id = ? AND user_id = ?`).run(toStore(defaultValue), row.chat_id, row.user_id);
       } else {
         for (const row of stmt(`SELECT id FROM ${table.name}`).all())
-          stmt(`UPDATE ${table.name} SET ${col} = ? WHERE id = ?`).run(defaultValue, row.id);
+          stmt(`UPDATE ${table.name} SET ${col} = ? WHERE id = ?`).run(toStore(defaultValue), row.id);
       }
     }
   }

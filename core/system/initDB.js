@@ -66,6 +66,14 @@ function initDB(m, client) {
   user.monthlyStreak ??= 0
   user.lastMonthlyGlobal ??= 0
 
+  // Matrimonio y relaciones
+  user.marry ??= ''
+  user.marryAnime ??= null
+  user.lastDate ??= 0
+  user.title ??= ''
+  user.banned ??= 0
+  user.bannedReason ??= ''
+
   // ── Chat/Grupo ──
   if (!global.db.data.chats[m.chat]) {
     global.db.data.chats[m.chat] = {};
@@ -87,12 +95,15 @@ function initDB(m, client) {
   chat.sGoodbye ??= ''
   chat.warnLimit ??= 3
   chat.expulsar ??= 1
+  chat.bible ??= 1
+  chat.bibleVersion ??= 'NBLA'
 
   if (!chat.users[m.sender]) {
     chat.users[m.sender] = {};
     global.markPartitionDirty('chats');
   }
   chat.users[m.sender].stats ||= {}
+  chat.users[m.sender].warnings ??= []
   chat.users[m.sender].usedTime ??= null
   chat.users[m.sender].lastCmd = isNumber(chat.users[m.sender].lastCmd) ? chat.users[m.sender].lastCmd : 0
 }
