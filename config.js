@@ -49,6 +49,14 @@ export default {
         popcat: { url: 'https://api.popcat.xyz', key: null },
         llama: { url: 'https://ab-llama-ai.abrahamdw882.workers.dev', key: null },
 
+        // Nuevas APIs de Inteligencia Artificial
+        abztech_gemini: { url: 'https://api-abztech.zone.id/ai/gemini', key: null },
+        abztech_perplexity: { url: 'https://api-abztech.zone.id/ai/perplexity', key: null },
+        capilot: { url: 'https://capilotapi.vercel.app', key: null },
+        rebix_deepseek_r1: { url: 'https://api-rebix.zone.id/api/deepseek-r1', key: null },
+        rebix_deepseek_v3: { url: 'https://api-rebix.zone.id/api/deepseek-v3', key: null },
+        rebix_gemini: { url: 'https://api-rebix.zone.id/api/gemini', key: null },
+
         // Secondary fallbacks — used by downloader.js
         ootaizumi: { url: "https://api.ootaizumi.web.id", key: null },
         delirius: { url: "https://api.delirius.online", key: null },
