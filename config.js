@@ -20,27 +20,37 @@ export default {
         botAdmin: ' Este comando solo puede ser ejecutado si el Socket es Administrador del Grupo.'
     },
     giphyApiKey: process.env.GIPHY_API_KEY || 'qnl7ssQChTdPjsKta2Ax2LMaGXz303tq',
-    removeBgKey: process.env.REMOVEBG_KEY  || '',
+    removeBgKey: process.env.REMOVEBG_KEY || '',
 
     APIs: {
-        xteam:    'https://api.xteam.xyz',
-        dzx:      'https://api.dhamzxploit.my.id',
-        lol:      'https://api.lolhuman.xyz',
-        violetics:'https://violetics.pw',
-        neoxr:    'https://api.neoxr.my.id',
+        xteam: 'https://api.xteam.xyz',
+        dzx: 'https://api.dhamzxploit.my.id',
+        lol: 'https://api.lolhuman.xyz',
+        violetics: 'https://violetics.pw',
+        neoxr_legacy: 'https://api.neoxr.my.id',
         zenzapis: 'https://zenzapis.xyz',
-        akuari:   'https://api.akuari.my.id',
-        akuari2:  'https://apimu.my.id',
-        nrtm:     'https://fg-nrtm.ddns.net',
-        fgmods:   'https://api-fgmods.ddns.net',
+        akuari: 'https://api.akuari.my.id',
+        akuari2: 'https://apimu.my.id',
+        nrtm: 'https://fg-nrtm.ddns.net',
 
-        // Primary — most reliable
-        stellar: { url: "https://api.yuki-wabot.my.id", key: "YukiBot-MD" },
-        vreden: { url: "https://api.vreden.web.id", key: null },
-        siputzx: { url: "https://api.siputzx.my.id", key: null },
+        // APIs principales y de la web
+        lolhuman: { url: 'https://api.lolhuman.xyz/api', key: 'GataDiosV3' },
+        stellar: { url: 'https://api.stellarwa.xyz', key: 'GataDios' },
+        skizo: { url: 'https://skizo.tech/api', key: 'GataDios' },
+        alyachan: { url: 'https://api.alyachan.dev/api', key: null },
+        exonity: { url: 'https://exonity.tech/api', key: 'GataDios' },
+        ryzendesu: { url: 'https://api.ryzendesu.vip/api', key: null },
+        neoxr: { url: 'https://api.neoxr.eu/api', key: 'GataDios' },
+        davidcyriltech: { url: 'https://api.davidcyriltech.my.id', key: null },
+        dorratz: { url: 'https://api.dorratz.com', key: null },
+        siputzx: { url: 'https://api.siputzx.my.id/api', key: null },
+        vreden: { url: 'https://api.vreden.web.id/api', key: null },
+        fgmods: { url: 'https://api.fgmods.xyz/api', key: 'elrebelde21' },
+        popcat: { url: 'https://api.popcat.xyz', key: null },
+
         // Secondary fallbacks — used by downloader.js
         ootaizumi: { url: "https://api.ootaizumi.web.id", key: null },
-        delirius: { url: "https://api.delirius.store", key: null },
+        delirius: { url: "https://api.delirius.online", key: null },
         nekolabs: { url: "https://api.nekolabs.web.id", key: null },
         axi: { url: "https://apiaxi.i11.eu", key: null },
         apifaa: { url: "https://api-faa.my.id", key: null },
@@ -49,11 +59,15 @@ export default {
     },
 
     APIKeys: {
-        'https://api.xteam.xyz':       'd90a9e986e18778b',
-        'https://api.lolhuman.xyz':    '85faf717d0545d14074659ad',
-        'https://api.neoxr.my.id':     process.env.NEOXR_KEY   || 'yourkey',
-        'https://violetics.pw':        'beta',
-        'https://zenzapis.xyz':        process.env.ZENZAPIS_KEY || 'yourkey',
-        'https://api-fgmods.ddns.net': 'fg-dylux'
+        'https://api.xteam.xyz': 'd90a9e986e18778b',
+        'https://api.lolhuman.xyz': 'GataDiosV3',
+        'https://api.lolhuman.xyz/api': 'GataDiosV3',
+        'https://api.neoxr.eu/api': 'GataDios',
+        'https://skizo.tech/api': 'GataDios',
+        'https://exonity.tech/api': 'GataDios',
+        'https://api.stellarwa.xyz': 'GataDios',
+        'https://api.fgmods.xyz/api': 'elrebelde21',
+        'https://violetics.pw': 'beta',
+        'https://zenzapis.xyz': process.env.ZENZAPIS_KEY || 'yourkey'
     }
 };
