@@ -13,29 +13,105 @@ const AI_TIMEOUT = 8000;
 // Agente HTTPS para ignorar certificados autofirmados (ej. Ryzen)
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
-export async function getAIResponse({ text, content, prompt, user, imageBuffer }) {
+export async function getAIResponse({ text, content, prompt, user, imageBuffer, preferredProvider }) {
   const query = text || content;
   if (!query) throw new Error('No se proporcionó texto para la IA.');
   const logic = prompt || 'Eres un asistente inteligente. Responde de forma precisa y concisa.';
   const username = user || 'usuario';
 
   const totalLength = query.length + logic.length;
+  const fullPrompt = logic ? `${logic}\n\nPregunta: ${query}` : query;
 
   const apis = [
-    // 1. AB Llama AI (Cloudflare Workers - Rápido, preciso y gratuito)
+    // 1. Rebix DeepSeek-R1 (Razonamiento avanzado)
     {
-      name: 'Llama-Worker',
+      name: 'Rebix-DeepSeek-R1',
+      alias: ['deepseek', 'r1', 'deepseek-r1'],
       skip: Boolean(imageBuffer) || totalLength > 4000,
       call: () => {
-        const fullPrompt = logic ? `${logic}\n\nPregunta: ${query}` : query;
+        const base = config.APIs?.rebix_deepseek_r1?.url || 'https://api-rebix.zone.id/api/deepseek-r1';
+        return axios.get(`${base}?q=${encodeURIComponent(fullPrompt)}`, { timeout: AI_TIMEOUT });
+      },
+      extract: res => res.data?.response
+    },
+    // 2. Rebix DeepSeek-V3 (Modelo versátil y rápido)
+    {
+      name: 'Rebix-DeepSeek-V3',
+      alias: ['deepseek', 'v3', 'deepseek-v3'],
+      skip: Boolean(imageBuffer) || totalLength > 4000,
+      call: () => {
+        const base = config.APIs?.rebix_deepseek_v3?.url || 'https://api-rebix.zone.id/api/deepseek-v3';
+        return axios.get(`${base}?q=${encodeURIComponent(fullPrompt)}`, { timeout: AI_TIMEOUT });
+      },
+      extract: res => res.data?.response
+    },
+    // 3. AB Llama AI (Cloudflare Workers - Rápido, preciso y gratuito)
+    {
+      name: 'Llama-Worker',
+      alias: ['llama', 'meta'],
+      skip: Boolean(imageBuffer) || totalLength > 4000,
+      call: () => {
         const base = config.APIs?.llama?.url || 'https://ab-llama-ai.abrahamdw882.workers.dev';
         return axios.get(`${base}/?q=${encodeURIComponent(fullPrompt)}`, { timeout: AI_TIMEOUT });
       },
       extract: res => res.data?.response || res.data?.data
     },
-    // 2. Siputzx (Luminai — POST con soporte multimedia)
+    // 4. Abztech Gemini (POST primario, GET fallback)
+    {
+      name: 'Abztech-Gemini',
+      alias: ['gemini', 'google'],
+      skip: Boolean(imageBuffer) || totalLength > 4000,
+      call: async () => {
+        const base = config.APIs?.abztech_gemini?.url || 'https://api-abztech.zone.id/ai/gemini';
+        try {
+          return await axios.post(base, { message: fullPrompt }, { timeout: AI_TIMEOUT, headers: { 'Content-Type': 'application/json' } });
+        } catch {
+          return await axios.get(`${base}?message=${encodeURIComponent(fullPrompt)}`, { timeout: AI_TIMEOUT });
+        }
+      },
+      extract: res => res.data?.data?.answer || res.data?.answer
+    },
+    // 5. Rebix Gemini (GET rápido)
+    {
+      name: 'Rebix-Gemini',
+      alias: ['gemini', 'google'],
+      skip: Boolean(imageBuffer) || totalLength > 4000,
+      call: () => {
+        const base = config.APIs?.rebix_gemini?.url || 'https://api-rebix.zone.id/api/gemini';
+        return axios.get(`${base}?q=${encodeURIComponent(fullPrompt)}`, { timeout: AI_TIMEOUT });
+      },
+      extract: res => res.data?.message
+    },
+    // 6. Capilot (Copilot Vercel API)
+    {
+      name: 'Capilot',
+      alias: ['copilot', 'capilot'],
+      skip: Boolean(imageBuffer) || totalLength > 4000,
+      call: () => {
+        const base = config.APIs?.capilot?.url || 'https://capilotapi.vercel.app';
+        return axios.get(`${base}/?q=${encodeURIComponent(fullPrompt)}`, { timeout: AI_TIMEOUT });
+      },
+      extract: res => res.data?.response || res.data?.data?.text
+    },
+    // 7. Abztech Perplexity (POST primario, GET fallback)
+    {
+      name: 'Abztech-Perplexity',
+      alias: ['perplexity'],
+      skip: Boolean(imageBuffer) || totalLength > 4000,
+      call: async () => {
+        const base = config.APIs?.abztech_perplexity?.url || 'https://api-abztech.zone.id/ai/perplexity';
+        try {
+          return await axios.post(base, { query: fullPrompt }, { timeout: AI_TIMEOUT, headers: { 'Content-Type': 'application/json' } });
+        } catch {
+          return await axios.get(`${base}?q=${encodeURIComponent(fullPrompt)}`, { timeout: AI_TIMEOUT });
+        }
+      },
+      extract: res => res.data?.answer
+    },
+    // 8. Siputzx (Luminai — POST con soporte multimedia / visión)
     {
       name: 'Siputzx',
+      alias: ['vision', 'siputzx'],
       skip: false,
       call: () => {
         const payload = { content: query, user: username, prompt: logic, webSearchMode: false };
@@ -44,9 +120,10 @@ export async function getAIResponse({ text, content, prompt, user, imageBuffer }
       },
       extract: res => res.data?.result
     },
-    // 2. Ryzendesu (GPT-4) - GET
+    // 9. Ryzendesu (GPT-4) - GET
     {
       name: 'Ryzen',
+      alias: ['chatgpt', 'gpt', 'ryzen'],
       skip: (imageBuffer ? true : false) || totalLength > 4000,
       call: () => axios.get(`https://api.ryzendesu.vip/api/ai/chatgpt?text=${encodeURIComponent(query)}&prompt=${encodeURIComponent(logic)}`, { 
         timeout: AI_TIMEOUT,
@@ -54,23 +131,33 @@ export async function getAIResponse({ text, content, prompt, user, imageBuffer }
       }),
       extract: res => res.data?.response
     },
-    // 3. AEMT - GET
+    // 10. AEMT - GET
     {
       name: 'AEMT',
+      alias: ['aemt'],
       skip: (imageBuffer ? true : false) || totalLength > 4000,
       call: () => axios.get(`https://aemt.me/prompt/gpt?prompt=${encodeURIComponent(logic)}&text=${encodeURIComponent(query)}`, { timeout: AI_TIMEOUT }),
       extract: res => res.data?.result
     },
-    // 4. Stellar (own API) - GET
+    // 11. Stellar (own API) - GET
     {
       name: 'Stellar',
+      alias: ['stellar'],
       skip: (imageBuffer ? true : false) || totalLength > 4000,
       call: () => axios.get(`${config.APIs.stellar.url}/ai/gptprompt?text=${encodeURIComponent(query)}&prompt=${encodeURIComponent(logic)}&key=${config.APIs.stellar.key}`, { timeout: AI_TIMEOUT }),
       extract: res => res.data?.result?.text || res.data?.result || res.data?.results
     }
   ];
 
-  for (const api of apis) {
+  let chain = apis;
+  if (preferredProvider) {
+    const pref = String(preferredProvider).toLowerCase();
+    const matched = apis.filter(a => a.alias?.includes(pref) || a.name.toLowerCase().includes(pref));
+    const rest = apis.filter(a => !a.alias?.includes(pref) && !a.name.toLowerCase().includes(pref));
+    chain = [...matched, ...rest];
+  }
+
+  for (const api of chain) {
     if (api.skip) continue;
     try {
       const response = await api.call();
@@ -79,7 +166,13 @@ export async function getAIResponse({ text, content, prompt, user, imageBuffer }
       if (result && typeof result === 'string' && result.length > 5) {
         // Filtrar respuestas de error del proveedor (ej: "Error: No WIZ data")
         const lowerResponse = result.toLowerCase().trim();
-        if (lowerResponse.startsWith('error:') || lowerResponse.includes('no wiz data') || lowerResponse.includes('error al procesar')) {
+        if (
+          lowerResponse.startsWith('error:') ||
+          lowerResponse.includes('no wiz data') ||
+          lowerResponse.includes('error al procesar') ||
+          lowerResponse.includes('iscriviti e ripeti') ||
+          lowerResponse.includes('missing \'q\' parameter')
+        ) {
           console.warn(`[AI Client] Proveedor ${api.name} retornó un error de texto en su respuesta. Saltando al fallback...`);
           continue;
         }
