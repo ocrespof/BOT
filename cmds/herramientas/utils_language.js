@@ -90,7 +90,7 @@ async function fallbackGoogleTranslate(text, targetLang) {
 }
 
 const cmdChatGPT = {
-  command: ['ia', 'chatgpt', 'bot', 'gemini'],
+  command: ['ia', 'chatgpt', 'gemini', 'ai'],
   category: 'herramientas',
   desc: 'Asistente de Inteligencia Artificial.',
   usage: '.ia [pregunta / cita imagen]',
