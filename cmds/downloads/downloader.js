@@ -13,6 +13,7 @@ import { scrapeYouTubeAudio, scrapeYouTubeVideo } from '../../utils/youtubeScrap
 import { isApiOnline, setApiOffline } from '../../utils/healthChecker.js';
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
+const getApiBase = (entry) => (entry?.url || entry || '').replace(/\/api\/?$/, '');
 
 // TTL por plataforma (milisegundos). Las descargas directas se cachean 5 min,
 // las búsquedas 2 min porque los resultados cambian más frecuentemente.
@@ -213,7 +214,7 @@ export async function getFacebookMedia(url) {
       }
     },
     {
-      endpoint: `${config.APIs.vreden.url}/api/v1/download/facebook?url=${encodeURIComponent(url)}`,
+      endpoint: `${getApiBase(config.APIs.vreden)}/api/v1/download/facebook?url=${encodeURIComponent(url)}`,
       extractor: res => {
         if (!res.status || !res.result?.download) return null;
         const urlVideo = res.result.download.hd || res.result.download.sd;
@@ -637,7 +638,7 @@ export async function getTikTokData(input, isUrl) {
   } else {
     const apis = [
       { endpoint: `${config.APIs.stellar.url}/search/tiktok?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`, extractor: res => res.status ? res : null },
-      { endpoint: `${config.APIs.vreden.url}/api/v1/search/tiktok?query=${encodeURIComponent(input)}`, extractor: res => {
+      { endpoint: `${getApiBase(config.APIs.vreden)}/api/v1/search/tiktok?query=${encodeURIComponent(input)}`, extractor: res => {
           if (!res.status || !res.result?.search_data) return null;
           const mapped = res.result.search_data.map(v => ({
             title: v.title,
@@ -690,7 +691,7 @@ export async function getPinterestData(input, isUrl) {
 
     const apis = [
       { endpoint: `${config.APIs.stellar.url}/dl/pinterest?url=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`, extractor: res => (res.status && res.data?.dl) ? { type: res.data.type, title: res.data.title || null, author: res.data.author || null, username: res.data.username || null, uploadDate: res.data.uploadDate || null, format: res.data.type === 'video' ? 'mp4' : 'jpg', url: res.data.dl, thumbnail: res.data.thumbnail || null } : null },
-      { endpoint: `${config.APIs.vreden.url}/api/v1/download/pinterest?url=${encodeURIComponent(input)}`, extractor: res => {
+      { endpoint: `${getApiBase(config.APIs.vreden)}/api/v1/download/pinterest?url=${encodeURIComponent(input)}`, extractor: res => {
           if (!res.status || !res.result?.media_urls?.length) return null;
           const media = res.result.media_urls.find(m => m.quality === 'original') || res.result.media_urls[0];
           return media?.url ? { type: media.type, title: res.result.title || null, description: res.result.description || null, author: res.result.uploader?.full_name || null, username: res.result.uploader?.username || null, uploadDate: res.result.created_at || null, likes: res.result.statistics?.likes || null, views: res.result.statistics?.views || null, saved: res.result.statistics?.saved || null, format: media.type, url: media.url } : null;
@@ -713,8 +714,8 @@ export async function getPinterestData(input, isUrl) {
       `${config.APIs.stellar.url}/search/pinterest?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`,
       `${config.APIs.stellar.url}/search/pinterestv2?query=${encodeURIComponent(input)}&key=${config.APIs.stellar.key}`,
       `${config.APIs.delirius.url}/search/pinterestv2?text=${encodeURIComponent(input)}`,
-      `${config.APIs.vreden.url}/api/v1/search/pinterest?query=${encodeURIComponent(input)}`,
-      `${config.APIs.vreden.url}/api/v2/search/pinterest?query=${encodeURIComponent(input)}&limit=10&type=videos`,
+      `${getApiBase(config.APIs.vreden)}/api/v1/search/pinterest?query=${encodeURIComponent(input)}`,
+      `${getApiBase(config.APIs.vreden)}/api/v2/search/pinterest?query=${encodeURIComponent(input)}&limit=10&type=videos`,
       `${config.APIs.delirius.url}/search/pinterest?text=${encodeURIComponent(input)}`
     ];
     
@@ -899,7 +900,7 @@ export async function getYouTubeAudioData(rawUrl) {
       extractor: res => res.url || res.data?.url || res.download ? { url: res.url || res.data?.url || res.download, api: 'RyzenDesu' } : null
     },
     {
-      endpoint: `${config.APIs.vreden?.url || 'https://api.vreden.web.id'}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=256`,
+      endpoint: `${getApiBase(config.APIs.vreden) || 'https://api.vreden.web.id'}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=256`,
       extractor: res => res.result?.download?.url ? { url: res.result.download.url, title: res.result.title, author: res.result.author?.name, duration: res.result.duration, thumbnail: res.result.image, api: 'Vreden' } : null
     },
     {
@@ -952,7 +953,7 @@ export async function getYouTubeVideoData(rawUrl) {
       extractor: res => res.url || res.data?.url || res.download ? { url: res.url || res.data?.url || res.download, api: 'RyzenDesu' } : null
     },
     {
-      endpoint: `${config.APIs.vreden?.url || 'https://api.vreden.web.id'}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=720`,
+      endpoint: `${getApiBase(config.APIs.vreden) || 'https://api.vreden.web.id'}/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=720`,
       extractor: res => res.result?.download?.url ? { url: res.result.download.url, title: res.result.title, author: res.result.author?.name, duration: res.result.duration, thumbnail: res.result.image, api: 'Vreden' } : null
     },
     {
@@ -981,7 +982,7 @@ export async function getYouTubeVideoData(rawUrl) {
 export async function getGoogleImageData(query) {
   const apis = [
     { endpoint: `${config.APIs.stellar.url}/search/googleimagen?query=${encodeURIComponent(query)}&key=${config.APIs.stellar.key}`, extractor: res => res.data?.length ? res.data.map(d => ({ url: d.url, title: d.title || null, domain: d.domain || null, resolution: d.width && d.height ? `${d.width}x${d.height}` : null })) : null },
-    { endpoint: `${config.APIs.siputzx.url}/api/images?query=${encodeURIComponent(query)}`, extractor: res => res.data?.length ? res.data.map(d => ({ url: d.url, title: null, domain: null, resolution: d.width && d.height ? `${d.width}x${d.height}` : null })) : null },
+    { endpoint: `${getApiBase(config.APIs.siputzx) || 'https://api.siputzx.my.id'}/api/images?query=${encodeURIComponent(query)}`, extractor: res => res.data?.length ? res.data.map(d => ({ url: d.url, title: null, domain: null, resolution: d.width && d.height ? `${d.width}x${d.height}` : null })) : null },
     { endpoint: `${config.APIs.delirius.url}/search/gimage?query=${encodeURIComponent(query)}`, extractor: res => res.data?.length ? res.data.map(d => ({ url: d.url, title: d.origin?.title || null, domain: d.origin?.website?.domain || null, resolution: d.width && d.height ? `${d.width}x${d.height}` : null })) : null },
     { endpoint: `${config.APIs.apifaa.url}/faa/google-image?query=${encodeURIComponent(query)}`, extractor: res => res.result?.length ? res.result.map(u => ({ url: u, title: null, domain: null, resolution: null })) : null }
   ];
@@ -1031,7 +1032,7 @@ export async function getTwitterMedia(url) {
       }
     },
     {
-      endpoint: `${config.APIs.siputzx.url}/api/d/twitter?url=${encodeURIComponent(url)}`,
+      endpoint: `${getApiBase(config.APIs.siputzx) || 'https://api.siputzx.my.id'}/api/d/twitter?url=${encodeURIComponent(url)}`,
       extractor: res => {
         if (!res.status || !res.data?.downloadLink) return null;
         return { type: 'video', title: res.data.videoTitle || null, url: res.data.downloadLink, thumbnail: res.data.imgUrl || null };
