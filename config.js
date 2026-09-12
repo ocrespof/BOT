@@ -47,6 +47,7 @@ export default {
         vreden: { url: 'https://api.vreden.web.id/api', key: null },
         fgmods: { url: 'https://api.fgmods.xyz/api', key: 'elrebelde21' },
         popcat: { url: 'https://api.popcat.xyz', key: null },
+        llama: { url: 'https://ab-llama-ai.abrahamdw882.workers.dev', key: null },
 
         // Secondary fallbacks — used by downloader.js
         ootaizumi: { url: "https://api.ootaizumi.web.id", key: null },
