@@ -5,7 +5,7 @@
 import { getGroupMeta, getBotSettings } from '../../utils/tools.js';
 
 const cmdBot = {
-  command: ['bot'],
+  command: ['bot', 'botoff', 'boton'],
   category: 'grupo',
   desc: 'Activar o desactivar las respuestas del bot en el grupo.',
   isAdmin: true,
@@ -13,11 +13,14 @@ const cmdBot = {
     const chat = global.db.data?.chats?.[m.chat];
     if (!chat) return;
 
-    const action = args[0]?.toLowerCase();
+    let action = args[0]?.toLowerCase();
+    if (command === 'botoff') action = 'off';
+    if (command === 'boton') action = 'on';
+
     const isCurrentlyBanned = Boolean(chat.isBanned);
     const botname = getBotSettings(client)?.botname || 'Bot';
 
-    if (action === 'off' || action === 'disable') {
+    if (['off', 'disable', 'apagar', 'desactivar'].includes(action)) {
       if (isCurrentlyBanned) {
         return m.reply(`> ⚠️ *${botname}* ya se encontraba *desactivado* en este grupo.`);
       }
@@ -25,7 +28,7 @@ const cmdBot = {
       return m.reply(`> 🛑 Has *desactivado* a *${botname}* en este grupo.`);
     }
 
-    if (action === 'on' || action === 'enable') {
+    if (['on', 'enable', 'activar', 'encender'].includes(action)) {
       if (!isCurrentlyBanned) {
         return m.reply(`> ⚠️ *${botname}* ya se encontraba *activado* en este grupo.`);
       }
