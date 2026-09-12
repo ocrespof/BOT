@@ -90,9 +90,9 @@ async function fallbackGoogleTranslate(text, targetLang) {
 }
 
 const cmdChatGPT = {
-  command: ['ia', 'chatgpt', 'gemini', 'ai', 'llama'],
+  command: ['ia', 'chatgpt', 'gemini', 'ai', 'llama', 'deepseek', 'copilot', 'perplexity'],
   category: 'herramientas',
-  desc: 'Asistente de Inteligencia Artificial.',
+  desc: 'Asistente de Inteligencia Artificial (DeepSeek, Gemini, Copilot, Perplexity, LLaMA, ChatGPT).',
   usage: '.ia [pregunta / cita imagen]',
   run: async (client, m, args, usedPrefix, command) => {
     let text = args.join(' ').trim();
@@ -122,7 +122,7 @@ const cmdChatGPT = {
         }
       }
 
-      const responseText = await getAIResponse({ content: text, prompt: basePrompt, user: m.sender, imageBuffer });
+      const responseText = await getAIResponse({ content: text, prompt: basePrompt, user: m.sender, imageBuffer, preferredProvider: command });
 
       if (!responseText || !responseText.trim()) {
         throw new Error('Los servidores de IA no devolvieron contenido válido.');
