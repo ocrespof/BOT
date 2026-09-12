@@ -22,7 +22,18 @@ export async function getAIResponse({ text, content, prompt, user, imageBuffer }
   const totalLength = query.length + logic.length;
 
   const apis = [
-    // 1. Siputzx (Luminai — POST) - POST
+    // 1. AB Llama AI (Cloudflare Workers - Rápido, preciso y gratuito)
+    {
+      name: 'Llama-Worker',
+      skip: Boolean(imageBuffer) || totalLength > 4000,
+      call: () => {
+        const fullPrompt = logic ? `${logic}\n\nPregunta: ${query}` : query;
+        const base = config.APIs?.llama?.url || 'https://ab-llama-ai.abrahamdw882.workers.dev';
+        return axios.get(`${base}/?q=${encodeURIComponent(fullPrompt)}`, { timeout: AI_TIMEOUT });
+      },
+      extract: res => res.data?.response || res.data?.data
+    },
+    // 2. Siputzx (Luminai — POST con soporte multimedia)
     {
       name: 'Siputzx',
       skip: false,
