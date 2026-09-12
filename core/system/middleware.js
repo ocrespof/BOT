@@ -535,7 +535,9 @@ export async function restrictionGuardsMiddleware(ctx, next) {
     if (!ALLOWED_IN_PRIVATE.has(command) && !cmdData?.isPrivate) return;
   }
 
-  if (chat?.isBanned && !(command === "bot" && text === "on") && !isOwners) {
+  const isBotControlCmd = (command === "bot" || command === "boton" || command === "botoff");
+  const isWakingBot = (text && ['on', 'enable', 'activar', 'encender'].some(act => text.toLowerCase().startsWith(act))) || command === "boton";
+  if (chat?.isBanned && !(isBotControlCmd && (isAdmins || isOwners || isWakingBot)) && !isOwners) {
     return m.reply(
       `El bot *${settings.botname}* está desactivado en este grupo.\n\nUn *administrador* puede activarlo con:\n*${usedPrefix}bot on*`,
     );
