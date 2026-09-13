@@ -41,6 +41,11 @@ export async function getAIResponse({ text, content, prompt, user, imageBuffer, 
     ? `${COMPACT_AI_SYSTEM_PROMPT}\n\n[Consulta]: ${query}`
     : fullPrompt;
 
+  // Normalización segura de imageBuffer (evita que se serialice un objeto Buffer binario)
+  const safeImage = imageBuffer
+    ? (Buffer.isBuffer(imageBuffer) ? imageBuffer.toString('base64') : String(imageBuffer))
+    : null;
+
   const apis = [
     // 1. Rebix DeepSeek-R1 (Razonamiento avanzado)
     {
@@ -133,8 +138,8 @@ export async function getAIResponse({ text, content, prompt, user, imageBuffer, 
       alias: ['vision', 'siputzx'],
       skip: false,
       call: () => {
-        const payload = { content: query, user: username, prompt: logic, webSearchMode: false };
-        if (imageBuffer) payload.imageBuffer = imageBuffer;
+        const payload = { content: query, user: username, prompt: logic, webSearchMode: false, model: 'gemini' };
+        if (safeImage) payload.imageBuffer = safeImage;
         return axios.post("https://ai.siputzx.my.id", payload, { timeout: AI_TIMEOUT });
       },
       extract: res => res.data?.result

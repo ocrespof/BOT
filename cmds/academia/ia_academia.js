@@ -239,8 +239,8 @@ const cmdVis = {
   usage: '<pregunta> (adjuntando o respondiendo a una imagen)',
   run: async (client, m, args, usedPrefix, command) => {
     const q = m.quoted ? m.quoted : m;
-    const mime = (q.msg || q).mimetype || q.mediaType || '';
-    const isImage = /image/.test(mime) || q.type === 'imageMessage';
+    const mime = q.mime || q.msg?.mimetype || (q.msg || q).mimetype || q.mediaType || '';
+    const isImage = /image/.test(mime) || q.type === 'imageMessage' || q.mtype === 'imageMessage' || Boolean(q.message?.imageMessage);
 
     if (!isImage) {
       return m.reply(`📸 Envía o responde a una imagen con tu pregunta.\n*Ejemplo:* \`${usedPrefix + command} Resuelve el ejercicio matemático de esta foto.\``);
@@ -250,40 +250,96 @@ const cmdVis = {
 
     try {
       await m.react('🕒');
-      const { key } = await client.sendMessage(m.chat, { text: `👁️ *Analizando imagen con visión computacional...*` }, { quoted: m });
+      const { key } = await client.sendMessage(m.chat, { text: `👁️ *Leyendo y analizando imagen con visión computacional...*` }, { quoted: m });
 
       let imageBuffer = null;
-      if (typeof q.download === 'function') {
-        imageBuffer = await q.download();
-      } else {
-        const stream = await downloadContentFromMessage(q.msg || q, 'image');
-        const chunks = [];
-        for await (const chunk of stream) chunks.push(chunk);
-        imageBuffer = Buffer.concat(chunks);
+      try {
+        if (typeof q.download === 'function') {
+          imageBuffer = await q.download();
+        } else if (m.quoted && typeof m.quoted.download === 'function') {
+          imageBuffer = await m.quoted.download();
+        } else {
+          const stream = await downloadContentFromMessage(q.msg || q.message?.imageMessage || q, 'image');
+          const chunks = [];
+          for await (const chunk of stream) chunks.push(chunk);
+          imageBuffer = Buffer.concat(chunks);
+        }
+      } catch (dlErr) {
+        console.error('[Vis] Error al descargar imagen:', dlErr);
       }
 
       if (!imageBuffer || imageBuffer.length === 0) {
         await m.react('❌');
-        return m.reply('❌ No se pudo descargar la imagen para el análisis.');
+        return client.sendMessage(m.chat, { text: '❌ No se pudo descargar la imagen para el análisis.', edit: key });
       }
 
-      const prompt = `Eres un tutor académico con capacidades de visión por computadora. Analiza la imagen suministrada (fórmulas, problemas, gráficos o diagramas) y responde la consulta con precisión pedagógica. Pregunta: "${question}"`;
+      // 1. Extraer texto, fórmulas y diagramas de la imagen con el motor OCR
+      let extractedText = '';
+      try {
+        const body = new URLSearchParams();
+        body.append('apikey', 'helloworld');
+        body.append('base64Image', `data:${mime || 'image/jpeg'};base64,${imageBuffer.toString('base64')}`);
+        body.append('language', 'spa');
+        body.append('isOverlayRequired', 'false');
+        body.append('detectOrientation', 'true');
+        body.append('scale', 'true');
 
+        const ocrRes = await fetch('https://api.ocr.space/parse/image', {
+          method: 'POST',
+          body,
+          signal: AbortSignal.timeout(18000)
+        });
+        const ocrData = await ocrRes.json();
+        if (!ocrData.IsErroredOnProcessing && ocrData.ParsedResults?.[0]?.ParsedText) {
+          extractedText = ocrData.ParsedResults[0].ParsedText.trim();
+        }
+      } catch (ocrErr) {
+        console.warn('[Vis] Error al extraer texto con OCR:', ocrErr.message);
+      }
+
+      // 2. Construir prompt pedagógico para la IA
+      let aiQuery = '';
+      let prompt = '';
+
+      if (extractedText) {
+        prompt = `Eres un tutor doctoral de ciencias exactas y humanidades con visión artificial. Se ha analizado y extraído el contenido visual de la imagen proporcionada por el estudiante.
+Analiza con rigor pedagógico el texto, fórmulas, ecuaciones, ejercicios o diagramas leídos de la foto.
+
+Estructura de respuesta:
+1. Planteamiento e identificación de datos/incógnitas del problema.
+2. Desarrollo detallado paso a paso con explicación clara.
+3. Resultado final destacado y comprobación.
+
+Idioma: Español claro, directo y estructurado con formato markdown.`;
+
+        aiQuery = `Consulta del alumno: "${question}"\n\n[Contenido y fórmulas extraídas de la imagen]:\n"""\n${extractedText}\n"""`;
+      } else {
+        prompt = `Eres un tutor académico y analista visual. El usuario te formula una consulta sobre una imagen: "${question}". Explica detalladamente los principios teóricos o la solución a su inquietud con rigor pedagógico en español.`;
+        aiQuery = `Consulta del estudiante sobre la imagen: "${question}".`;
+      }
+
+      // 3. Obtener resolución con los modelos de razonamiento (DeepSeek-R1, Gemini, Llama)
       const aiResponse = await getAIResponse({
-        content: question,
+        content: aiQuery,
         prompt,
-        imageBuffer,
         user: m.sender
       });
 
+      const finalMessage = extractedText
+        ? `👁️ *ANÁLISIS VISUAL ACADÉMICO*\n\n` +
+          `🔎 *Texto detectado en la imagen:*\n_${extractedText.slice(0, 200).replace(/\n/g, ' ')}${extractedText.length > 200 ? '...' : ''}_\n\n` +
+          `📝 *Resolución Pedagógica:*\n${aiResponse.trim()}`
+        : `👁️ *ANÁLISIS VISUAL ACADÉMICO*\n\n${aiResponse.trim()}\n\n` +
+          `> 💡 *Nota:* Si la imagen contenía fórmulas o texto y no fue detectado, asegúrate de enviar la foto enfocada y con buena iluminación.`;
+
       await client.sendMessage(m.chat, {
-        text: `👁️ *ANÁLISIS VISUAL ACADÉMICO*\n\n${aiResponse.trim()}`,
+        text: finalMessage,
         edit: key
       });
       await m.react('✔️');
     } catch (e) {
       await m.react('❌');
-      return m.reply(`> ⚠️ Error en el análisis visual: ${e.message}`);
+      return m.reply(`> ⚠️ Error en el análisis visual: ${e.message || 'Servidor ocupado'}`);
     }
   }
 };

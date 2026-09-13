@@ -42,11 +42,11 @@ BOT-main/
 │   ├── downloads/        # Descarga de medios (YouTube, TikTok, Instagram, Facebook, Pinterest, X)
 │   ├── economia/         # Sistema RPG, banco, bolsa de trabajo, tienda, títulos e inventario
 │   ├── group/            # Moderación, banners de grupo, sanciones, bienvenida y administración
-│   ├── herramientas/     # Utilidades: IA, ViewOnce (.read), OCR, Remini HD, Shazam y traductores
+│   ├── herramientas/     # Utilidades: IA, ViewOnce (.read), OCR, Remini HD, Shazam, Voice Changer y traductores
 │   ├── juegos/           # Minijuegos interactivos (Ahorcado 2.0, TicTacToe, Conecta 4, Blackjack, Wordle)
 │   ├── main/             # Menú (.menu), monitor del sistema (.botstats), ping y reportes
 │   ├── owner/            # Comandos de mantenimiento, reinicio, actualización y ejecución
-│   ├── profile/          # Perfiles de usuario, fotos HD (.getpic), matrimonio y nivelación
+│   ├── profile/          # Perfiles de usuario, Player Card (.card), fotos HD (.getpic), matrimonio y nivelación
 │   ├── reactions/        # Motor de 60+ reacciones animadas con detección de PushName y género
 │   └── stickers/         # Creación de stickers, Telegram Quotly (.q / .qr), Brat y EmojiMix
 └── utils/
@@ -102,6 +102,7 @@ BOT-main/
 - **Conversión a Imagen (`.toimg`)**: Transforma cualquier sticker en imagen PNG/JPG.
 - **Subida a la Nube (`.tourl`)**: Sube imágenes y archivos para generar un enlace web directo.
 - **Reconocimiento Musical (`.music` / `.shazam`)**: Identificación de canciones desde notas de voz o videos con ACRCloud.
+- **Modulador de Voz / Voice Changer (`.vc` / `.voicechanger`)**: Modula la voz de audios y notas de voz con más de 10 filtros nativos (`.bass`, `.nightcore`, `.robot`, `.ardilla`, `.deep`, `.lento`, `.rapido`, `.reverse`, `.distorsion`, `.bajoagua`, `.eco`, `.vibra`).
 - **Utilidades de Red**: Clima en tiempo real (`.clima`), acortador de enlaces (`.tiny`), traducción multilingüe (`.tr`), generador de códigos QR (`.qr`), recordatorios (`.rec`) e inspección de grupos (`.inspect`).
 
 ### 🎓 Academia Asistida por IA & Biblia
@@ -125,6 +126,7 @@ BOT-main/
 
 ### 👤 Perfil, Nivelación y Parejas
 - **Ficha de Perfil (`.profile`)**: Muestra nivel, experiencia, monedas, títulos, pasatiempo, biografía y estado civil.
+- **Tarjeta Gamer de Jugador (`.card` / `.tarjeta` / `.playercard`)**: Genera una tarjeta visual personalizada con Jimp mostrando avatar circular con aura, barra dinámica de salud (HP), barra de experiencia (XP), puesto en el ranking global, fortuna acumulada y récord de minijuegos.
 - **Foto de Perfil HD (`.getpic`)**: Descarga la foto de perfil en máxima resolución de cualquier usuario o grupo.
 - **Personalización**: Ajuste de descripción (`.setdesc`), género (`.setgenre`), pasatiempo (`.sethobby`), fecha de cumpleaños (`.setbirth`) y eliminación selectiva (`.deldesc`, `.delgenre`, etc.).
 - **Sistema de Matrimonio**: Propuesta de casamiento (`.marry`), divorcio (`.divorce`) y acciones de pareja (`.cita`, `.mimos`, `.regalo`).

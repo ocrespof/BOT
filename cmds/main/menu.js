@@ -57,6 +57,7 @@ export default {
  ⊳ *${prefix}toimg* ➭ Convertir sticker a imagen
  ⊳ *${prefix}tourl* ➭ Subir archivo y obtener enlace web
  ⊳ *${prefix}music* ➭ Reconocimiento musical Shazam
+ ⊳ *${prefix}vc* / *${prefix}voicechanger* ➭ Modulador de voz (bass, nightcore, robot...)
  ⊳ *${prefix}clima* ➭ Consulta meteorológica en tiempo real
  ⊳ *${prefix}tiny* ➭ Acortador de URLs
  ⊳ *${prefix}tr* ➭ Traductor multilingüe
@@ -108,6 +109,7 @@ export default {
 > 👤  *P E R F I L   Y   P A R E J A S*
 > _Cuenta, Rangos y Relaciones_
  ⊳ *${prefix}profile* ➭ Ver ficha de perfil de usuario
+ ⊳ *${prefix}card* / *${prefix}tarjeta* ➭ Tarjeta gamer gráfica con stats RPG
  ⊳ *${prefix}getpic* ➭ Obtener foto de perfil en alta calidad
  ⊳ *${prefix}setdesc* / *${prefix}setgenre* / *${prefix}sethobby* ➭ Personalizar
  ⊳ *${prefix}setbirth* ➭ Registrar fecha de cumpleaños

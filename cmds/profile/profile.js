@@ -90,7 +90,9 @@ export default {
 
 ✦ ───「 *HABILIDADES* 」─── ✦
 🎖️ *Título:* ${user2.title ? (TITLE_NAMES[user2.title] || user2.title) : 'Ninguno'}
-🪄 *Buff:* ${activeBuff}`;
+🪄 *Buff:* ${activeBuff}
+
+> 💡 *Usa* \`${usedPrefix}card\` *para generar tu tarjeta de jugador gráfica.*`;
 
       await client.sendMessage(
         m.chat,
