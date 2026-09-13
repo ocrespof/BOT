@@ -44,6 +44,7 @@
     "human-readable": "^0.2.1",
     "jimp": "^1.6.1",
     "lodash": "^4.17.21",
+    "link-preview-js": "^3.0.13",
     "moment-timezone": "^0.5.37",
     "node-cache": "latest",
     "pdf-parse": "^1.1.1",

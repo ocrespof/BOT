@@ -335,15 +335,20 @@ async function startBot() {
         if (!isDebug) {
           const arg0 = inputArgs[0];
           const msg = String(arg0?.msg || inputArgs[1] || arg0 || '');
-          const trace = String(arg0?.trace || arg0?.err?.message || '');
+          const errorStr = String(arg0?.error || arg0?.err?.message || arg0?.err?.stack || arg0?.trace || '');
+          const combined = `${msg} ${errorStr} ${String(arg0?.name || '')}`.toLowerCase();
           if (
-            msg.includes('failed to obtain extra info') ||
-            msg.includes('failed to decrypt message') ||
-            msg.includes('transaction failed') ||
-            trace.includes('No image processing library') ||
-            trace.includes('No session found') ||
-            trace.includes('old counter') ||
-            trace.includes('decode mutation')
+            combined.includes('failed to obtain extra info') ||
+            combined.includes('failed to decrypt message') ||
+            combined.includes('transaction failed') ||
+            combined.includes('no image processing library') ||
+            combined.includes('no session found') ||
+            combined.includes('old counter') ||
+            combined.includes('decode mutation') ||
+            combined.includes('critical_unblock') ||
+            combined.includes('parking after') ||
+            combined.includes('link-preview-js') ||
+            combined.includes('url generation failed')
           ) {
             return;
           }
