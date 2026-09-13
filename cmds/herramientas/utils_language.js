@@ -2,7 +2,7 @@
  * 🌐 utils_language.js — Comandos lingüísticos, traducción, OCR e Inteligencia Artificial.
  * Reúne: chatgpt (ia), ocr, translate (tr), say
  */
-import { getAIResponse } from '../../utils/ai.js';
+import { getAIResponse, DEFAULT_AI_SYSTEM_PROMPT } from '../../utils/ai.js';
 import { getBotId, getGroupMeta } from '../../utils/tools.js';
 import translateGoogle from '@vitalets/google-translate-api';
 
@@ -103,10 +103,7 @@ const cmdChatGPT = {
       return m.reply(`> 🤖 *Escribe una pregunta o petición para la IA.*\n\n*📌 Ejemplo:* \`${usedPrefix + command} ¿Qué es la teoría de cuerdas?\``);
     }
 
-    const botId = getBotId(client);
-    const botname = global.db.data?.settings?.[botId]?.botname || 'YukiBot';
-    const username = global.db.data?.users?.[m.sender]?.name || 'Usuario';
-    const basePrompt = `Eres ${botname}, un asistente de IA rápido, preciso y útil. Proporciona respuestas claras, concisas y directas en español. Si el usuario solicita código o cálculos, sé exacto. El usuario actual es ${username}.`;
+    const basePrompt = DEFAULT_AI_SYSTEM_PROMPT;
 
     try {
       await m.react('🕒');
