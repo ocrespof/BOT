@@ -1,23 +1,154 @@
 import fs from 'fs';
-import path from 'path';
 import { spawn } from 'child_process';
+import { proto, prepareWAMessageMedia, generateWAMessageFromContent } from '@whiskeysockets/baileys';
 import { httpGet, httpPost, httpAxios as axios } from '../../utils/tools.js';
 import exif from '../../core/exif.js';
 const { writeExif } = exif;
 
+const VISUAL_URL_RE = /\.(jpe?g|png|gif|webp|mp4|mov|avi|mkv|webm)(\?.*)?$/i;
+const VIDEO_URL_RE = /\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i;
+const AUDIO_URL_RE = /\.(mp3|ogg|opus|wav|m4a|aac|flac)(\?.*)?$/i;
+const AUDIO_FLAGS = new Set(['-audio', '-sonido', '-sound', '-a']);
+const MAX_AUDIO_STICKER_SECONDS = 10;
+
+// Registra dinámicamente los campos de sticker con audio si la versión de WAProto no los incluye aún
+const ensureAudioStickerProto = () => {
+  const msgType = proto?.Message?.$type;
+  if (!msgType) return;
+  const sampleField = msgType.fields?.stickerMessage || Object.values(msgType.fields || {})[0];
+  const FieldCtor = sampleField?.constructor;
+  if (!FieldCtor) return;
+
+  let changed = false;
+  if (!msgType.fieldsById?.[134] && !msgType.fields?.audioStickerMessage) {
+    const futureProofType =
+      msgType.fields?.lottieStickerMessage?.type ||
+      msgType.fields?.viewOnceMessage?.type ||
+      'FutureProofMessage';
+    msgType.add(new FieldCtor('audioStickerMessage', 134, futureProofType));
+    changed = true;
+  }
+
+  const stickerType =
+    proto.Message.StickerMessage?.$type ||
+    msgType.fields?.stickerMessage?.resolvedType;
+  if (stickerType && !stickerType.fieldsById?.[26] && !stickerType.fields?.audioMessage) {
+    const audioMsgType = msgType.fields?.audioMessage?.type || 'AudioMessage';
+    stickerType.add(new FieldCtor('audioMessage', 26, audioMsgType));
+    changed = true;
+  }
+
+  if (changed && typeof msgType.resolveAll === 'function') {
+    msgType.resolveAll();
+  }
+};
+
+const createTmpPath = (prefix, ext) => {
+  if (!fs.existsSync('./tmp')) fs.mkdirSync('./tmp', { recursive: true });
+  return `./tmp/${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+};
+
+const safeUnlink = (filePath) => {
+  if (!filePath) return;
+  try { fs.unlinkSync(filePath); } catch {}
+};
+
+const runBinary = (cmd, cmdArgs) => new Promise((resolve, reject) => {
+  const p = spawn(cmd, cmdArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+  let stdout = '';
+  let stderr = '';
+  p.stdout.on('data', (d) => stdout += d.toString());
+  p.stderr.on('data', (d) => stderr += d.toString());
+  p.on('error', reject);
+  p.on('close', (code) => {
+    if (code === 0) resolve({ stdout, stderr });
+    else reject(new Error(stderr || `${cmd} salió con código ${code}`));
+  });
+});
+
+const probeAudioDuration = async (filePath) => {
+  try {
+    const { stdout } = await runBinary('ffprobe', [
+      '-v', 'error',
+      '-select_streams', 'a:0',
+      '-show_entries', 'stream=duration',
+      '-of', 'default=noprint_wrappers=1:nokey=1',
+      filePath
+    ]);
+    const val = parseFloat(stdout.trim().split(/\s+/)[0]);
+    if (Number.isFinite(val) && val > 0) {
+      return Math.min(MAX_AUDIO_STICKER_SECONDS, Math.max(1, Math.round(val)));
+    }
+  } catch {}
+  return null;
+};
+
+const encodeAudioToOpus = async (inputPath, maxSeconds = MAX_AUDIO_STICKER_SECONDS) => {
+  const outputPath = createTmpPath('stkaudio', 'ogg');
+  try {
+    await runBinary('ffmpeg', [
+      '-y',
+      '-i', inputPath,
+      '-vn',
+      '-t', String(maxSeconds),
+      '-c:a', 'libopus',
+      '-b:a', '48k',
+      '-ac', '1',
+      '-ar', '48000',
+      '-avoid_negative_ts', 'make_zero',
+      outputPath
+    ]);
+    const duration = await probeAudioDuration(outputPath);
+    return { buffer: fs.readFileSync(outputPath), duration };
+  } catch (err) {
+    if (/does not contain any stream|matches no streams/i.test(err.message)) {
+      throw new Error('El video o archivo no contiene una pista de audio válida.');
+    }
+    throw err;
+  } finally {
+    safeUnlink(outputPath);
+  }
+};
+
+const isAnimatedWebp = (buffer) => {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 32) return false;
+  return buffer.indexOf(Buffer.from('ANIM')) !== -1 || buffer.indexOf(Buffer.from('ANMF')) !== -1;
+};
+
+const fetchBufferFromUrl = async (url) => {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('No pude descargar ese archivo desde la URL.');
+  return Buffer.from(await response.arrayBuffer());
+};
+
+const getExtFromMimeOrUrl = (mime = '', url = '') => {
+  if (/webp/i.test(mime) || /\.webp(\?.*)?$/i.test(url)) return 'webp';
+  if (/png/i.test(mime) || /\.png(\?.*)?$/i.test(url)) return 'png';
+  if (/jpe?g/i.test(mime) || /\.jpe?g(\?.*)?$/i.test(url)) return 'jpg';
+  if (/gif/i.test(mime) || /\.gif(\?.*)?$/i.test(url)) return 'gif';
+  if (/video/i.test(mime) || VIDEO_URL_RE.test(url)) return 'mp4';
+  if (/mpeg|mp3/i.test(mime) || /\.mp3(\?.*)?$/i.test(url)) return 'mp3';
+  if (/ogg|opus/i.test(mime) || /\.(ogg|opus)(\?.*)?$/i.test(url)) return 'ogg';
+  if (/mp4|m4a/i.test(mime) || /\.m4a(\?.*)?$/i.test(url)) return 'm4a';
+  if (/wav/i.test(mime) || /\.wav(\?.*)?$/i.test(url)) return 'wav';
+  if (/aac/i.test(mime) || /\.aac(\?.*)?$/i.test(url)) return 'aac';
+  if (/flac/i.test(mime) || /\.flac(\?.*)?$/i.test(url)) return 'flac';
+  if (/audio/i.test(mime) || AUDIO_URL_RE.test(url)) return 'ogg';
+  return 'bin';
+};
+
 export default {
-  command: ['sticker', 's'],
+  command: ['sticker', 's', 'saudio', 'stickeraudio', 'audiosticker'],
   category: 'stickers',
   heavy: true,
-  desc: 'Crear sticker.',
+  desc: 'Crear sticker (con soporte para stickers con audio).',
   run: async (client, m, args, usedPrefix, command) => {
     try {
       if (args[0] === '-list') {
-        let helpText = `Lista de Formas y Efectos Disponibles para *imagen*:\n\n✦ *Formas:*\n- -c : Crea un sticker circular\n- -t : Crea un sticker triangular\n- -s : Crea un sticker con forma de estrella\n- -r : Crea un sticker con esquinas redondeadas\n- -h : Crea un sticker hexagonal\n- -d : Crea un sticker con forma de diamante\n- -f : Crea un sticker con un marco\n- -b : Crea un sticker con un borde\n- -w : Crea un sticker con forma de onda\n- -m : Crea un sticker espejado\n- -o : Crea un sticker octogonal\n- -y : Crea un sticker pentagonal\n- -e : Crea un sticker elíptico\n- -z : Crea un sticker en forma de cruz\n- -v : Crea un sticker con forma de corazón\n- -x : Crea un sticker expandido (cover)\n- -i : Crea un sticker expandido (contain)\n\n✧ *Efectos:*\n- -blur : Aplica un efecto de desenfoque\n- -sepia : Aplica un efecto sepia\n- -sharpen : Aplica un efecto de nitidez\n- -brighten : Aumenta el brillo\n- -darken : Disminuye el brillo\n- -invert : Invierte los colores\n- -grayscale : Aplica escala de grises\n- -rotate90 : Rota la imagen 90 grados\n- -rotate180 : Rota la imagen 180 grados\n- -flip : Invierte la imagen horizontalmente\n- -flop : Invierte la imagen verticalmente\n- -normalice : Normaliza la imagen\n- -negate : Negatiza la imagen\n- -tint : Aplica un tinte de color a la imagen (rojo por defecto)\n\nEjemplo: *${usedPrefix + command} -c -blur Pack | Autor*`;
+        let helpText = `Lista de Formas y Efectos Disponibles para *imagen*:\n\n✦ *Formas:*\n- -c : Crea un sticker circular\n- -t : Crea un sticker triangular\n- -s : Crea un sticker con forma de estrella\n- -r : Crea un sticker con esquinas redondeadas\n- -h : Crea un sticker hexagonal\n- -d : Crea un sticker con forma de diamante\n- -f : Crea un sticker con un marco\n- -b : Crea un sticker con un borde\n- -w : Crea un sticker con forma de onda\n- -m : Crea un sticker espejado\n- -o : Crea un sticker octogonal\n- -y : Crea un sticker pentagonal\n- -e : Crea un sticker elíptico\n- -z : Crea un sticker en forma de cruz\n- -v : Crea un sticker con forma de corazón\n- -x : Crea un sticker expandido (cover)\n- -i : Crea un sticker expandido (contain)\n\n✧ *Efectos:*\n- -blur : Aplica un efecto de desenfoque\n- -sepia : Aplica un efecto sepia\n- -sharpen : Aplica un efecto de nitidez\n- -brighten : Aumenta el brillo\n- -darken : Disminuye el brillo\n- -invert : Invierte los colores\n- -grayscale : Aplica escala de grises\n- -rotate90 : Rota la imagen 90 grados\n- -rotate180 : Rota la imagen 180 grados\n- -flip : Invierte la imagen horizontalmente\n- -flop : Invierte la imagen verticalmente\n- -normalice : Normaliza la imagen\n- -negate : Negatiza la imagen\n- -tint : Aplica un tinte de color a la imagen (rojo por defecto)\n\n🔊 *Sticker con Audio:*\n- -audio / -sonido : Agrega audio al sticker (máx. ${MAX_AUDIO_STICKER_SECONDS}s)\n  • Envía o responde a un *video con audio*\n  • O envía una *imagen/sticker* respondiendo a un *audio*\n  • También puedes usar *${usedPrefix}saudio*\n\nEjemplo: *${usedPrefix + command} -c -blur Pack | Autor*`;
         return client.reply(m.chat, helpText, m);
       }
-      const quoted = m.quoted ? m.quoted : m;
-      const mime = (quoted.msg || quoted).mimetype || '';
+
       const db = global.db.data;
       const senderToUse = m.quoted ? m.quoted.sender : m.sender;
       const user = db.users[senderToUse] || {};
@@ -30,19 +161,25 @@ export default {
       const meta2 = user.metadatos2 ? String(user.metadatos2).trim() : '';
       let texto1 = meta1 ? meta1 : 'YukiBot Stickers';
       let texto2 = meta1 ? (meta2 ? meta2 : '') : displayName;
-      let urlArg = null;
-      let argsWithoutUrl = [];
-      for (let arg of args) {
+
+      const urlArgs = [];
+      const argsWithoutUrl = [];
+      for (const arg of args) {
         if (isUrl(arg)) {
-          urlArg = arg;
+          urlArgs.push(arg);
         } else {
           argsWithoutUrl.push(arg);
         }
       }
+      const urlArg = urlArgs[0] || null;
+      const wantAudio = /^(saudio|stickeraudio|audiosticker)$/i.test(command) ||
+        argsWithoutUrl.some(arg => AUDIO_FLAGS.has(arg.toLowerCase()));
+
       let filteredText = argsWithoutUrl.join(' ').replace(/-\w+/g, '').trim();
       let marca = filteredText.split(/[\u2022|]/).map(part => part.trim());
       let pack = marca[0] || texto1;
       let author = marca.length > 1 ? marca[1] : texto2;
+
       const shapeArgs = { '-c': 'circle', '-t': 'triangle', '-s': 'star', '-r': 'roundrect', '-h': 'hexagon', '-d': 'diamond', '-f': 'frame', '-b': 'border', '-w': 'wave', '-m': 'mirror', '-o': 'octagon', '-y': 'pentagon', '-e': 'ellipse', '-z': 'cross', '-v': 'heart', '-x': 'cover', '-i': 'contain' };
       const effectArgs = { '-blur': 'blur', '-sepia': 'sepia', '-sharpen': 'sharpen', '-brighten': 'brighten', '-darken': 'darken', '-invert': 'invert', '-grayscale': 'grayscale', '-rotate90': 'rotate90', '-rotate180': 'rotate180', '-flip': 'flip', '-flop': 'flop', '-normalice': 'normalise', '-negate': 'negate', '-tint': 'tint' };
       const effects = [];
@@ -50,104 +187,274 @@ export default {
         if (shapeArgs[arg]) effects.push({ type: 'shape', value: shapeArgs[arg] });
         else if (effectArgs[arg]) effects.push({ type: 'effect', value: effectArgs[arg] });
       }
-      const sendWebpWithExif = async (webpBuffer) => {
+
+      const applyExif = async (webpBuffer) => {
         const media = { mimetype: 'webp', data: webpBuffer };
         const metadata = { packname: pack, author: author, categories: [''] };
-        const stickerBuffer = await writeExif(media, metadata);
+        return writeExif(media, metadata);
+      };
+
+      const sendWebpWithExif = async (webpBuffer) => {
+        const stickerBuffer = await applyExif(webpBuffer);
         await client.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m });
       };
+
+      const sendAudioStickerWithExif = async (webpBuffer, oggBuffer, durationSec) => {
+        ensureAudioStickerProto();
+        const stickerBuffer = await applyExif(webpBuffer);
+        const animated = isAnimatedWebp(stickerBuffer);
+
+        const [stickerMedia, audioMedia] = await Promise.all([
+          prepareWAMessageMedia(
+            { sticker: stickerBuffer },
+            { upload: client.waUploadToServer }
+          ),
+          prepareWAMessageMedia(
+            { audio: oggBuffer, mimetype: 'audio/ogg; codecs=opus', ptt: false },
+            { upload: client.waUploadToServer }
+          )
+        ]);
+
+        const contextInfo = {};
+        if (m?.key?.id) {
+          contextInfo.stanzaId = m.key.id;
+          contextInfo.participant = m.sender || m.key.participant || m.chat;
+          if (m.message) contextInfo.quotedMessage = m.message;
+        }
+        if (m?.expiration) contextInfo.expiration = m.expiration;
+
+        const stickerMessage = {
+          ...stickerMedia.stickerMessage,
+          mimetype: stickerMedia.stickerMessage?.mimetype || 'image/webp',
+          isAnimated: animated,
+          width: stickerMedia.stickerMessage?.width || 512,
+          height: stickerMedia.stickerMessage?.height || 512,
+          stickerSentTs: Date.now(),
+          audioMessage: {
+            ...audioMedia.audioMessage,
+            mimetype: 'audio/ogg; codecs=opus',
+            seconds: durationSec || audioMedia.audioMessage?.seconds || 1,
+            ptt: false
+          },
+          ...(Object.keys(contextInfo).length ? { contextInfo } : {})
+        };
+
+        const waMsg = generateWAMessageFromContent(
+          m.chat,
+          { audioStickerMessage: { message: { stickerMessage } } },
+          { userJid: client.user?.jid || client.user?.id }
+        );
+
+        await client.relayMessage(m.chat, waMsg.message, { messageId: waMsg.key.id });
+      };
+
       const convertToGif = async (inputPath) => {
-        const gifPath = `./tmp/conv-${Date.now()}.gif`;
-        await new Promise((resolve, reject) => {
-          const p = spawn('ffmpeg', ['-y', '-i', inputPath, '-vf', 'fps=10,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000', '-loop', '0', gifPath]);
-          let err = '';
-          p.stderr.on('data', (d) => err += d.toString());
-          p.on('close', (code) => { if (code === 0) resolve(); else reject(new Error(err)); });
-        });
+        const gifPath = createTmpPath('conv', 'gif');
+        await runBinary('ffmpeg', [
+          '-y', '-i', inputPath,
+          '-vf', 'fps=10,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000',
+          '-loop', '0', gifPath
+        ]);
         return gifPath;
       };
-      const processWithFFmpeg = async (inputPath, isVideo = false) => {
-        const outputPath = `./tmp/sticker-${Date.now()}.webp`;
+
+      const encodeWebpWithFFmpeg = async (inputPath, maxSeconds = null) => {
+        const outputPath = createTmpPath('sticker', 'webp');
         const vf = buildFFmpegFilters(effects);
-        let ffmpegArgs = ['-y', '-i', inputPath, '-vf', vf, '-an', '-fps_mode', 'passthrough', '-c:v', 'libwebp_anim', '-preset', 'picture', '-compression_level', '6', '-q:v', '70', '-loop', '0', outputPath];
-        await new Promise((resolve, reject) => {
-          const p = spawn('ffmpeg', ffmpegArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
-          let err = '';
-          p.stderr.on('data', (d) => err += d.toString());
-          p.on('close', (code) => { if (code === 0) resolve(); else reject(new Error(err)); });
-        });
+        const ffmpegArgs = [
+          '-y', '-i', inputPath,
+          ...(maxSeconds ? ['-t', String(maxSeconds)] : []),
+          '-vf', vf, '-an', '-fps_mode', 'passthrough',
+          '-c:v', 'libwebp_anim', '-preset', 'picture', '-compression_level', '6', '-q:v', '70', '-loop', '0',
+          outputPath
+        ];
         try {
-          const data = fs.readFileSync(outputPath);
-          await sendWebpWithExif(data);
+          await runBinary('ffmpeg', ffmpegArgs);
+          return fs.readFileSync(outputPath);
         } finally {
-          try { fs.unlinkSync(outputPath); } catch {}
+          safeUnlink(outputPath);
         }
       };
-      const isAnimatedWebp = (buffer) => {
-        if (!Buffer.isBuffer(buffer) || buffer.length < 32) return false;
-        return buffer.indexOf(Buffer.from('ANIM')) !== -1 || buffer.indexOf(Buffer.from('ANMF')) !== -1;
-      };
-      const handleWebpBuffer = async (buffer) => {
+
+      const resolveWebpBufferFromWebp = async (buffer, maxSeconds = null) => {
         const animated = isAnimatedWebp(buffer);
-        const inputPath = `./tmp/in-${Date.now()}.webp`;
+        if (animated && effects.length === 0) return buffer;
+
+        const inputPath = createTmpPath('in', 'webp');
         fs.writeFileSync(inputPath, buffer);
         try {
           if (animated && effects.length > 0) {
             try {
               const gifPath = await convertToGif(inputPath);
-              try { await processWithFFmpeg(gifPath, true); } finally { try { fs.unlinkSync(gifPath); } catch {} }
-            } catch (e) {
-              await sendWebpWithExif(buffer);
+              try {
+                return await encodeWebpWithFFmpeg(gifPath, maxSeconds);
+              } finally {
+                safeUnlink(gifPath);
+              }
+            } catch {
+              return buffer;
             }
-          } else if (animated && effects.length === 0) {
-            await sendWebpWithExif(buffer);
-          } else {
-            await processWithFFmpeg(inputPath);
           }
+          return await encodeWebpWithFFmpeg(inputPath, maxSeconds);
         } finally {
-          try { fs.unlinkSync(inputPath); } catch {}
+          safeUnlink(inputPath);
         }
       };
+
+      if (wantAudio) {
+        const selfMime = (m.msg || m).mimetype || '';
+        const quotedMime = (m.quoted?.msg || m.quoted)?.mimetype || '';
+        const visualUrl = urlArgs.find(u => VISUAL_URL_RE.test(u)) || null;
+        const audioUrl = urlArgs.find(u => AUDIO_URL_RE.test(u)) || null;
+
+        const visualMsg = /image|webp|video/i.test(selfMime)
+          ? m
+          : /image|webp|video/i.test(quotedMime)
+            ? m.quoted
+            : null;
+        const audioMsg = /audio/i.test(quotedMime)
+          ? m.quoted
+          : /audio/i.test(selfMime)
+            ? m
+            : (/video/i.test(quotedMime) && visualMsg === m)
+              ? m.quoted
+              : null;
+
+        const hasVideoVisual = visualMsg
+          ? /video/i.test((visualMsg.msg || visualMsg).mimetype || '')
+          : Boolean(visualUrl && VIDEO_URL_RE.test(visualUrl));
+
+        if (!visualMsg && !visualUrl) {
+          return client.reply(
+            m.chat,
+            `🔊 Para crear un sticker con audio, envía o responde a un *video con sonido*, o envía una *imagen/sticker/video* respondiendo a un *audio*.\nEjemplo: *${usedPrefix + command} -audio*`,
+            m
+          );
+        }
+
+        if (!audioMsg && !audioUrl && !hasVideoVisual) {
+          return client.reply(
+            m.chat,
+            `🔊 No encontré una pista de audio. Envía o responde a un *video con sonido*, o responde a un *audio* mientras envías una imagen/sticker (o agrega la URL del audio).`,
+            m
+          );
+        }
+
+        if (visualMsg && /video/i.test((visualMsg.msg || visualMsg).mimetype || '') && (visualMsg.msg || visualMsg).seconds > 20) {
+          return m.reply(' El video no puede ser muy largo');
+        }
+
+        let visualTmpPath = null;
+        let audioTmpPath = null;
+        try {
+          let webpBuffer;
+          if (visualMsg) {
+            const vMime = (visualMsg.msg || visualMsg).mimetype || '';
+            const vBuf = await visualMsg.download();
+            if (/webp/i.test(vMime)) {
+              webpBuffer = await resolveWebpBufferFromWebp(vBuf, MAX_AUDIO_STICKER_SECONDS);
+            } else {
+              const ext = getExtFromMimeOrUrl(vMime);
+              visualTmpPath = createTmpPath('vis', ext);
+              fs.writeFileSync(visualTmpPath, vBuf);
+              webpBuffer = await encodeWebpWithFFmpeg(visualTmpPath, /video|gif/i.test(vMime) ? MAX_AUDIO_STICKER_SECONDS : null);
+            }
+          } else {
+            const vBuf = await fetchBufferFromUrl(visualUrl);
+            if (/\.webp(\?.*)?$/i.test(visualUrl)) {
+              webpBuffer = await resolveWebpBufferFromWebp(vBuf, MAX_AUDIO_STICKER_SECONDS);
+            } else {
+              const ext = getExtFromMimeOrUrl('', visualUrl);
+              visualTmpPath = createTmpPath('urlvis', ext);
+              fs.writeFileSync(visualTmpPath, vBuf);
+              webpBuffer = await encodeWebpWithFFmpeg(visualTmpPath, (VIDEO_URL_RE.test(visualUrl) || /\.gif/i.test(visualUrl)) ? MAX_AUDIO_STICKER_SECONDS : null);
+            }
+          }
+
+          let audioInputPath;
+          let fallbackDuration = null;
+          if (audioMsg) {
+            const aMime = (audioMsg.msg || audioMsg).mimetype || '';
+            fallbackDuration = Number((audioMsg.msg || audioMsg).seconds) || null;
+            const aBuf = await audioMsg.download();
+            audioTmpPath = createTmpPath('aud', getExtFromMimeOrUrl(aMime));
+            fs.writeFileSync(audioTmpPath, aBuf);
+            audioInputPath = audioTmpPath;
+          } else if (audioUrl) {
+            const aBuf = await fetchBufferFromUrl(audioUrl);
+            audioTmpPath = createTmpPath('urlaud', getExtFromMimeOrUrl('', audioUrl));
+            fs.writeFileSync(audioTmpPath, aBuf);
+            audioInputPath = audioTmpPath;
+          } else {
+            // Reutiliza el mismo archivo de video para extraer la pista de audio
+            fallbackDuration = visualMsg ? Number((visualMsg.msg || visualMsg).seconds) || null : null;
+            audioInputPath = visualTmpPath;
+          }
+
+          const { buffer: oggBuffer, duration } = await encodeAudioToOpus(audioInputPath, MAX_AUDIO_STICKER_SECONDS);
+          const finalDuration = duration || (fallbackDuration ? Math.min(MAX_AUDIO_STICKER_SECONDS, Math.max(1, Math.round(fallbackDuration))) : 5);
+          await sendAudioStickerWithExif(webpBuffer, oggBuffer, finalDuration);
+          return;
+        } finally {
+          safeUnlink(visualTmpPath);
+          safeUnlink(audioTmpPath);
+        }
+      }
+
+      const quoted = m.quoted ? m.quoted : m;
+      const mime = (quoted.msg || quoted).mimetype || '';
+
       if (/image/.test(mime) || /webp/.test(mime)) {
-        let buffer = await quoted.download();
+        const buffer = await quoted.download();
         if (/webp/.test(mime)) {
-          await handleWebpBuffer(buffer);
+          await sendWebpWithExif(await resolveWebpBufferFromWebp(buffer));
         } else {
-          const ext = /png/i.test(mime) ? 'png' : /jpe?g/i.test(mime) ? 'jpg' : /gif/i.test(mime) ? 'gif' : 'img';
-          const inputPath = `./tmp/in-${Date.now()}.${ext}`;
+          const ext = getExtFromMimeOrUrl(mime);
+          const inputPath = createTmpPath('in', ext);
           fs.writeFileSync(inputPath, buffer);
-          try { await processWithFFmpeg(inputPath, /gif/i.test(mime)); } finally { try { fs.unlinkSync(inputPath); } catch {} }
+          try {
+            await sendWebpWithExif(await encodeWebpWithFFmpeg(inputPath));
+          } finally {
+            safeUnlink(inputPath);
+          }
         }
       } else if (/video/.test(mime)) {
         if ((quoted.msg || quoted).seconds > 20) {
           return m.reply(' El video no puede ser muy largo');
         }
-        let buffer = await quoted.download();
-        const inputPath = `./tmp/video-${Date.now()}.mp4`;
+        const buffer = await quoted.download();
+        const inputPath = createTmpPath('video', 'mp4');
         fs.writeFileSync(inputPath, buffer);
-        try { await processWithFFmpeg(inputPath, true); } finally { try { fs.unlinkSync(inputPath); } catch {} }
+        try {
+          await sendWebpWithExif(await encodeWebpWithFFmpeg(inputPath));
+        } finally {
+          safeUnlink(inputPath);
+        }
       } else if (urlArg) {
         const url = urlArg;
-        if (!url.match(/\.(jpe?g|png|gif|webp|mp4|mov|avi|mkv|webm)(\?.*)?$/i)) {
+        if (!VISUAL_URL_RE.test(url)) {
           return client.reply(m.chat, ' La URL debe ser de una imagen (jpg, png, gif, webp) o video (mp4, mov, avi, mkv, webm)', m);
         }
-        const response = await fetch(url);
-        if (!response.ok) return client.reply(m.chat, ' No pude descargar ese archivo desde la URL.', m);
-        const buffer = Buffer.from(await response.arrayBuffer());
-        if (url.match(/\.webp(\?.*)?$/i)) {
-          await handleWebpBuffer(buffer);
-        } else if (url.match(/\.(jpe?g|png|gif)(\?.*)?$/i)) {
-          const ext = url.match(/\.gif/i) ? 'gif' : 'img';
-          const inputPath = `./tmp/url-${Date.now()}.${ext}`;
+        let buffer;
+        try {
+          buffer = await fetchBufferFromUrl(url);
+        } catch {
+          return client.reply(m.chat, ' No pude descargar ese archivo desde la URL.', m);
+        }
+        if (/\.webp(\?.*)?$/i.test(url)) {
+          await sendWebpWithExif(await resolveWebpBufferFromWebp(buffer));
+        } else {
+          const ext = getExtFromMimeOrUrl('', url);
+          const inputPath = createTmpPath('url', ext);
           fs.writeFileSync(inputPath, buffer);
-          try { await processWithFFmpeg(inputPath, /gif/i.test(url)); } finally { try { fs.unlinkSync(inputPath); } catch {} }
-        } else if (url.match(/\.(mp4|mov|avi|mkv|webm)(\?.*)?$/i)) {
-          const inputPath = `./tmp/urlvid-${Date.now()}.mp4`;
-          fs.writeFileSync(inputPath, buffer);
-          try { await processWithFFmpeg(inputPath, true); } finally { try { fs.unlinkSync(inputPath); } catch {} }
+          try {
+            await sendWebpWithExif(await encodeWebpWithFFmpeg(inputPath));
+          } finally {
+            safeUnlink(inputPath);
+          }
         }
       } else {
-        return client.reply(m.chat, ` Por favor, envía una imagen, video, sticker o URL para hacer un sticker.\nUsa *${usedPrefix + command} -list* para ver formas y efectos`, m);
+        return client.reply(m.chat, ` Por favor, envía una imagen, video, sticker o URL para hacer un sticker.\nUsa *${usedPrefix + command} -list* para ver formas, efectos y sticker con audio.`, m);
       }
     } catch (e) {
       return m.reply(`> Error al ejecutar el comando.\n[Error: *${e.message}*]`);
