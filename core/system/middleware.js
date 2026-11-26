@@ -132,6 +132,9 @@ const ALLOWED_IN_PRIVATE = new Set([
   // Stickers
   "s",
   "sticker",
+  "saudio",
+  "stickeraudio",
+  "audiosticker",
   "wm",
   "take",
   "brat",
